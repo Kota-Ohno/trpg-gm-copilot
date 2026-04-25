@@ -25,13 +25,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./com
 import { Input } from "./components/ui/input";
 import { Tabs } from "./components/ui/tabs";
 import { Textarea } from "./components/ui/textarea";
-import { initialChronicle, mockExtraction, prepNote, sampleLiveLog, sampleLog } from "./data/sample";
+import { initialChronicle, mockExtraction, sampleLiveLog, sampleLog } from "./data/sample";
 import type {
   CampaignState,
   Chronicle,
   ExtractionRun,
   ExtractionItem,
   LiveLogSession,
+  PrepNote,
   SessionState,
   SpeakerRole,
   Speaker,
@@ -455,6 +456,55 @@ function createNewSession(index: number): SessionState {
   };
 }
 
+function uniqueItems(items: string[]): string[] {
+  return Array.from(new Set(items.filter((item) => item.trim().length > 0)));
+}
+
+function getApprovedItems(session: SessionState): ExtractionItem[] {
+  return session.extractionItems.filter((item) => session.approvedIds.includes(item.id));
+}
+
+function generatePrepNote(chronicle: Chronicle, sessions: SessionState[], activeSession: SessionState): PrepNote {
+  const approvedItems = getApprovedItems(activeSession);
+  const latestEvents = uniqueItems([
+    ...approvedItems.filter((item) => item.kind === "出来事").map((item) => item.detail),
+    ...chronicle.events.slice(-3),
+  ]).slice(0, 3);
+  const clueHooks = chronicle.clues.slice(-3).map((clue) => `${clue.title}: ${clue.detail}`);
+  const threadHooks = chronicle.threads.slice(-3).map((thread) => `${thread.title}: ${thread.nextMove}`);
+  const hooks = uniqueItems([...threadHooks, ...clueHooks]).slice(0, 4);
+  const openQuestions = uniqueItems([
+    ...chronicle.threads.map((thread) => `${thread.title}: ${thread.detail}`),
+    ...chronicle.clues
+      .filter((clue) => clue.status !== "known")
+      .map((clue) => `${clue.title}: まだ全貌がPLに見えていない。`),
+  ]).slice(0, 4);
+  const hiddenClues = chronicle.clues
+    .filter((clue) => clue.status === "hidden" || clue.status === "partial")
+    .map((clue) => `${clue.title}をどこまで開示するか決める。`);
+  const approvedSecrets = approvedItems
+    .filter((item) => item.visibility !== "PL既知")
+    .map((item) => `${item.title}はPLに出す前に意図を確認する。`);
+
+  return {
+    shortRecap:
+      latestEvents.length > 0
+        ? latestEvents
+        : [`${activeSession.title}のログを整理して、採用する出来事を承認してください。`],
+    hooks: hooks.length > 0 ? hooks : ["承認済みの手がかりや伏線が増えると、次回導入案がここに出ます。"],
+    openQuestions:
+      openQuestions.length > 0
+        ? openQuestions
+        : ["未解決の問いは、伏線や一部既知/GM秘密の手がかりから生成されます。"],
+    reminders: uniqueItems([
+      `${sessions.length}セッション分のログをキャンペーン記憶に積み上げ中。`,
+      ...hiddenClues,
+      ...approvedSecrets,
+      ...chronicle.npcs.slice(-2).map((npc) => `${npc.name}: ${npc.attitude}`),
+    ]).slice(0, 4),
+  };
+}
+
 function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chronicle {
   if (item.kind === "NPC") {
     return {
@@ -528,6 +578,10 @@ export function App() {
 
   const approvedCount = approvedIds.length;
   const remainingCount = items.length - approvedCount;
+  const dynamicPrepNote = useMemo(
+    () => generatePrepNote(chronicle, campaignState.sessions, currentSession),
+    [campaignState.sessions, chronicle, currentSession],
+  );
 
   const progress = useMemo(() => {
     if (items.length === 0) {
@@ -971,10 +1025,21 @@ export function App() {
 
             {activeTab === "prep" && (
               <div className="grid gap-4">
-                <PrepSection title="3行あらすじ" items={prepNote.shortRecap} icon={FileText} />
-                <PrepSection title="次回導入案" items={prepNote.hooks} icon={Compass} />
-                <PrepSection title="未解決の問い" items={prepNote.openQuestions} icon={Search} />
-                <PrepSection title="GM確認メモ" items={prepNote.reminders} icon={KeyRound} />
+                <Card>
+                  <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
+                    <div>
+                      <p className="text-sm font-medium">{currentSession.title} から次回準備</p>
+                      <p className="text-xs text-muted-foreground">
+                        承認済み記憶と現在のセッション状態から自動で組み立てています。
+                      </p>
+                    </div>
+                    <Badge variant="outline">{campaignState.sessions.length}セッション</Badge>
+                  </CardContent>
+                </Card>
+                <PrepSection title="3行あらすじ" items={dynamicPrepNote.shortRecap} icon={FileText} />
+                <PrepSection title="次回導入案" items={dynamicPrepNote.hooks} icon={Compass} />
+                <PrepSection title="未解決の問い" items={dynamicPrepNote.openQuestions} icon={Search} />
+                <PrepSection title="GM確認メモ" items={dynamicPrepNote.reminders} icon={KeyRound} />
               </div>
             )}
           </div>
