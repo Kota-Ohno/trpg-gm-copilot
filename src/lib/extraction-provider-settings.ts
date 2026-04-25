@@ -21,14 +21,14 @@ export const extractionProviders: ProviderDefinition[] = [
     label: "OpenAI",
     defaultModel: "gpt-4.1-mini",
     defaultEndpoint: "https://api.openai.com/v1",
-    status: "planned",
+    status: "available",
   },
   {
     id: "ollama",
     label: "Ollama",
     defaultModel: "llama3.1",
     defaultEndpoint: "http://localhost:11434",
-    status: "planned",
+    status: "available",
   },
 ];
 

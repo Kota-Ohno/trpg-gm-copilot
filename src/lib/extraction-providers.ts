@@ -50,8 +50,20 @@ type OpenAiResponseBody = {
   };
 };
 
-function normalizeEndpoint(endpoint: string): string {
-  return (endpoint.trim() || "https://api.openai.com/v1").replace(/\/+$/, "");
+type OllamaResponseBody = {
+  response?: unknown;
+  error?: string;
+};
+
+function normalizeEndpoint(endpoint: string, fallbackEndpoint: string): string {
+  return (endpoint.trim() || fallbackEndpoint).replace(/\/+$/, "");
+}
+
+function joinEndpoint(endpoint: string, path: string): string {
+  const normalizedEndpoint = endpoint.replace(/\/+$/, "");
+  const normalizedPath = path.replace(/^\/+/, "");
+
+  return `${normalizedEndpoint}/${normalizedPath}`;
 }
 
 function extractOpenAiText(responseBody: OpenAiResponseBody): string {
@@ -125,7 +137,8 @@ async function runOpenAiExtraction(request: ExtractionRequest, context: Provider
   }
 
   try {
-    const response = await fetch(`${normalizeEndpoint(request.settings.endpoint)}/responses`, {
+    const endpoint = normalizeEndpoint(request.settings.endpoint, "https://api.openai.com/v1");
+    const response = await fetch(joinEndpoint(endpoint, "responses"), {
       method: "POST",
       headers: {
         Authorization: `Bearer ${request.settings.apiKey.trim()}`,
@@ -184,6 +197,63 @@ async function runOpenAiExtraction(request: ExtractionRequest, context: Provider
   }
 }
 
+async function runOllamaExtraction(request: ExtractionRequest, context: ProviderContext): Promise<ExtractionResult> {
+  try {
+    const endpoint = normalizeEndpoint(request.settings.endpoint, "http://localhost:11434");
+    const response = await fetch(joinEndpoint(endpoint, "api/generate"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: request.settings.model.trim() || "llama3.1",
+        prompt: context.prompt,
+        stream: false,
+        format: extractionResponseJsonSchema.schema,
+      }),
+    });
+
+    const responseBody = (await response.json()) as OllamaResponseBody;
+    if (!response.ok) {
+      return buildRuleBasedFallback(
+        request,
+        context,
+        "Ollama API エラーのため、ルールベース抽出にフォールバックしました。",
+        [responseBody.error ?? `HTTP ${response.status}`],
+      );
+    }
+
+    const responseText = typeof responseBody.response === "string" ? responseBody.response : "";
+    const result = buildLlmExtractionResult(responseText, request);
+    if (result.items.length === 0) {
+      return buildRuleBasedFallback(
+        request,
+        context,
+        "Ollama レスポンスから抽出候補を作れなかったため、ルールベース抽出にフォールバックしました。",
+        result.run.validationErrors,
+      );
+    }
+
+    return {
+      ...result,
+      run: {
+        ...result.run,
+        note: "Ollama レスポンスをJSONスキーマに沿って正規化しました。",
+        promptVersion: `extraction-v1:${context.prompt.length}`,
+      },
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Ollama API 呼び出しに失敗しました。";
+
+    return buildRuleBasedFallback(
+      request,
+      context,
+      "Ollama API 呼び出しに失敗したため、ルールベース抽出にフォールバックしました。",
+      [message],
+    );
+  }
+}
+
 export async function runExtractionProvider({
   log,
   liveLog,
@@ -202,6 +272,10 @@ export async function runExtractionProvider({
 
   if (provider.id === "openai") {
     return runOpenAiExtraction(request, context);
+  }
+
+  if (provider.id === "ollama") {
+    return runOllamaExtraction(request, context);
   }
 
   const note =

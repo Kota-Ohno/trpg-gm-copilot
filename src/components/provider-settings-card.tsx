@@ -12,6 +12,7 @@ type ProviderSettingsCardProps = {
 
 export function ProviderSettingsCard({ settings, onChange }: ProviderSettingsCardProps) {
   const selectedProvider = getExtractionProvider(settings.providerId);
+  const needsApiKey = settings.providerId === "openai";
 
   const updateSettings = (updates: Partial<ExtractionProviderSettings>): void => {
     onChange({
@@ -86,22 +87,26 @@ export function ProviderSettingsCard({ settings, onChange }: ProviderSettingsCar
           />
         </div>
 
-        <div>
-          <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-            <KeyRound className="h-3 w-3" />
-            API key
-          </label>
-          <Input
-            className="mt-1"
-            onChange={(event) => updateSettings({ apiKey: event.target.value })}
-            placeholder="ユーザーAPIキー"
-            type="password"
-            value={settings.apiKey}
-          />
-        </div>
+        {needsApiKey && (
+          <div>
+            <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <KeyRound className="h-3 w-3" />
+              API key
+            </label>
+            <Input
+              className="mt-1"
+              onChange={(event) => updateSettings({ apiKey: event.target.value })}
+              placeholder="ユーザーAPIキー"
+              type="password"
+              value={settings.apiKey}
+            />
+          </div>
+        )}
 
         <p className="text-xs leading-5 text-muted-foreground">
-          API key はブラウザのローカル保存だけに保持します。外部Provider呼び出しは次の実装対象です。
+          {needsApiKey
+            ? "API key はブラウザのローカル保存だけに保持します。"
+            : "Ollama はローカルの /api/generate を呼び出します。起動していない場合はルールベース抽出へ戻します。"}
         </p>
       </CardContent>
     </Card>
