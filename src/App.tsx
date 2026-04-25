@@ -606,10 +606,18 @@ export function App() {
                             <span className="text-sm text-muted-foreground">
                               {extractionRun.itemCount}件の抽出候補を確認中
                             </span>
+                            {extractionRun.promptVersion && (
+                              <Badge variant="muted">{extractionRun.promptVersion}</Badge>
+                            )}
                           </div>
                           <span className="text-xs text-muted-foreground">
                             {extractionRun.providerLabel}: {extractionRun.note}
                           </span>
+                          {extractionRun.validationErrors && extractionRun.validationErrors.length > 0 && (
+                            <p className="basis-full text-xs text-destructive">
+                              検証メモ: {extractionRun.validationErrors.slice(0, 2).join(" / ")}
+                            </p>
+                          )}
                         </CardContent>
                       </Card>
                     )}

@@ -3,7 +3,7 @@ import { createId } from "./campaign";
 
 export type ExtractionSource = "plain" | "speaker";
 
-type ExtractionInputLine = {
+export type ExtractionInputLine = {
   role?: SpeakerRole;
   speakerName?: string;
   text: string;

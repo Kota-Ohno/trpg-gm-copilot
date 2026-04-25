@@ -67,6 +67,8 @@ export type ExtractionRun = {
   providerLabel: string;
   itemCount: number;
   note?: string;
+  promptVersion?: string;
+  validationErrors?: string[];
 };
 
 export type SpeakerRole = "GM" | "PL" | "unknown";
