@@ -98,7 +98,7 @@ const logInputOptions: Array<{ value: LogInputMode; label: string }> = [
 const extractionSourceLabels: Record<ExtractionRun["sourceType"], string> = {
   plain: "通常ログ由来",
   speaker: "話者付きログ由来",
-  fallback: "サンプル抽出",
+  fallback: "フォールバック",
 };
 
 function loadCampaignState(): CampaignState {
@@ -675,61 +675,61 @@ export function App() {
 
             {activeTab === "review" && (
               <div className="grid gap-4">
+                {extractionRun && (
+                  <Card>
+                    <CardContent className="space-y-3 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={extractionRun.fallbackUsed ? "secondary" : "default"}>
+                            {extractionRun.fallbackUsed ? "フォールバック" : "Provider実行"}
+                          </Badge>
+                          <Badge variant={extractionRun.sourceType === "fallback" ? "secondary" : "outline"}>
+                            {extractionSourceLabels[extractionRun.sourceType]}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">
+                            {extractionRun.itemCount}件の抽出候補を確認中
+                          </span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {extractionRun.providerLabel} → {extractionRun.executedProviderLabel}
+                        </span>
+                      </div>
+
+                      <div className="grid gap-2 text-xs text-muted-foreground">
+                        <p>{extractionRun.note}</p>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant="muted">{extractionRun.promptVersion ?? "extraction-v1"}</Badge>
+                          <Badge variant="muted">
+                            prompt {extractionRun.promptLength.toLocaleString()}文字
+                          </Badge>
+                          {extractionRun.validationErrors && extractionRun.validationErrors.length > 0 && (
+                            <Badge variant="secondary">
+                              検証エラー {extractionRun.validationErrors.length}件
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {extractionRun.failureReason && (
+                        <p className="text-xs text-destructive">失敗理由: {extractionRun.failureReason}</p>
+                      )}
+                      {extractionRun.validationErrors && extractionRun.validationErrors.length > 0 && (
+                        <details className="text-xs text-destructive">
+                          <summary className="cursor-pointer">検証メモを表示</summary>
+                          <ul className="mt-2 grid gap-1">
+                            {extractionRun.validationErrors.map((error) => (
+                              <li key={error}>{error}</li>
+                            ))}
+                          </ul>
+                        </details>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
                 {items.length === 0 ? (
                   <EmptyState onStart={() => setActiveTab("log")} />
                 ) : (
                   <>
-                    {extractionRun && (
-                      <Card>
-                        <CardContent className="space-y-3 py-3">
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant={extractionRun.fallbackUsed ? "secondary" : "default"}>
-                                {extractionRun.fallbackUsed ? "フォールバック" : "Provider実行"}
-                              </Badge>
-                              <Badge variant={extractionRun.sourceType === "fallback" ? "secondary" : "outline"}>
-                                {extractionSourceLabels[extractionRun.sourceType]}
-                              </Badge>
-                              <span className="text-sm text-muted-foreground">
-                                {extractionRun.itemCount}件の抽出候補を確認中
-                              </span>
-                            </div>
-                            <span className="text-xs text-muted-foreground">
-                              {extractionRun.providerLabel} → {extractionRun.executedProviderLabel}
-                            </span>
-                          </div>
-
-                          <div className="grid gap-2 text-xs text-muted-foreground">
-                            <p>{extractionRun.note}</p>
-                            <div className="flex flex-wrap gap-2">
-                              <Badge variant="muted">{extractionRun.promptVersion ?? "extraction-v1"}</Badge>
-                              <Badge variant="muted">
-                                prompt {extractionRun.promptLength.toLocaleString()}文字
-                              </Badge>
-                              {extractionRun.validationErrors && extractionRun.validationErrors.length > 0 && (
-                                <Badge variant="secondary">
-                                  検証エラー {extractionRun.validationErrors.length}件
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-
-                          {extractionRun.failureReason && (
-                            <p className="text-xs text-destructive">失敗理由: {extractionRun.failureReason}</p>
-                          )}
-                          {extractionRun.validationErrors && extractionRun.validationErrors.length > 0 && (
-                            <details className="text-xs text-destructive">
-                              <summary className="cursor-pointer">検証メモを表示</summary>
-                              <ul className="mt-2 grid gap-1">
-                                {extractionRun.validationErrors.map((error) => (
-                                  <li key={error}>{error}</li>
-                                ))}
-                              </ul>
-                            </details>
-                          )}
-                        </CardContent>
-                      </Card>
-                    )}
                     {items.map((item) => {
                       const isApproved = approvedIds.includes(item.id);
 

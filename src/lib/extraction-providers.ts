@@ -1,4 +1,3 @@
-import { mockExtraction } from "../data/sample";
 import type {
   ExtractionItem,
   ExtractionProviderSettings,
@@ -120,20 +119,22 @@ function buildRuleBasedFallback(
   failureReason?: string,
 ): ExtractionResult {
   const generatedItems = runRuleBasedExtraction(context.extractionLines);
-  const items = generatedItems.length > 0 ? generatedItems : mockExtraction;
 
   return {
-    items,
+    items: generatedItems,
     run: {
-      sourceType: generatedItems.length > 0 ? request.source : "fallback",
+      sourceType: request.source,
       providerId: request.settings.providerId,
       providerLabel: context.providerLabel,
       executedProviderId: "rule-based",
       executedProviderLabel: "ルールベース",
       fallbackUsed: request.settings.providerId !== "rule-based",
       failureReason,
-      itemCount: items.length,
-      note,
+      itemCount: generatedItems.length,
+      note:
+        generatedItems.length > 0
+          ? note
+          : `${note} ルールベース抽出でも候補は見つかりませんでした。`,
       promptLength: context.prompt.length,
       promptVersion: "extraction-v1",
       validationErrors,
