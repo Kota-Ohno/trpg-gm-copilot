@@ -52,9 +52,21 @@ export type WorkspaceTab = "log" | "review" | "chronicle" | "prep";
 
 export type ExtractionSourceType = "plain" | "speaker" | "fallback";
 
+export type ExtractionProviderId = "rule-based" | "openai" | "ollama";
+
+export type ExtractionProviderSettings = {
+  providerId: ExtractionProviderId;
+  model: string;
+  apiKey: string;
+  endpoint: string;
+};
+
 export type ExtractionRun = {
   sourceType: ExtractionSourceType;
+  providerId: ExtractionProviderId;
+  providerLabel: string;
   itemCount: number;
+  note?: string;
 };
 
 export type SpeakerRole = "GM" | "PL" | "unknown";
@@ -97,6 +109,7 @@ export type SessionState = {
 
 export type CampaignState = {
   campaignName: string;
+  extractionProvider: ExtractionProviderSettings;
   sessions: SessionState[];
   activeSessionId: string;
   chronicle: Chronicle;

@@ -1,5 +1,6 @@
 import { initialChronicle, sampleLiveLog, sampleLog } from "../data/sample";
 import type { CampaignState, Chronicle, ExtractionItem, LiveLogSession, PrepNote, SessionState } from "../types";
+import { defaultExtractionProviderSettings } from "./extraction-provider-settings";
 
 export const blankLiveLog: LiveLogSession = {
   id: "live-log-empty",
@@ -25,6 +26,7 @@ export function createId(prefix: string): string {
 
 export const initialCampaignState: CampaignState = {
   campaignName: "灰ヶ浦異聞",
+  extractionProvider: defaultExtractionProviderSettings,
   sessions: [
     {
       id: "session-haigaura-01",
@@ -67,10 +69,21 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
   return {
     ...initialCampaignState,
     ...parsedState,
+    extractionProvider: {
+      ...defaultExtractionProviderSettings,
+      ...parsedState.extractionProvider,
+    },
     sessions: sessions.map((session) => ({
       ...initialSession,
       ...session,
       liveLog: session.liveLog ?? initialSession.liveLog,
+      extractionRun: session.extractionRun
+        ? {
+            ...session.extractionRun,
+            providerId: session.extractionRun.providerId ?? "rule-based",
+            providerLabel: session.extractionRun.providerLabel ?? "ルールベース",
+          }
+        : null,
     })),
     activeSessionId: sessions.some((session) => session.id === activeSessionId) ? activeSessionId : sessions[0].id,
   };

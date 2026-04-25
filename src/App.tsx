@@ -20,13 +20,14 @@ import { ChronicleView } from "./components/chronicle-view";
 import { ExtractionReviewCard } from "./components/extraction-review-card";
 import { PlainLogEditor } from "./components/plain-log-editor";
 import { PrepSection } from "./components/prep-section";
+import { ProviderSettingsCard } from "./components/provider-settings-card";
 import { SpeakerLogEditor } from "./components/speaker-log-editor";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
 import { Tabs } from "./components/ui/tabs";
-import { mockExtraction, sampleLiveLog } from "./data/sample";
+import { sampleLiveLog } from "./data/sample";
 import {
   applyExtraction,
   createExportFileName,
@@ -37,11 +38,10 @@ import {
   normalizeCampaignState,
 } from "./lib/campaign";
 import {
-  buildExtractionInput,
   liveLogToPlainText,
   parsePlainLogToLiveLog,
-  runRuleBasedExtraction,
 } from "./lib/extraction";
+import { runExtractionProvider } from "./lib/extraction-providers";
 import type {
   CampaignState,
   ExtractionRun,
@@ -132,6 +132,7 @@ export function App() {
   const {
     campaignName,
     chronicle,
+    extractionProvider,
     quickResult,
   } = campaignState;
 
@@ -270,17 +271,17 @@ export function App() {
     setActiveTab("log");
   };
 
-  const runExtractionPreview = (): void => {
-    const extractionLines = buildExtractionInput(log, liveLog, logInputMode);
-    const generatedItems = runRuleBasedExtraction(extractionLines);
-    const nextItems = generatedItems.length > 0 ? generatedItems : mockExtraction;
+  const runExtractionPreview = async (): Promise<void> => {
+    const extractionResult = await runExtractionProvider({
+      log,
+      liveLog,
+      settings: extractionProvider,
+      source: logInputMode,
+    });
 
     updateCurrentSession({
-      extractionItems: nextItems,
-      extractionRun: {
-        sourceType: generatedItems.length > 0 ? logInputMode : "fallback",
-        itemCount: nextItems.length,
-      },
+      extractionItems: extractionResult.items,
+      extractionRun: extractionResult.run,
       approvedIds: [],
     });
     setActiveTab("review");
@@ -576,6 +577,7 @@ export function App() {
                         onAddSegment={addSegment}
                         onApplyToPlainLog={applyLiveLogToPlainLog}
                         onDeleteSegment={deleteSegment}
+                        onExtract={runExtractionPreview}
                         onReset={resetCampaignState}
                         onRestoreSample={restoreSampleLiveLog}
                         onUpdateSegment={updateSegment}
@@ -606,7 +608,7 @@ export function App() {
                             </span>
                           </div>
                           <span className="text-xs text-muted-foreground">
-                            ルールベース抽出です。採用前に内容を調整してください。
+                            {extractionRun.providerLabel}: {extractionRun.note}
                           </span>
                         </CardContent>
                       </Card>
@@ -690,6 +692,13 @@ export function App() {
               <p className="text-sm leading-6">{quickResult}</p>
             </CardContent>
           </Card>
+
+          <div className="mt-4">
+            <ProviderSettingsCard
+              settings={extractionProvider}
+              onChange={(nextSettings) => updateCampaignState({ extractionProvider: nextSettings })}
+            />
+          </div>
 
           <Card className="mt-4">
             <CardHeader>

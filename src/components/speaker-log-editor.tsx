@@ -1,4 +1,4 @@
-import { FileText, MessageSquareText, Plus, RotateCcw, Trash2, UserRound } from "lucide-react";
+import { FileText, MessageSquareText, Plus, RotateCcw, Trash2, UserRound, Wand2 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -26,6 +26,7 @@ type SpeakerLogEditorProps = {
   onAddSegment: () => void;
   onApplyToPlainLog: () => void;
   onDeleteSegment: (segmentId: string) => void;
+  onExtract: () => void;
   onReset: () => void;
   onRestoreSample: () => void;
   onUpdateSegment: (segmentId: string, updates: Partial<TranscriptSegment>) => void;
@@ -38,6 +39,7 @@ export function SpeakerLogEditor({
   onAddSegment,
   onApplyToPlainLog,
   onDeleteSegment,
+  onExtract,
   onReset,
   onRestoreSample,
   onUpdateSegment,
@@ -59,7 +61,7 @@ export function SpeakerLogEditor({
           </div>
           <p className="mt-2 text-sm font-medium">{liveLog.title}</p>
           <p className="text-xs text-muted-foreground">
-            音声連携前の検証用です。話者付き発話を通常ログへ反映して、既存の抽出フローに渡します。
+            音声連携前の検証用です。話者情報を保ったまま抽出フローへ渡せます。
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -74,6 +76,10 @@ export function SpeakerLogEditor({
           <Button onClick={onApplyToPlainLog}>
             <FileText className="h-4 w-4" />
             通常ログへ反映
+          </Button>
+          <Button onClick={onExtract}>
+            <Wand2 className="h-4 w-4" />
+            抽出プレビュー
           </Button>
         </div>
       </div>
