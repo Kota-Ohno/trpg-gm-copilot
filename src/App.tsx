@@ -27,17 +27,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./com
 import { Input } from "./components/ui/input";
 import { Tabs } from "./components/ui/tabs";
 import { Textarea } from "./components/ui/textarea";
-import { initialChronicle, mockExtraction, sampleLiveLog, sampleLog } from "./data/sample";
+import { mockExtraction, sampleLiveLog } from "./data/sample";
+import {
+  applyExtraction,
+  createExportFileName,
+  createId,
+  createNewSession,
+  generatePrepNote,
+  initialCampaignState,
+  normalizeCampaignState,
+} from "./lib/campaign";
+import {
+  buildExtractionInput,
+  liveLogToPlainText,
+  parsePlainLogToLiveLog,
+  runRuleBasedExtraction,
+} from "./lib/extraction";
 import type {
   CampaignState,
   Chronicle,
   ExtractionRun,
   ExtractionItem,
   LiveLogSession,
-  PrepNote,
   SessionState,
   SpeakerRole,
-  Speaker,
   TranscriptSegment,
   WorkspaceTab,
 } from "./types";
@@ -45,13 +58,6 @@ import type {
 const STORAGE_KEY = "chronicle-gm.campaign-state.v1";
 
 type LogInputMode = "plain" | "speaker";
-type ExtractionSource = "plain" | "speaker";
-
-type ExtractionInputLine = {
-  role?: SpeakerRole;
-  speakerName?: string;
-  text: string;
-};
 
 const tabOptions: Array<{ value: WorkspaceTab; label: string }> = [
   { value: "log", label: "ログ" },
@@ -83,41 +89,6 @@ const quickPrompts = [
   },
 ];
 
-const initialCampaignState: CampaignState = {
-  campaignName: "灰ヶ浦異聞",
-  sessions: [
-    {
-      id: "session-haigaura-01",
-      title: "第1夜",
-      date: "2026-04-25",
-      log: sampleLog,
-      liveLog: sampleLiveLog,
-      extractionItems: [],
-      extractionRun: null,
-      approvedIds: [],
-    },
-  ],
-  activeSessionId: "session-haigaura-01",
-  chronicle: initialChronicle,
-  quickResult: quickPrompts[0].result,
-};
-
-const blankLiveLog: LiveLogSession = {
-  id: "live-log-empty",
-  title: "新しいセッション",
-  sourceType: "manual",
-  speakers: [
-    {
-      id: "speaker-gm",
-      name: "GM",
-      role: "GM",
-    },
-  ],
-  segments: [],
-};
-
-const initialSession = initialCampaignState.sessions[0];
-
 const statusLabels = {
   known: "PL既知",
   partial: "一部既知",
@@ -137,44 +108,11 @@ const logInputOptions: Array<{ value: LogInputMode; label: string }> = [
 
 const extractionKindOptions: ExtractionItem["kind"][] = ["出来事", "NPC", "手がかり", "GM秘密", "伏線"];
 const extractionVisibilityOptions: ExtractionItem["visibility"][] = ["PL既知", "GMのみ", "未開示候補"];
-const npcNamePattern = /(?:女将|村長|灯台守|船長|医師|司祭|娘|甥|少女|少年|老人|男|女)(?:の)?([ァ-ヶー一-龠々]{1,8})|([ァ-ヶー一-龠々]{1,8})(?:は|が).*(?:話|言|証言)/;
 const extractionSourceLabels: Record<ExtractionRun["sourceType"], string> = {
   plain: "通常ログ由来",
   speaker: "話者付きログ由来",
   fallback: "サンプル抽出",
 };
-
-function normalizeCampaignState(rawState: unknown): CampaignState {
-  if (!rawState || typeof rawState !== "object") {
-    return initialCampaignState;
-  }
-
-  const parsedState = rawState as Partial<CampaignState> & Partial<SessionState>;
-  const legacyState = parsedState as Partial<CampaignState> & {
-    currentSession?: SessionState;
-  } & Partial<SessionState>;
-  const migratedSession = legacyState.currentSession ?? {
-    ...initialSession,
-    log: legacyState.log ?? initialSession.log,
-    liveLog: legacyState.liveLog ?? initialSession.liveLog,
-    extractionItems: legacyState.extractionItems ?? initialSession.extractionItems,
-    extractionRun: legacyState.extractionRun ?? initialSession.extractionRun,
-    approvedIds: legacyState.approvedIds ?? initialSession.approvedIds,
-  };
-  const sessions = parsedState.sessions && parsedState.sessions.length > 0 ? parsedState.sessions : [migratedSession];
-  const activeSessionId = parsedState.activeSessionId ?? sessions[0].id;
-
-  return {
-    ...initialCampaignState,
-    ...parsedState,
-    sessions: sessions.map((session) => ({
-      ...initialSession,
-      ...session,
-      liveLog: session.liveLog ?? initialSession.liveLog,
-    })),
-    activeSessionId: sessions.some((session) => session.id === activeSessionId) ? activeSessionId : sessions[0].id,
-  };
-}
 
 function loadCampaignState(): CampaignState {
   if (typeof window === "undefined") {
@@ -193,25 +131,6 @@ function loadCampaignState(): CampaignState {
   }
 }
 
-function createId(prefix: string): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `${prefix}-${crypto.randomUUID()}`;
-  }
-
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function createExportFileName(campaignName: string): string {
-  const safeName = campaignName
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9一-龠ぁ-んァ-ヶー]+/gi, "-")
-    .replace(/^-+|-+$/g, "");
-  const date = new Date().toISOString().slice(0, 10);
-
-  return `chronicle-gm-${safeName || "campaign"}-${date}.json`;
-}
-
 function formatTimestamp(seconds: number): string {
   const safeSeconds = Math.max(0, Math.round(seconds));
   const minutes = Math.floor(safeSeconds / 60)
@@ -220,361 +139,6 @@ function formatTimestamp(seconds: number): string {
   const remainingSeconds = (safeSeconds % 60).toString().padStart(2, "0");
 
   return `${minutes}:${remainingSeconds}`;
-}
-
-function liveLogToPlainText(liveLog: LiveLogSession): string {
-  return [...liveLog.segments]
-    .sort((first, second) => first.startTimeSec - second.startTimeSec)
-    .map((segment) => {
-      const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
-      return `${speaker?.name ?? "話者不明"}: ${segment.text}`;
-    })
-    .join("\n");
-}
-
-function liveLogToExtractionLines(liveLog: LiveLogSession): ExtractionInputLine[] {
-  return [...liveLog.segments]
-    .sort((first, second) => first.startTimeSec - second.startTimeSec)
-    .map((segment) => {
-      const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
-
-      return {
-        role: speaker?.role,
-        speakerName: speaker?.name,
-        text: segment.text,
-      };
-    });
-}
-
-function plainLogToExtractionLines(log: string): ExtractionInputLine[] {
-  const lines: ExtractionInputLine[] = [];
-
-  log.split(/\r?\n/).forEach((rawLine) => {
-    const line = rawLine.trim();
-    if (!line) {
-      return;
-    }
-
-    const match = line.match(/^(?:\[[^\]]+\]\s*)?([^:：]{1,32})[:：]\s*(.+)$/);
-    if (!match) {
-      const lastLine = lines[lines.length - 1];
-      if (lastLine) {
-        lastLine.text = `${lastLine.text}\n${line}`;
-      }
-      return;
-    }
-
-    const speakerName = match[1].trim();
-    lines.push({
-      role: inferSpeakerRole(speakerName),
-      speakerName,
-      text: match[2].trim(),
-    });
-  });
-
-  return lines;
-}
-
-function lineToDetail(line: ExtractionInputLine): string {
-  const prefix = line.speakerName ? `${line.speakerName}: ` : "";
-  return `${prefix}${line.text}`;
-}
-
-function findNpcName(text: string): string | null {
-  const match = text.match(npcNamePattern);
-  return match?.[1] ?? match?.[2] ?? null;
-}
-
-function addExtractionCandidate(
-  candidates: ExtractionItem[],
-  item: Omit<ExtractionItem, "id">,
-  seenKeys: Set<string>,
-): void {
-  const key = `${item.kind}:${item.title}:${item.detail}`;
-  if (seenKeys.has(key)) {
-    return;
-  }
-
-  seenKeys.add(key);
-  candidates.push({
-    id: `generated-${candidates.length + 1}`,
-    ...item,
-  });
-}
-
-function buildExtractionInput(log: string, liveLog: LiveLogSession, source: ExtractionSource): ExtractionInputLine[] {
-  if (source === "speaker") {
-    return liveLogToExtractionLines(liveLog);
-  }
-
-  return plainLogToExtractionLines(log);
-}
-
-function runRuleBasedExtraction(lines: ExtractionInputLine[]): ExtractionItem[] {
-  const candidates: ExtractionItem[] = [];
-  const seenKeys = new Set<string>();
-
-  lines.forEach((line) => {
-    const text = line.text;
-    const detail = lineToDetail(line);
-
-    if (/(到着|向か|入る|移動|調べ|探索|聞き|行く)/.test(text)) {
-      addExtractionCandidate(
-        candidates,
-        {
-          kind: "出来事",
-          title: text.replace(/[。.!！?？].*$/, "").slice(0, 28),
-          detail,
-          visibility: "PL既知",
-        },
-        seenKeys,
-      );
-    }
-
-    if (/(見つ|発見|残って|刻ま|書か|目撃|証言|噂|手がかり|泥|鍵|扉|紋章|光)/.test(text)) {
-      addExtractionCandidate(
-        candidates,
-        {
-          kind: "手がかり",
-          title: text.replace(/[。.!！?？].*$/, "").slice(0, 28),
-          detail,
-          visibility: "PL既知",
-        },
-        seenKeys,
-      );
-    }
-
-    if (/(近づくな|封じ|怪物ではない|秘密|隠|口を閉ざ|警告|開けるな|真相|儀式)/.test(text)) {
-      addExtractionCandidate(
-        candidates,
-        {
-          kind: "GM秘密",
-          title: text.replace(/[。.!！?？].*$/, "").slice(0, 28),
-          detail,
-          visibility: line.role === "GM" ? "GMのみ" : "未開示候補",
-        },
-        seenKeys,
-      );
-    }
-
-    if (/(伏線|後で|次回|まだ|未解決|謎|月|封印|過去|娘|行方不明)/.test(text)) {
-      addExtractionCandidate(
-        candidates,
-        {
-          kind: "伏線",
-          title: text.replace(/[。.!！?？].*$/, "").slice(0, 28),
-          detail,
-          visibility: line.role === "GM" ? "未開示候補" : "PL既知",
-        },
-        seenKeys,
-      );
-    }
-
-    const npcName = findNpcName(text);
-    if (npcName) {
-      addExtractionCandidate(
-        candidates,
-        {
-          kind: "NPC",
-          title: npcName,
-          detail,
-          visibility: line.role === "GM" ? "未開示候補" : "PL既知",
-        },
-        seenKeys,
-      );
-    }
-  });
-
-  return candidates.slice(0, 8);
-}
-
-function inferSpeakerRole(name: string): SpeakerRole {
-  const normalizedName = name.trim().toLowerCase();
-
-  if (["gm", "kp", "dm", "keeper", "ゲームマスター", "キーパー"].includes(normalizedName)) {
-    return "GM";
-  }
-
-  return "PL";
-}
-
-function parsePlainLogToLiveLog(log: string, title: string): LiveLogSession | null {
-  const speakersByName = new Map<string, Speaker>();
-  const segments: TranscriptSegment[] = [];
-  let activeSegment: TranscriptSegment | null = null;
-
-  log.split(/\r?\n/).forEach((rawLine) => {
-    const line = rawLine.trim();
-    if (!line) {
-      return;
-    }
-
-    const match = line.match(/^(?:\[[^\]]+\]\s*)?([^:：]{1,32})[:：]\s*(.+)$/);
-    if (!match) {
-      if (activeSegment) {
-        activeSegment.text = `${activeSegment.text}\n${line}`;
-      }
-      return;
-    }
-
-    const speakerName = match[1].trim();
-    const text = match[2].trim();
-    let speaker = speakersByName.get(speakerName);
-
-    if (!speaker) {
-      speaker = {
-        id: createId("speaker"),
-        name: speakerName,
-        role: inferSpeakerRole(speakerName),
-      };
-      speakersByName.set(speakerName, speaker);
-    }
-
-    const startTimeSec = segments.length * 8;
-    activeSegment = {
-      id: createId("segment"),
-      speakerId: speaker.id,
-      startTimeSec,
-      endTimeSec: startTimeSec + 6,
-      text,
-    };
-    segments.push(activeSegment);
-  });
-
-  if (segments.length === 0) {
-    return null;
-  }
-
-  return {
-    id: createId("session"),
-    title,
-    sourceType: "imported",
-    speakers: Array.from(speakersByName.values()),
-    segments,
-  };
-}
-
-function createNewSession(index: number): SessionState {
-  const sessionId = createId("session");
-
-  return {
-    id: sessionId,
-    title: `第${index}夜`,
-    date: new Date().toISOString().slice(0, 10),
-    log: "",
-    liveLog: {
-      ...blankLiveLog,
-      id: createId("live-log"),
-      title: `第${index}夜`,
-      speakers: blankLiveLog.speakers.map((speaker) => ({
-        ...speaker,
-        id: createId("speaker"),
-      })),
-    },
-    extractionItems: [],
-    extractionRun: null,
-    approvedIds: [],
-  };
-}
-
-function uniqueItems(items: string[]): string[] {
-  return Array.from(new Set(items.filter((item) => item.trim().length > 0)));
-}
-
-function getApprovedItems(session: SessionState): ExtractionItem[] {
-  return session.extractionItems.filter((item) => session.approvedIds.includes(item.id));
-}
-
-function generatePrepNote(chronicle: Chronicle, sessions: SessionState[], activeSession: SessionState): PrepNote {
-  const approvedItems = getApprovedItems(activeSession);
-  const latestEvents = uniqueItems([
-    ...approvedItems.filter((item) => item.kind === "出来事").map((item) => item.detail),
-    ...chronicle.events.slice(-3),
-  ]).slice(0, 3);
-  const clueHooks = chronicle.clues.slice(-3).map((clue) => `${clue.title}: ${clue.detail}`);
-  const threadHooks = chronicle.threads.slice(-3).map((thread) => `${thread.title}: ${thread.nextMove}`);
-  const hooks = uniqueItems([...threadHooks, ...clueHooks]).slice(0, 4);
-  const openQuestions = uniqueItems([
-    ...chronicle.threads.map((thread) => `${thread.title}: ${thread.detail}`),
-    ...chronicle.clues
-      .filter((clue) => clue.status !== "known")
-      .map((clue) => `${clue.title}: まだ全貌がPLに見えていない。`),
-  ]).slice(0, 4);
-  const hiddenClues = chronicle.clues
-    .filter((clue) => clue.status === "hidden" || clue.status === "partial")
-    .map((clue) => `${clue.title}をどこまで開示するか決める。`);
-  const approvedSecrets = approvedItems
-    .filter((item) => item.visibility !== "PL既知")
-    .map((item) => `${item.title}はPLに出す前に意図を確認する。`);
-
-  return {
-    shortRecap:
-      latestEvents.length > 0
-        ? latestEvents
-        : [`${activeSession.title}のログを整理して、採用する出来事を承認してください。`],
-    hooks: hooks.length > 0 ? hooks : ["承認済みの手がかりや伏線が増えると、次回導入案がここに出ます。"],
-    openQuestions:
-      openQuestions.length > 0
-        ? openQuestions
-        : ["未解決の問いは、伏線や一部既知/GM秘密の手がかりから生成されます。"],
-    reminders: uniqueItems([
-      `${sessions.length}セッション分のログをキャンペーン記憶に積み上げ中。`,
-      ...hiddenClues,
-      ...approvedSecrets,
-      ...chronicle.npcs.slice(-2).map((npc) => `${npc.name}: ${npc.attitude}`),
-    ]).slice(0, 4),
-  };
-}
-
-function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chronicle {
-  if (item.kind === "NPC") {
-    return {
-      ...chronicle,
-      npcs: [
-        ...chronicle.npcs,
-        {
-          name: item.title,
-          role: "セッションログから抽出",
-          publicKnowledge: item.detail,
-          gmSecret: item.visibility === "GMのみ" ? item.detail : "未設定",
-          attitude: "未設定",
-        },
-      ],
-    };
-  }
-
-  if (item.kind === "手がかり" || item.kind === "GM秘密") {
-    return {
-      ...chronicle,
-      clues: [
-        ...chronicle.clues,
-        {
-          title: item.title,
-          detail: item.detail,
-          status: item.visibility === "GMのみ" ? "hidden" : "known",
-        },
-      ],
-    };
-  }
-
-  if (item.kind === "伏線") {
-    return {
-      ...chronicle,
-      threads: [
-        ...chronicle.threads,
-        {
-          title: item.title,
-          detail: item.detail,
-          nextMove: "次回準備で使う候補として保持する。",
-        },
-      ],
-    };
-  }
-
-  return {
-    ...chronicle,
-    events: [...chronicle.events, `${item.title}: ${item.detail}`],
-  };
 }
 
 export function App() {
