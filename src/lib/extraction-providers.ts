@@ -28,6 +28,16 @@ export type ExtractionResult = {
   run: ExtractionRun;
 };
 
+export type ProviderConnectionTestRequest = {
+  secrets: ProviderSecretSettings;
+  settings: ExtractionProviderSettings;
+};
+
+export type ProviderConnectionTestResult = {
+  ok: boolean;
+  message: string;
+};
+
 type ProviderContext = {
   extractionLines: ReturnType<typeof buildExtractionInput>;
   prompt: string;
@@ -57,6 +67,17 @@ type OllamaResponseBody = {
   error?: string;
 };
 
+const connectionTestJsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["ok"],
+  properties: {
+    ok: {
+      type: "boolean",
+    },
+  },
+} as const;
+
 function normalizeEndpoint(endpoint: string, fallbackEndpoint: string): string {
   return (endpoint.trim() || fallbackEndpoint).replace(/\/+$/, "");
 }
@@ -80,6 +101,15 @@ function extractOpenAiText(responseBody: OpenAiResponseBody): string {
       .map((content) => content.text as string)
       .join("\n") ?? ""
   );
+}
+
+function parseConnectionTestResponse(text: string): boolean {
+  try {
+    const parsed = JSON.parse(text) as { ok?: unknown };
+    return parsed.ok === true;
+  } catch {
+    return false;
+  }
 }
 
 function buildRuleBasedFallback(
@@ -288,4 +318,116 @@ export async function runExtractionProvider({
       : `${provider.label}連携は未接続です。抽出プロンプトv1を生成し、現在はルールベース抽出にフォールバックしています。`;
 
   return buildRuleBasedFallback(request, context, note);
+}
+
+export async function testExtractionProviderConnection({
+  secrets,
+  settings,
+}: ProviderConnectionTestRequest): Promise<ProviderConnectionTestResult> {
+  const provider = getExtractionProvider(settings.providerId);
+
+  if (provider.id === "rule-based") {
+    return {
+      ok: true,
+      message: "ルールベースProviderはローカルで利用できます。",
+    };
+  }
+
+  if (provider.id === "openai") {
+    const apiKey = secrets.openAiApiKey.trim();
+    if (!apiKey) {
+      return {
+        ok: false,
+        message: "OpenAI API key が未入力です。",
+      };
+    }
+
+    try {
+      const endpoint = normalizeEndpoint(settings.endpoint, "https://api.openai.com/v1");
+      const response = await fetch(joinEndpoint(endpoint, "responses"), {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: settings.model.trim() || "gpt-4.1-mini",
+          input: "接続テストです。JSONで {\"ok\": true} を返してください。",
+          text: {
+            format: {
+              type: "json_schema",
+              name: "provider_connection_test",
+              strict: true,
+              schema: connectionTestJsonSchema,
+            },
+          },
+        }),
+      });
+      const responseBody = (await response.json()) as OpenAiResponseBody;
+
+      if (!response.ok) {
+        return {
+          ok: false,
+          message: responseBody.error?.message ?? `OpenAI API エラー: HTTP ${response.status}`,
+        };
+      }
+
+      const responseText = extractOpenAiText(responseBody);
+      return {
+        ok: parseConnectionTestResponse(responseText),
+        message: parseConnectionTestResponse(responseText)
+          ? "OpenAI Provider に接続できました。"
+          : "OpenAI の応答をJSONとして確認できませんでした。",
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : "OpenAI Provider の接続テストに失敗しました。",
+      };
+    }
+  }
+
+  if (provider.id === "ollama") {
+    try {
+      const endpoint = normalizeEndpoint(settings.endpoint, "http://localhost:11434");
+      const response = await fetch(joinEndpoint(endpoint, "api/generate"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: settings.model.trim() || "llama3.1",
+          prompt: "接続テストです。JSONで {\"ok\": true} を返してください。",
+          stream: false,
+          format: connectionTestJsonSchema,
+        }),
+      });
+      const responseBody = (await response.json()) as OllamaResponseBody;
+
+      if (!response.ok) {
+        return {
+          ok: false,
+          message: responseBody.error ?? `Ollama API エラー: HTTP ${response.status}`,
+        };
+      }
+
+      const responseText = typeof responseBody.response === "string" ? responseBody.response : "";
+      return {
+        ok: parseConnectionTestResponse(responseText),
+        message: parseConnectionTestResponse(responseText)
+          ? "Ollama Provider に接続できました。"
+          : "Ollama の応答をJSONとして確認できませんでした。",
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : "Ollama Provider の接続テストに失敗しました。",
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    message: `${provider.label} は未対応です。`,
+  };
 }

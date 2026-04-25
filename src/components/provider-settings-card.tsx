@@ -1,7 +1,13 @@
-import { Bot, KeyRound, Server } from "lucide-react";
+import { useState } from "react";
+import { Bot, CheckCircle2, KeyRound, Server, Unplug } from "lucide-react";
 import { extractionProviders, getExtractionProvider } from "../lib/extraction-provider-settings";
+import {
+  testExtractionProviderConnection,
+  type ProviderConnectionTestResult,
+} from "../lib/extraction-providers";
 import type { ExtractionProviderId, ExtractionProviderSettings, ProviderSecretSettings } from "../types";
 import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 
@@ -18,6 +24,8 @@ export function ProviderSettingsCard({
   onChange,
   onChangeSecrets,
 }: ProviderSettingsCardProps) {
+  const [connectionResult, setConnectionResult] = useState<ProviderConnectionTestResult | null>(null);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
   const selectedProvider = getExtractionProvider(settings.providerId);
   const needsApiKey = settings.providerId === "openai";
 
@@ -30,11 +38,22 @@ export function ProviderSettingsCard({
 
   const selectProvider = (providerId: ExtractionProviderId): void => {
     const provider = getExtractionProvider(providerId);
+    setConnectionResult(null);
     onChange({
       providerId,
       model: provider.defaultModel,
       endpoint: provider.defaultEndpoint,
     });
+  };
+
+  const testConnection = async (): Promise<void> => {
+    setIsTestingConnection(true);
+    setConnectionResult(null);
+    try {
+      setConnectionResult(await testExtractionProviderConnection({ secrets, settings }));
+    } finally {
+      setIsTestingConnection(false);
+    }
   };
 
   return (
@@ -114,6 +133,32 @@ export function ProviderSettingsCard({
             ? "API key はキャンペーンJSONに含めず、ブラウザの別領域にだけ保存します。"
             : "Ollama はローカルの /api/generate を呼び出します。起動していない場合はルールベース抽出へ戻します。"}
         </p>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button disabled={isTestingConnection} onClick={testConnection} size="sm" variant="outline">
+            <Unplug className="h-4 w-4" />
+            {isTestingConnection ? "確認中" : "接続テスト"}
+          </Button>
+          {connectionResult && (
+            <Badge
+              className={connectionResult.ok ? "gap-1" : "gap-1 border-transparent bg-destructive text-destructive-foreground"}
+              variant={connectionResult.ok ? "default" : "outline"}
+            >
+              {connectionResult.ok ? (
+                <CheckCircle2 className="h-3 w-3" />
+              ) : (
+                <Unplug className="h-3 w-3" />
+              )}
+              {connectionResult.ok ? "成功" : "失敗"}
+            </Badge>
+          )}
+        </div>
+
+        {connectionResult && (
+          <p className={connectionResult.ok ? "text-xs text-muted-foreground" : "text-xs text-destructive"}>
+            {connectionResult.message}
+          </p>
+        )}
       </CardContent>
     </Card>
   );
