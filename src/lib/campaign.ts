@@ -65,13 +65,15 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
   };
   const sessions = parsedState.sessions && parsedState.sessions.length > 0 ? parsedState.sessions : [migratedSession];
   const activeSessionId = parsedState.activeSessionId ?? sessions[0].id;
+  const parsedExtractionProvider = parsedState.extractionProvider ?? defaultExtractionProviderSettings;
 
   return {
     ...initialCampaignState,
     ...parsedState,
     extractionProvider: {
-      ...defaultExtractionProviderSettings,
-      ...parsedState.extractionProvider,
+      providerId: parsedExtractionProvider.providerId ?? defaultExtractionProviderSettings.providerId,
+      model: parsedExtractionProvider.model ?? defaultExtractionProviderSettings.model,
+      endpoint: parsedExtractionProvider.endpoint ?? defaultExtractionProviderSettings.endpoint,
     },
     sessions: sessions.map((session) => ({
       ...initialSession,

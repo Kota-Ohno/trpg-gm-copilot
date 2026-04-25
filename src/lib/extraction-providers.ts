@@ -4,6 +4,7 @@ import type {
   ExtractionProviderSettings,
   ExtractionRun,
   LiveLogSession,
+  ProviderSecretSettings,
 } from "../types";
 import {
   buildExtractionInput,
@@ -17,6 +18,7 @@ import { extractionResponseJsonSchema, parseExtractionJson } from "./extraction-
 export type ExtractionRequest = {
   log: string;
   liveLog: LiveLogSession;
+  secrets: ProviderSecretSettings;
   source: ExtractionSource;
   settings: ExtractionProviderSettings;
 };
@@ -128,7 +130,8 @@ export function buildLlmExtractionResult(
 }
 
 async function runOpenAiExtraction(request: ExtractionRequest, context: ProviderContext): Promise<ExtractionResult> {
-  if (!request.settings.apiKey.trim()) {
+  const apiKey = request.secrets.openAiApiKey.trim();
+  if (!apiKey) {
     return buildRuleBasedFallback(
       request,
       context,
@@ -141,7 +144,7 @@ async function runOpenAiExtraction(request: ExtractionRequest, context: Provider
     const response = await fetch(joinEndpoint(endpoint, "responses"), {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${request.settings.apiKey.trim()}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -257,13 +260,14 @@ async function runOllamaExtraction(request: ExtractionRequest, context: Provider
 export async function runExtractionProvider({
   log,
   liveLog,
+  secrets,
   settings,
   source,
 }: ExtractionRequest): Promise<ExtractionResult> {
   const provider = getExtractionProvider(settings.providerId);
   const extractionLines = buildExtractionInput(log, liveLog, source);
   const prompt = buildExtractionPrompt({ lines: extractionLines, source });
-  const request = { log, liveLog, settings, source };
+  const request = { log, liveLog, secrets, settings, source };
   const context = {
     extractionLines,
     prompt,

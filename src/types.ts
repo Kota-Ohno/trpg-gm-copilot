@@ -57,8 +57,11 @@ export type ExtractionProviderId = "rule-based" | "openai" | "ollama";
 export type ExtractionProviderSettings = {
   providerId: ExtractionProviderId;
   model: string;
-  apiKey: string;
   endpoint: string;
+};
+
+export type ProviderSecretSettings = {
+  openAiApiKey: string;
 };
 
 export type ExtractionRun = {

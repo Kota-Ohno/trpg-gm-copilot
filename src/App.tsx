@@ -41,12 +41,14 @@ import {
   liveLogToPlainText,
   parsePlainLogToLiveLog,
 } from "./lib/extraction";
+import { defaultProviderSecretSettings } from "./lib/extraction-provider-settings";
 import { runExtractionProvider } from "./lib/extraction-providers";
 import type {
   CampaignState,
   ExtractionRun,
   ExtractionItem,
   LiveLogSession,
+  ProviderSecretSettings,
   SessionState,
   SpeakerRole,
   TranscriptSegment,
@@ -54,6 +56,7 @@ import type {
 } from "./types";
 
 const STORAGE_KEY = "chronicle-gm.campaign-state.v1";
+const PROVIDER_SECRETS_STORAGE_KEY = "chronicle-gm.provider-secrets.v1";
 
 type LogInputMode = "plain" | "speaker";
 
@@ -115,11 +118,69 @@ function loadCampaignState(): CampaignState {
   }
 }
 
+function readLegacyProviderApiKey(rawState: unknown): string {
+  if (!rawState || typeof rawState !== "object") {
+    return "";
+  }
+
+  const maybeState = rawState as {
+    extractionProvider?: {
+      apiKey?: unknown;
+    };
+  };
+
+  return typeof maybeState.extractionProvider?.apiKey === "string" ? maybeState.extractionProvider.apiKey : "";
+}
+
+function loadProviderSecrets(): ProviderSecretSettings {
+  if (typeof window === "undefined") {
+    return defaultProviderSecretSettings;
+  }
+
+  const savedSecrets = window.localStorage.getItem(PROVIDER_SECRETS_STORAGE_KEY);
+  if (savedSecrets) {
+    try {
+      return {
+        ...defaultProviderSecretSettings,
+        ...JSON.parse(savedSecrets),
+      };
+    } catch {
+      return defaultProviderSecretSettings;
+    }
+  }
+
+  const savedState = window.localStorage.getItem(STORAGE_KEY);
+  if (!savedState) {
+    return defaultProviderSecretSettings;
+  }
+
+  try {
+    return {
+      ...defaultProviderSecretSettings,
+      openAiApiKey: readLegacyProviderApiKey(JSON.parse(savedState)),
+    };
+  } catch {
+    return defaultProviderSecretSettings;
+  }
+}
+
+function sanitizeCampaignStateForExport(campaignState: CampaignState): CampaignState {
+  return {
+    ...campaignState,
+    extractionProvider: {
+      providerId: campaignState.extractionProvider.providerId,
+      model: campaignState.extractionProvider.model,
+      endpoint: campaignState.extractionProvider.endpoint,
+    },
+  };
+}
+
 export function App() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("log");
   const [isExtracting, setIsExtracting] = useState(false);
   const [logInputMode, setLogInputMode] = useState<LogInputMode>("plain");
   const [campaignState, setCampaignState] = useState<CampaignState>(loadCampaignState);
+  const [providerSecrets, setProviderSecrets] = useState<ProviderSecretSettings>(loadProviderSecrets);
 
   const currentSession =
     campaignState.sessions.find((session) => session.id === campaignState.activeSessionId) ?? campaignState.sessions[0];
@@ -155,12 +216,18 @@ export function App() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(campaignState));
   }, [campaignState]);
 
+  useEffect(() => {
+    window.localStorage.setItem(PROVIDER_SECRETS_STORAGE_KEY, JSON.stringify(providerSecrets));
+  }, [providerSecrets]);
+
   const updateCampaignState = (updates: Partial<CampaignState>): void => {
     setCampaignState((current) => ({ ...current, ...updates }));
   };
 
   const exportCampaignState = (): void => {
-    const blob = new Blob([JSON.stringify(campaignState, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(sanitizeCampaignStateForExport(campaignState), null, 2)], {
+      type: "application/json",
+    });
     const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
 
@@ -173,13 +240,18 @@ export function App() {
   const importCampaignState = async (file: File): Promise<void> => {
     try {
       const fileText = await file.text();
-      const importedState = normalizeCampaignState(JSON.parse(fileText));
+      const parsedState = JSON.parse(fileText);
+      const importedState = normalizeCampaignState(parsedState);
+      const importedLegacyApiKey = readLegacyProviderApiKey(parsedState);
       const confirmed = window.confirm("現在のキャンペーン状態をインポート内容で置き換えます。続行しますか？");
       if (!confirmed) {
         return;
       }
 
       setCampaignState(importedState);
+      if (importedLegacyApiKey) {
+        setProviderSecrets((current) => ({ ...current, openAiApiKey: importedLegacyApiKey }));
+      }
       setLogInputMode("plain");
       setActiveTab("log");
     } catch {
@@ -268,7 +340,9 @@ export function App() {
 
   const resetCampaignState = (): void => {
     window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(PROVIDER_SECRETS_STORAGE_KEY);
     setCampaignState(initialCampaignState);
+    setProviderSecrets(defaultProviderSecretSettings);
     setActiveTab("log");
   };
 
@@ -278,6 +352,7 @@ export function App() {
       const extractionResult = await runExtractionProvider({
         log,
         liveLog,
+        secrets: providerSecrets,
         settings: extractionProvider,
         source: logInputMode,
       });
@@ -711,7 +786,9 @@ export function App() {
 
           <div className="mt-4">
             <ProviderSettingsCard
+              secrets={providerSecrets}
               settings={extractionProvider}
+              onChangeSecrets={setProviderSecrets}
               onChange={(nextSettings) => updateCampaignState({ extractionProvider: nextSettings })}
             />
           </div>

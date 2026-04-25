@@ -1,4 +1,4 @@
-import type { ExtractionProviderId, ExtractionProviderSettings } from "../types";
+import type { ExtractionProviderId, ExtractionProviderSettings, ProviderSecretSettings } from "../types";
 
 type ProviderDefinition = {
   id: ExtractionProviderId;
@@ -35,8 +35,11 @@ export const extractionProviders: ProviderDefinition[] = [
 export const defaultExtractionProviderSettings: ExtractionProviderSettings = {
   providerId: "rule-based",
   model: "local-rules-v1",
-  apiKey: "",
   endpoint: "",
+};
+
+export const defaultProviderSecretSettings: ProviderSecretSettings = {
+  openAiApiKey: "",
 };
 
 export function getExtractionProvider(providerId: ExtractionProviderId): ProviderDefinition {

@@ -1,16 +1,23 @@
 import { Bot, KeyRound, Server } from "lucide-react";
 import { extractionProviders, getExtractionProvider } from "../lib/extraction-provider-settings";
-import type { ExtractionProviderId, ExtractionProviderSettings } from "../types";
+import type { ExtractionProviderId, ExtractionProviderSettings, ProviderSecretSettings } from "../types";
 import { Badge } from "./ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 
 type ProviderSettingsCardProps = {
+  secrets: ProviderSecretSettings;
   settings: ExtractionProviderSettings;
+  onChangeSecrets: (settings: ProviderSecretSettings) => void;
   onChange: (settings: ExtractionProviderSettings) => void;
 };
 
-export function ProviderSettingsCard({ settings, onChange }: ProviderSettingsCardProps) {
+export function ProviderSettingsCard({
+  secrets,
+  settings,
+  onChange,
+  onChangeSecrets,
+}: ProviderSettingsCardProps) {
   const selectedProvider = getExtractionProvider(settings.providerId);
   const needsApiKey = settings.providerId === "openai";
 
@@ -27,7 +34,6 @@ export function ProviderSettingsCard({ settings, onChange }: ProviderSettingsCar
       providerId,
       model: provider.defaultModel,
       endpoint: provider.defaultEndpoint,
-      apiKey: settings.apiKey,
     });
   };
 
@@ -95,17 +101,17 @@ export function ProviderSettingsCard({ settings, onChange }: ProviderSettingsCar
             </label>
             <Input
               className="mt-1"
-              onChange={(event) => updateSettings({ apiKey: event.target.value })}
+              onChange={(event) => onChangeSecrets({ ...secrets, openAiApiKey: event.target.value })}
               placeholder="ユーザーAPIキー"
               type="password"
-              value={settings.apiKey}
+              value={secrets.openAiApiKey}
             />
           </div>
         )}
 
         <p className="text-xs leading-5 text-muted-foreground">
           {needsApiKey
-            ? "API key はブラウザのローカル保存だけに保持します。"
+            ? "API key はキャンペーンJSONに含めず、ブラウザの別領域にだけ保存します。"
             : "Ollama はローカルの /api/generate を呼び出します。起動していない場合はルールベース抽出へ戻します。"}
         </p>
       </CardContent>
