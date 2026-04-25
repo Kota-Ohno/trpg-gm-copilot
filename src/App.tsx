@@ -82,19 +82,38 @@ const quickPrompts = [
 
 const initialCampaignState: CampaignState = {
   campaignName: "灰ヶ浦異聞",
-  currentSession: {
-    id: "session-haigaura-01",
-    title: "第1夜",
-    date: "2026-04-25",
-    log: sampleLog,
-    liveLog: sampleLiveLog,
-    extractionItems: [],
-    extractionRun: null,
-    approvedIds: [],
-  },
+  sessions: [
+    {
+      id: "session-haigaura-01",
+      title: "第1夜",
+      date: "2026-04-25",
+      log: sampleLog,
+      liveLog: sampleLiveLog,
+      extractionItems: [],
+      extractionRun: null,
+      approvedIds: [],
+    },
+  ],
+  activeSessionId: "session-haigaura-01",
   chronicle: initialChronicle,
   quickResult: quickPrompts[0].result,
 };
+
+const blankLiveLog: LiveLogSession = {
+  id: "live-log-empty",
+  title: "新しいセッション",
+  sourceType: "manual",
+  speakers: [
+    {
+      id: "speaker-gm",
+      name: "GM",
+      role: "GM",
+    },
+  ],
+  segments: [],
+};
+
+const initialSession = initialCampaignState.sessions[0];
 
 const statusLabels = {
   known: "PL既知",
@@ -134,23 +153,29 @@ function loadCampaignState(): CampaignState {
 
   try {
     const parsedState = JSON.parse(savedState) as Partial<CampaignState> & Partial<SessionState>;
-    const currentSession = parsedState.currentSession ?? {
-      ...initialCampaignState.currentSession,
-      log: parsedState.log ?? initialCampaignState.currentSession.log,
-      liveLog: parsedState.liveLog ?? initialCampaignState.currentSession.liveLog,
-      extractionItems: parsedState.extractionItems ?? initialCampaignState.currentSession.extractionItems,
-      extractionRun: parsedState.extractionRun ?? initialCampaignState.currentSession.extractionRun,
-      approvedIds: parsedState.approvedIds ?? initialCampaignState.currentSession.approvedIds,
+    const legacyState = parsedState as Partial<CampaignState> & {
+      currentSession?: SessionState;
+    } & Partial<SessionState>;
+    const migratedSession = legacyState.currentSession ?? {
+      ...initialSession,
+      log: legacyState.log ?? initialSession.log,
+      liveLog: legacyState.liveLog ?? initialSession.liveLog,
+      extractionItems: legacyState.extractionItems ?? initialSession.extractionItems,
+      extractionRun: legacyState.extractionRun ?? initialSession.extractionRun,
+      approvedIds: legacyState.approvedIds ?? initialSession.approvedIds,
     };
+    const sessions = parsedState.sessions && parsedState.sessions.length > 0 ? parsedState.sessions : [migratedSession];
+    const activeSessionId = parsedState.activeSessionId ?? sessions[0].id;
 
     return {
       ...initialCampaignState,
       ...parsedState,
-      currentSession: {
-        ...initialCampaignState.currentSession,
-        ...currentSession,
-        liveLog: currentSession.liveLog ?? initialCampaignState.currentSession.liveLog,
-      },
+      sessions: sessions.map((session) => ({
+        ...initialSession,
+        ...session,
+        liveLog: session.liveLog ?? initialSession.liveLog,
+      })),
+      activeSessionId: sessions.some((session) => session.id === activeSessionId) ? activeSessionId : sessions[0].id,
     };
   } catch {
     return initialCampaignState;
@@ -407,6 +432,29 @@ function parsePlainLogToLiveLog(log: string, title: string): LiveLogSession | nu
   };
 }
 
+function createNewSession(index: number): SessionState {
+  const sessionId = createId("session");
+
+  return {
+    id: sessionId,
+    title: `第${index}夜`,
+    date: new Date().toISOString().slice(0, 10),
+    log: "",
+    liveLog: {
+      ...blankLiveLog,
+      id: createId("live-log"),
+      title: `第${index}夜`,
+      speakers: blankLiveLog.speakers.map((speaker) => ({
+        ...speaker,
+        id: createId("speaker"),
+      })),
+    },
+    extractionItems: [],
+    extractionRun: null,
+    approvedIds: [],
+  };
+}
+
 function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chronicle {
   if (item.kind === "NPC") {
     return {
@@ -463,7 +511,8 @@ export function App() {
   const [logInputMode, setLogInputMode] = useState<LogInputMode>("plain");
   const [campaignState, setCampaignState] = useState<CampaignState>(loadCampaignState);
 
-  const { currentSession } = campaignState;
+  const currentSession =
+    campaignState.sessions.find((session) => session.id === campaignState.activeSessionId) ?? campaignState.sessions[0];
   const {
     approvedIds,
     extractionItems: items,
@@ -495,24 +544,83 @@ export function App() {
     setCampaignState((current) => ({ ...current, ...updates }));
   };
 
-  const updateCurrentSession = (updates: Partial<SessionState>): void => {
+  const updateActiveSession = (updater: (currentSession: SessionState) => SessionState): void => {
     setCampaignState((current) => ({
       ...current,
-      currentSession: {
-        ...current.currentSession,
-        ...updates,
-      },
+      sessions: current.sessions.map((session) =>
+        session.id === current.activeSessionId ? updater(session) : session,
+      ),
+    }));
+  };
+
+  const updateCurrentSession = (updates: Partial<SessionState>): void => {
+    updateActiveSession((session) => ({
+      ...session,
+      ...updates,
     }));
   };
 
   const updateLiveLog = (updater: (current: LiveLogSession) => LiveLogSession): void => {
+    updateActiveSession((session) => ({
+      ...session,
+      liveLog: updater(session.liveLog),
+    }));
+  };
+
+  const switchSession = (sessionId: string): void => {
     setCampaignState((current) => ({
       ...current,
-      currentSession: {
-        ...current.currentSession,
-        liveLog: updater(current.currentSession.liveLog),
-      },
+      activeSessionId: sessionId,
     }));
+    setActiveTab("log");
+  };
+
+  const addNewSession = (): void => {
+    setCampaignState((current) => {
+      const nextSession = createNewSession(current.sessions.length + 1);
+
+      return {
+        ...current,
+        sessions: [...current.sessions, nextSession],
+        activeSessionId: nextSession.id,
+      };
+    });
+    setLogInputMode("plain");
+    setActiveTab("log");
+  };
+
+  const deleteSession = (sessionId: string): void => {
+    const targetSession = campaignState.sessions.find((session) => session.id === sessionId);
+    if (!targetSession || campaignState.sessions.length <= 1) {
+      return;
+    }
+
+    const confirmed = window.confirm(`${targetSession.title}を削除します。ログと抽出候補は元に戻せません。`);
+    if (!confirmed) {
+      return;
+    }
+
+    setCampaignState((current) => {
+      if (current.sessions.length <= 1) {
+        return current;
+      }
+
+      const targetIndex = current.sessions.findIndex((session) => session.id === sessionId);
+      if (targetIndex === -1) {
+        return current;
+      }
+
+      const nextSessions = current.sessions.filter((session) => session.id !== sessionId);
+      const fallbackSession = nextSessions[Math.max(0, targetIndex - 1)] ?? nextSessions[0];
+
+      return {
+        ...current,
+        sessions: nextSessions,
+        activeSessionId: current.activeSessionId === sessionId ? fallbackSession.id : current.activeSessionId,
+      };
+    });
+    setLogInputMode("plain");
+    setActiveTab("log");
   };
 
   const resetCampaignState = (): void => {
@@ -613,34 +721,30 @@ export function App() {
     }
     setCampaignState((current) => ({
       ...current,
-      currentSession: {
-        ...current.currentSession,
-        approvedIds: [...current.currentSession.approvedIds, item.id],
-      },
+      sessions: current.sessions.map((session) =>
+        session.id === current.activeSessionId
+          ? {
+              ...session,
+              approvedIds: [...session.approvedIds, item.id],
+            }
+          : session,
+      ),
       chronicle: applyExtraction(current.chronicle, item),
     }));
   };
 
   const rejectItem = (itemId: string): void => {
-    setCampaignState((current) => ({
-      ...current,
-      currentSession: {
-        ...current.currentSession,
-        approvedIds: current.currentSession.approvedIds.filter((id) => id !== itemId),
-        extractionItems: current.currentSession.extractionItems.filter((item) => item.id !== itemId),
-      },
+    updateActiveSession((session) => ({
+      ...session,
+      approvedIds: session.approvedIds.filter((id) => id !== itemId),
+      extractionItems: session.extractionItems.filter((item) => item.id !== itemId),
     }));
   };
 
   const updateExtractionItem = (itemId: string, updates: Partial<ExtractionItem>): void => {
-    setCampaignState((current) => ({
-      ...current,
-      currentSession: {
-        ...current.currentSession,
-        extractionItems: current.currentSession.extractionItems.map((item) =>
-          item.id === itemId ? { ...item, ...updates } : item,
-        ),
-      },
+    updateActiveSession((session) => ({
+      ...session,
+      extractionItems: session.extractionItems.map((item) => (item.id === itemId ? { ...item, ...updates } : item)),
     }));
   };
 
@@ -664,6 +768,50 @@ export function App() {
               value={campaignName}
               onChange={(event) => updateCampaignState({ campaignName: event.target.value })}
             />
+          </div>
+
+          <div className="mt-6 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-xs font-medium text-muted-foreground">セッション</label>
+              <Button onClick={addNewSession} size="sm" variant="outline">
+                <Plus className="h-3.5 w-3.5" />
+                追加
+              </Button>
+            </div>
+            <div className="space-y-1">
+              {campaignState.sessions.map((session) => (
+                <div
+                  className={
+                    session.id === campaignState.activeSessionId
+                      ? "flex items-center gap-1 rounded-md bg-primary px-2 py-2 text-sm text-primary-foreground"
+                      : "flex items-center gap-1 rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  }
+                  key={session.id}
+                >
+                  <button className="min-w-0 flex-1 text-left" onClick={() => switchSession(session.id)} type="button">
+                    <span className="block truncate font-medium">{session.title}</span>
+                    <span
+                      className={
+                        session.id === campaignState.activeSessionId
+                          ? "block text-xs opacity-80"
+                          : "block text-xs text-muted-foreground"
+                      }
+                    >
+                      {session.date} / {session.extractionItems.length}候補
+                    </span>
+                  </button>
+                  <Button
+                    aria-label={`${session.title}を削除`}
+                    disabled={campaignState.sessions.length <= 1}
+                    onClick={() => deleteSession(session.id)}
+                    size="icon"
+                    variant="ghost"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
 
           <nav className="mt-6 space-y-1">

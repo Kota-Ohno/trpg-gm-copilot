@@ -97,7 +97,8 @@ export type SessionState = {
 
 export type CampaignState = {
   campaignName: string;
-  currentSession: SessionState;
+  sessions: SessionState[];
+  activeSessionId: string;
   chronicle: Chronicle;
   quickResult: string;
 };
