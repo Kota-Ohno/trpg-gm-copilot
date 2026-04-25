@@ -4,7 +4,9 @@ import {
   Check,
   Clock3,
   Compass,
+  Download,
   FileText,
+  Upload,
   KeyRound,
   Lightbulb,
   Map as MapIcon,
@@ -142,6 +144,38 @@ const extractionSourceLabels: Record<ExtractionRun["sourceType"], string> = {
   fallback: "サンプル抽出",
 };
 
+function normalizeCampaignState(rawState: unknown): CampaignState {
+  if (!rawState || typeof rawState !== "object") {
+    return initialCampaignState;
+  }
+
+  const parsedState = rawState as Partial<CampaignState> & Partial<SessionState>;
+  const legacyState = parsedState as Partial<CampaignState> & {
+    currentSession?: SessionState;
+  } & Partial<SessionState>;
+  const migratedSession = legacyState.currentSession ?? {
+    ...initialSession,
+    log: legacyState.log ?? initialSession.log,
+    liveLog: legacyState.liveLog ?? initialSession.liveLog,
+    extractionItems: legacyState.extractionItems ?? initialSession.extractionItems,
+    extractionRun: legacyState.extractionRun ?? initialSession.extractionRun,
+    approvedIds: legacyState.approvedIds ?? initialSession.approvedIds,
+  };
+  const sessions = parsedState.sessions && parsedState.sessions.length > 0 ? parsedState.sessions : [migratedSession];
+  const activeSessionId = parsedState.activeSessionId ?? sessions[0].id;
+
+  return {
+    ...initialCampaignState,
+    ...parsedState,
+    sessions: sessions.map((session) => ({
+      ...initialSession,
+      ...session,
+      liveLog: session.liveLog ?? initialSession.liveLog,
+    })),
+    activeSessionId: sessions.some((session) => session.id === activeSessionId) ? activeSessionId : sessions[0].id,
+  };
+}
+
 function loadCampaignState(): CampaignState {
   if (typeof window === "undefined") {
     return initialCampaignState;
@@ -153,31 +187,7 @@ function loadCampaignState(): CampaignState {
   }
 
   try {
-    const parsedState = JSON.parse(savedState) as Partial<CampaignState> & Partial<SessionState>;
-    const legacyState = parsedState as Partial<CampaignState> & {
-      currentSession?: SessionState;
-    } & Partial<SessionState>;
-    const migratedSession = legacyState.currentSession ?? {
-      ...initialSession,
-      log: legacyState.log ?? initialSession.log,
-      liveLog: legacyState.liveLog ?? initialSession.liveLog,
-      extractionItems: legacyState.extractionItems ?? initialSession.extractionItems,
-      extractionRun: legacyState.extractionRun ?? initialSession.extractionRun,
-      approvedIds: legacyState.approvedIds ?? initialSession.approvedIds,
-    };
-    const sessions = parsedState.sessions && parsedState.sessions.length > 0 ? parsedState.sessions : [migratedSession];
-    const activeSessionId = parsedState.activeSessionId ?? sessions[0].id;
-
-    return {
-      ...initialCampaignState,
-      ...parsedState,
-      sessions: sessions.map((session) => ({
-        ...initialSession,
-        ...session,
-        liveLog: session.liveLog ?? initialSession.liveLog,
-      })),
-      activeSessionId: sessions.some((session) => session.id === activeSessionId) ? activeSessionId : sessions[0].id,
-    };
+    return normalizeCampaignState(JSON.parse(savedState));
   } catch {
     return initialCampaignState;
   }
@@ -189,6 +199,17 @@ function createId(prefix: string): string {
   }
 
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createExportFileName(campaignName: string): string {
+  const safeName = campaignName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9一-龠ぁ-んァ-ヶー]+/gi, "-")
+    .replace(/^-+|-+$/g, "");
+  const date = new Date().toISOString().slice(0, 10);
+
+  return `chronicle-gm-${safeName || "campaign"}-${date}.json`;
 }
 
 function formatTimestamp(seconds: number): string {
@@ -598,6 +619,34 @@ export function App() {
     setCampaignState((current) => ({ ...current, ...updates }));
   };
 
+  const exportCampaignState = (): void => {
+    const blob = new Blob([JSON.stringify(campaignState, null, 2)], { type: "application/json" });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = objectUrl;
+    link.download = createExportFileName(campaignName);
+    link.click();
+    URL.revokeObjectURL(objectUrl);
+  };
+
+  const importCampaignState = async (file: File): Promise<void> => {
+    try {
+      const fileText = await file.text();
+      const importedState = normalizeCampaignState(JSON.parse(fileText));
+      const confirmed = window.confirm("現在のキャンペーン状態をインポート内容で置き換えます。続行しますか？");
+      if (!confirmed) {
+        return;
+      }
+
+      setCampaignState(importedState);
+      setLogInputMode("plain");
+      setActiveTab("log");
+    } catch {
+      window.alert("JSONを読み込めませんでした。Chronicle GMのエクスポートファイルか確認してください。");
+    }
+  };
+
   const updateActiveSession = (updater: (currentSession: SessionState) => SessionState): void => {
     setCampaignState((current) => ({
       ...current,
@@ -822,6 +871,28 @@ export function App() {
               value={campaignName}
               onChange={(event) => updateCampaignState({ campaignName: event.target.value })}
             />
+            <div className="grid grid-cols-2 gap-2">
+              <Button onClick={exportCampaignState} size="sm" variant="outline">
+                <Download className="h-3.5 w-3.5" />
+                書き出し
+              </Button>
+              <label className="inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
+                <Upload className="h-3.5 w-3.5" />
+                読み込み
+                <input
+                  accept="application/json,.json"
+                  className="sr-only"
+                  type="file"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (file) {
+                      void importCampaignState(file);
+                    }
+                  }}
+                />
+              </label>
+            </div>
           </div>
 
           <div className="mt-6 space-y-2">
