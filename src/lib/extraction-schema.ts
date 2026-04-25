@@ -4,35 +4,39 @@ const extractionKinds: ExtractionItem["kind"][] = ["出来事", "NPC", "手が�
 const extractionVisibilities: ExtractionItem["visibility"][] = ["PL既知", "GMのみ", "未開示候補"];
 
 export const extractionResponseJsonSchema = {
-  type: "object",
-  additionalProperties: false,
-  required: ["items"],
-  properties: {
-    items: {
-      type: "array",
-      maxItems: 12,
+  name: "trpg_log_extraction",
+  strict: true,
+  schema: {
+    type: "object",
+    additionalProperties: false,
+    required: ["items"],
+    properties: {
       items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["kind", "title", "detail", "visibility"],
-        properties: {
-          kind: {
-            type: "string",
-            enum: extractionKinds,
-          },
-          title: {
-            type: "string",
-            minLength: 1,
-            maxLength: 48,
-          },
-          detail: {
-            type: "string",
-            minLength: 1,
-            maxLength: 320,
-          },
-          visibility: {
-            type: "string",
-            enum: extractionVisibilities,
+        type: "array",
+        maxItems: 12,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["kind", "title", "detail", "visibility"],
+          properties: {
+            kind: {
+              type: "string",
+              enum: extractionKinds,
+            },
+            title: {
+              type: "string",
+              minLength: 1,
+              maxLength: 48,
+            },
+            detail: {
+              type: "string",
+              minLength: 1,
+              maxLength: 320,
+            },
+            visibility: {
+              type: "string",
+              enum: extractionVisibilities,
+            },
           },
         },
       },

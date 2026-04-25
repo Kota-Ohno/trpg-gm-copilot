@@ -12,7 +12,7 @@ import {
 } from "./extraction";
 import { getExtractionProvider } from "./extraction-provider-settings";
 import { buildExtractionPrompt } from "./extraction-prompt";
-import { parseExtractionJson } from "./extraction-schema";
+import { extractionResponseJsonSchema, parseExtractionJson } from "./extraction-schema";
 
 export type ExtractionRequest = {
   log: string;
@@ -25,6 +25,71 @@ export type ExtractionResult = {
   items: ExtractionItem[];
   run: ExtractionRun;
 };
+
+type ProviderContext = {
+  extractionLines: ReturnType<typeof buildExtractionInput>;
+  prompt: string;
+  providerLabel: string;
+};
+
+type OpenAiResponseContent = {
+  type?: string;
+  text?: unknown;
+};
+
+type OpenAiResponseOutput = {
+  type?: string;
+  content?: OpenAiResponseContent[];
+};
+
+type OpenAiResponseBody = {
+  output_text?: unknown;
+  output?: OpenAiResponseOutput[];
+  error?: {
+    message?: string;
+  };
+};
+
+function normalizeEndpoint(endpoint: string): string {
+  return (endpoint.trim() || "https://api.openai.com/v1").replace(/\/+$/, "");
+}
+
+function extractOpenAiText(responseBody: OpenAiResponseBody): string {
+  if (typeof responseBody.output_text === "string") {
+    return responseBody.output_text;
+  }
+
+  return (
+    responseBody.output
+      ?.flatMap((output) => output.content ?? [])
+      .filter((content) => content.type === "output_text" && typeof content.text === "string")
+      .map((content) => content.text as string)
+      .join("\n") ?? ""
+  );
+}
+
+function buildRuleBasedFallback(
+  request: ExtractionRequest,
+  context: ProviderContext,
+  note: string,
+  validationErrors: string[] = [],
+): ExtractionResult {
+  const generatedItems = runRuleBasedExtraction(context.extractionLines);
+  const items = generatedItems.length > 0 ? generatedItems : mockExtraction;
+
+  return {
+    items,
+    run: {
+      sourceType: generatedItems.length > 0 ? request.source : "fallback",
+      providerId: request.settings.providerId,
+      providerLabel: context.providerLabel,
+      itemCount: items.length,
+      note,
+      promptVersion: `extraction-v1:${context.prompt.length}`,
+      validationErrors,
+    },
+  };
+}
 
 export function buildLlmExtractionResult(
   responseText: string,
@@ -50,6 +115,75 @@ export function buildLlmExtractionResult(
   };
 }
 
+async function runOpenAiExtraction(request: ExtractionRequest, context: ProviderContext): Promise<ExtractionResult> {
+  if (!request.settings.apiKey.trim()) {
+    return buildRuleBasedFallback(
+      request,
+      context,
+      "OpenAI API key が未入力のため、ルールベース抽出にフォールバックしました。",
+    );
+  }
+
+  try {
+    const response = await fetch(`${normalizeEndpoint(request.settings.endpoint)}/responses`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${request.settings.apiKey.trim()}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: request.settings.model.trim() || "gpt-4.1-mini",
+        input: context.prompt,
+        text: {
+          format: {
+            type: "json_schema",
+            ...extractionResponseJsonSchema,
+          },
+        },
+      }),
+    });
+
+    const responseBody = (await response.json()) as OpenAiResponseBody;
+    if (!response.ok) {
+      return buildRuleBasedFallback(
+        request,
+        context,
+        `OpenAI API エラーのため、ルールベース抽出にフォールバックしました。`,
+        [responseBody.error?.message ?? `HTTP ${response.status}`],
+      );
+    }
+
+    const responseText = extractOpenAiText(responseBody);
+    const result = buildLlmExtractionResult(responseText, request);
+    if (result.items.length === 0) {
+      return buildRuleBasedFallback(
+        request,
+        context,
+        "OpenAI レスポンスから抽出候補を作れなかったため、ルールベース抽出にフォールバックしました。",
+        result.run.validationErrors,
+      );
+    }
+
+    return {
+      ...result,
+      run: {
+        ...result.run,
+        note: "OpenAI レスポンスをJSONスキーマに沿って正規化しました。",
+        promptVersion: `extraction-v1:${context.prompt.length}`,
+      },
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "OpenAI API 呼び出しに失敗しました。";
+
+    return buildRuleBasedFallback(
+      request,
+      context,
+      "OpenAI API 呼び出しに失敗したため、ルールベース抽出にフォールバックしました。",
+      [message],
+    );
+  }
+}
+
 export async function runExtractionProvider({
   log,
   liveLog,
@@ -59,24 +193,21 @@ export async function runExtractionProvider({
   const provider = getExtractionProvider(settings.providerId);
   const extractionLines = buildExtractionInput(log, liveLog, source);
   const prompt = buildExtractionPrompt({ lines: extractionLines, source });
-  const generatedItems = runRuleBasedExtraction(extractionLines);
-  const items = generatedItems.length > 0 ? generatedItems : mockExtraction;
-  const sourceType = generatedItems.length > 0 ? source : "fallback";
+  const request = { log, liveLog, settings, source };
+  const context = {
+    extractionLines,
+    prompt,
+    providerLabel: provider.label,
+  };
+
+  if (provider.id === "openai") {
+    return runOpenAiExtraction(request, context);
+  }
+
   const note =
     provider.status === "available"
       ? "ルールベース抽出です。採用前に内容を調整してください。"
       : `${provider.label}連携は未接続です。抽出プロンプトv1を生成し、現在はルールベース抽出にフォールバックしています。`;
 
-  return {
-    items,
-    run: {
-      sourceType,
-      providerId: provider.id,
-      providerLabel: provider.label,
-      itemCount: items.length,
-      note,
-      promptVersion: `extraction-v1:${prompt.length}`,
-      validationErrors: [],
-    },
-  };
+  return buildRuleBasedFallback(request, context, note);
 }

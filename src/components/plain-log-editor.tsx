@@ -4,14 +4,16 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 
 type PlainLogEditorProps = {
+  isExtracting: boolean;
   log: string;
   onChange: (log: string) => void;
-  onExtract: () => void;
+  onExtract: () => void | Promise<void>;
   onImportToSpeakerLog: () => void;
   onReset: () => void;
 };
 
 export function PlainLogEditor({
+  isExtracting,
   log,
   onChange,
   onExtract,
@@ -39,9 +41,9 @@ export function PlainLogEditor({
             <MessageSquareText className="h-4 w-4" />
             話者付きログ化
           </Button>
-          <Button onClick={onExtract}>
+          <Button disabled={isExtracting} onClick={onExtract}>
             <Wand2 className="h-4 w-4" />
-            抽出プレビュー
+            {isExtracting ? "抽出中" : "抽出プレビュー"}
           </Button>
         </div>
       </div>

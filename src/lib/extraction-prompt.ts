@@ -44,7 +44,7 @@ export function buildExtractionPrompt({ lines, source }: ExtractionPromptInput):
     "- JSONだけを返す。",
     "- Markdown、説明文、コードフェンスを含めない。",
     "- schema:",
-    JSON.stringify(extractionResponseJsonSchema, null, 2),
+    JSON.stringify(extractionResponseJsonSchema.schema, null, 2),
     "",
     `入力種別: ${source === "speaker" ? "話者付きログ" : "通常ログ"}`,
     "<transcript>",

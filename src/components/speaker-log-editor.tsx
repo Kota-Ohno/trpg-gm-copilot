@@ -22,11 +22,12 @@ function formatTimestamp(seconds: number): string {
 }
 
 type SpeakerLogEditorProps = {
+  isExtracting: boolean;
   liveLog: LiveLogSession;
   onAddSegment: () => void;
   onApplyToPlainLog: () => void;
   onDeleteSegment: (segmentId: string) => void;
-  onExtract: () => void;
+  onExtract: () => void | Promise<void>;
   onReset: () => void;
   onRestoreSample: () => void;
   onUpdateSegment: (segmentId: string, updates: Partial<TranscriptSegment>) => void;
@@ -35,6 +36,7 @@ type SpeakerLogEditorProps = {
 };
 
 export function SpeakerLogEditor({
+  isExtracting,
   liveLog,
   onAddSegment,
   onApplyToPlainLog,
@@ -77,9 +79,9 @@ export function SpeakerLogEditor({
             <FileText className="h-4 w-4" />
             通常ログへ反映
           </Button>
-          <Button onClick={onExtract}>
+          <Button disabled={isExtracting} onClick={onExtract}>
             <Wand2 className="h-4 w-4" />
-            抽出プレビュー
+            {isExtracting ? "抽出中" : "抽出プレビュー"}
           </Button>
         </div>
       </div>

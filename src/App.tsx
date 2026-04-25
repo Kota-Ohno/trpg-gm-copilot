@@ -117,6 +117,7 @@ function loadCampaignState(): CampaignState {
 
 export function App() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("log");
+  const [isExtracting, setIsExtracting] = useState(false);
   const [logInputMode, setLogInputMode] = useState<LogInputMode>("plain");
   const [campaignState, setCampaignState] = useState<CampaignState>(loadCampaignState);
 
@@ -272,19 +273,24 @@ export function App() {
   };
 
   const runExtractionPreview = async (): Promise<void> => {
-    const extractionResult = await runExtractionProvider({
-      log,
-      liveLog,
-      settings: extractionProvider,
-      source: logInputMode,
-    });
+    setIsExtracting(true);
+    try {
+      const extractionResult = await runExtractionProvider({
+        log,
+        liveLog,
+        settings: extractionProvider,
+        source: logInputMode,
+      });
 
-    updateCurrentSession({
-      extractionItems: extractionResult.items,
-      extractionRun: extractionResult.run,
-      approvedIds: [],
-    });
-    setActiveTab("review");
+      updateCurrentSession({
+        extractionItems: extractionResult.items,
+        extractionRun: extractionResult.run,
+        approvedIds: [],
+      });
+      setActiveTab("review");
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   const applyLiveLogToPlainLog = (): void => {
@@ -565,6 +571,7 @@ export function App() {
                   <CardContent>
                     {logInputMode === "plain" ? (
                       <PlainLogEditor
+                        isExtracting={isExtracting}
                         log={log}
                         onChange={(nextLog) => updateCurrentSession({ log: nextLog })}
                         onExtract={runExtractionPreview}
@@ -573,6 +580,7 @@ export function App() {
                       />
                     ) : (
                       <SpeakerLogEditor
+                        isExtracting={isExtracting}
                         liveLog={liveLog}
                         onAddSegment={addSegment}
                         onApplyToPlainLog={applyLiveLogToPlainLog}
