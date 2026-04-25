@@ -68,8 +68,13 @@ export type ExtractionRun = {
   sourceType: ExtractionSourceType;
   providerId: ExtractionProviderId;
   providerLabel: string;
+  executedProviderId: ExtractionProviderId;
+  executedProviderLabel: string;
+  fallbackUsed: boolean;
+  failureReason?: string;
   itemCount: number;
   note?: string;
+  promptLength: number;
   promptVersion?: string;
   validationErrors?: string[];
 };

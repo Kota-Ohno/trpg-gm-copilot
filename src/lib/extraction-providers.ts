@@ -117,6 +117,7 @@ function buildRuleBasedFallback(
   context: ProviderContext,
   note: string,
   validationErrors: string[] = [],
+  failureReason?: string,
 ): ExtractionResult {
   const generatedItems = runRuleBasedExtraction(context.extractionLines);
   const items = generatedItems.length > 0 ? generatedItems : mockExtraction;
@@ -127,9 +128,14 @@ function buildRuleBasedFallback(
       sourceType: generatedItems.length > 0 ? request.source : "fallback",
       providerId: request.settings.providerId,
       providerLabel: context.providerLabel,
+      executedProviderId: "rule-based",
+      executedProviderLabel: "ルールベース",
+      fallbackUsed: request.settings.providerId !== "rule-based",
+      failureReason,
       itemCount: items.length,
       note,
-      promptVersion: `extraction-v1:${context.prompt.length}`,
+      promptLength: context.prompt.length,
+      promptVersion: "extraction-v1",
       validationErrors,
     },
   };
@@ -148,11 +154,15 @@ export function buildLlmExtractionResult(
       sourceType: request.source,
       providerId: provider.id,
       providerLabel: provider.label,
+      executedProviderId: provider.id,
+      executedProviderLabel: provider.label,
+      fallbackUsed: false,
       itemCount: normalizedResponse.items.length,
       note:
         normalizedResponse.errors.length > 0
           ? "LLMレスポンスを読み取りましたが、一部の候補を検証で除外しました。"
           : "LLMレスポンスをJSONスキーマに沿って正規化しました。",
+      promptLength: 0,
       promptVersion: "extraction-v1",
       validationErrors: normalizedResponse.errors,
     },
@@ -166,6 +176,8 @@ async function runOpenAiExtraction(request: ExtractionRequest, context: Provider
       request,
       context,
       "OpenAI API key が未入力のため、ルールベース抽出にフォールバックしました。",
+      [],
+      "OpenAI API key が未入力です。",
     );
   }
 
@@ -196,6 +208,7 @@ async function runOpenAiExtraction(request: ExtractionRequest, context: Provider
         context,
         `OpenAI API エラーのため、ルールベース抽出にフォールバックしました。`,
         [responseBody.error?.message ?? `HTTP ${response.status}`],
+        responseBody.error?.message ?? `HTTP ${response.status}`,
       );
     }
 
@@ -207,6 +220,7 @@ async function runOpenAiExtraction(request: ExtractionRequest, context: Provider
         context,
         "OpenAI レスポンスから抽出候補を作れなかったため、ルールベース抽出にフォールバックしました。",
         result.run.validationErrors,
+        result.run.validationErrors?.[0] ?? "OpenAI レスポンスから抽出候補を作れませんでした。",
       );
     }
 
@@ -215,7 +229,8 @@ async function runOpenAiExtraction(request: ExtractionRequest, context: Provider
       run: {
         ...result.run,
         note: "OpenAI レスポンスをJSONスキーマに沿って正規化しました。",
-        promptVersion: `extraction-v1:${context.prompt.length}`,
+        promptLength: context.prompt.length,
+        promptVersion: "extraction-v1",
       },
     };
   } catch (error) {
@@ -226,6 +241,7 @@ async function runOpenAiExtraction(request: ExtractionRequest, context: Provider
       context,
       "OpenAI API 呼び出しに失敗したため、ルールベース抽出にフォールバックしました。",
       [message],
+      message,
     );
   }
 }
@@ -253,6 +269,7 @@ async function runOllamaExtraction(request: ExtractionRequest, context: Provider
         context,
         "Ollama API エラーのため、ルールベース抽出にフォールバックしました。",
         [responseBody.error ?? `HTTP ${response.status}`],
+        responseBody.error ?? `HTTP ${response.status}`,
       );
     }
 
@@ -264,6 +281,7 @@ async function runOllamaExtraction(request: ExtractionRequest, context: Provider
         context,
         "Ollama レスポンスから抽出候補を作れなかったため、ルールベース抽出にフォールバックしました。",
         result.run.validationErrors,
+        result.run.validationErrors?.[0] ?? "Ollama レスポンスから抽出候補を作れませんでした。",
       );
     }
 
@@ -272,7 +290,8 @@ async function runOllamaExtraction(request: ExtractionRequest, context: Provider
       run: {
         ...result.run,
         note: "Ollama レスポンスをJSONスキーマに沿って正規化しました。",
-        promptVersion: `extraction-v1:${context.prompt.length}`,
+        promptLength: context.prompt.length,
+        promptVersion: "extraction-v1",
       },
     };
   } catch (error) {
@@ -283,6 +302,7 @@ async function runOllamaExtraction(request: ExtractionRequest, context: Provider
       context,
       "Ollama API 呼び出しに失敗したため、ルールベース抽出にフォールバックしました。",
       [message],
+      message,
     );
   }
 }

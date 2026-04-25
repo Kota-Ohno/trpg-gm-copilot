@@ -84,6 +84,12 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
             ...session.extractionRun,
             providerId: session.extractionRun.providerId ?? "rule-based",
             providerLabel: session.extractionRun.providerLabel ?? "ルールベース",
+            executedProviderId: session.extractionRun.executedProviderId ?? session.extractionRun.providerId ?? "rule-based",
+            executedProviderLabel:
+              session.extractionRun.executedProviderLabel ?? session.extractionRun.providerLabel ?? "ルールベース",
+            fallbackUsed:
+              session.extractionRun.fallbackUsed ?? session.extractionRun.sourceType === "fallback",
+            promptLength: session.extractionRun.promptLength ?? 0,
           }
         : null,
     })),
