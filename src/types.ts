@@ -52,7 +52,7 @@ export type WorkspaceTab = "log" | "review" | "chronicle" | "prep";
 
 export type SpeakerRole = "GM" | "PL" | "unknown";
 
-export type TranscriptSourceType = "manual" | "sample";
+export type TranscriptSourceType = "manual" | "sample" | "imported";
 
 export type Speaker = {
   id: string;

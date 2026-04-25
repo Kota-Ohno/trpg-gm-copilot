@@ -7,7 +7,7 @@ import {
   FileText,
   KeyRound,
   Lightbulb,
-  Map,
+  Map as MapIcon,
   MessageSquareText,
   Plus,
   RotateCcw,
@@ -32,6 +32,7 @@ import type {
   ExtractionItem,
   LiveLogSession,
   SpeakerRole,
+  Speaker,
   TranscriptSegment,
   WorkspaceTab,
 } from "./types";
@@ -148,6 +149,72 @@ function liveLogToPlainText(liveLog: LiveLogSession): string {
     .join("\n");
 }
 
+function inferSpeakerRole(name: string): SpeakerRole {
+  const normalizedName = name.trim().toLowerCase();
+
+  if (["gm", "kp", "dm", "keeper", "ゲームマスター", "キーパー"].includes(normalizedName)) {
+    return "GM";
+  }
+
+  return "PL";
+}
+
+function parsePlainLogToLiveLog(log: string, title: string): LiveLogSession | null {
+  const speakersByName = new Map<string, Speaker>();
+  const segments: TranscriptSegment[] = [];
+  let activeSegment: TranscriptSegment | null = null;
+
+  log.split(/\r?\n/).forEach((rawLine) => {
+    const line = rawLine.trim();
+    if (!line) {
+      return;
+    }
+
+    const match = line.match(/^(?:\[[^\]]+\]\s*)?([^:：]{1,32})[:：]\s*(.+)$/);
+    if (!match) {
+      if (activeSegment) {
+        activeSegment.text = `${activeSegment.text}\n${line}`;
+      }
+      return;
+    }
+
+    const speakerName = match[1].trim();
+    const text = match[2].trim();
+    let speaker = speakersByName.get(speakerName);
+
+    if (!speaker) {
+      speaker = {
+        id: createId("speaker"),
+        name: speakerName,
+        role: inferSpeakerRole(speakerName),
+      };
+      speakersByName.set(speakerName, speaker);
+    }
+
+    const startTimeSec = segments.length * 8;
+    activeSegment = {
+      id: createId("segment"),
+      speakerId: speaker.id,
+      startTimeSec,
+      endTimeSec: startTimeSec + 6,
+      text,
+    };
+    segments.push(activeSegment);
+  });
+
+  if (segments.length === 0) {
+    return null;
+  }
+
+  return {
+    id: createId("session"),
+    title,
+    sourceType: "imported",
+    speakers: Array.from(speakersByName.values()),
+    segments,
+  };
+}
+
 function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chronicle {
   if (item.kind === "NPC") {
     return {
@@ -245,6 +312,16 @@ export function App() {
   const applyLiveLogToPlainLog = (): void => {
     updateCampaignState({ log: liveLogToPlainText(liveLog) });
     setLogInputMode("plain");
+  };
+
+  const importPlainLogToLiveLog = (): void => {
+    const importedLiveLog = parsePlainLogToLiveLog(log, `${campaignName} 取り込みログ`);
+    if (!importedLiveLog) {
+      return;
+    }
+
+    updateCampaignState({ liveLog: importedLiveLog });
+    setLogInputMode("speaker");
   };
 
   const restoreSampleLiveLog = (): void => {
@@ -347,7 +424,7 @@ export function App() {
             {[
               { icon: Search, label: "調査ボード", count: chronicle.clues.length },
               { icon: UserRound, label: "NPC", count: chronicle.npcs.length },
-              { icon: Map, label: "場所", count: chronicle.locations.length },
+              { icon: MapIcon, label: "場所", count: chronicle.locations.length },
               { icon: Clock3, label: "年表", count: chronicle.events.length },
               { icon: Sparkles, label: "伏線", count: chronicle.threads.length },
             ].map((item) => (
@@ -414,6 +491,7 @@ export function App() {
                         log={log}
                         onChange={(nextLog) => updateCampaignState({ log: nextLog })}
                         onExtract={runMockExtraction}
+                        onImportToSpeakerLog={importPlainLogToLiveLog}
                         onReset={resetCampaignState}
                       />
                     ) : (
@@ -549,11 +627,13 @@ function PlainLogEditor({
   log,
   onChange,
   onExtract,
+  onImportToSpeakerLog,
   onReset,
 }: {
   log: string;
   onChange: (log: string) => void;
   onExtract: () => void;
+  onImportToSpeakerLog: () => void;
   onReset: () => void;
 }) {
   return (
@@ -572,6 +652,10 @@ function PlainLogEditor({
           <Button onClick={onReset} variant="outline">
             <RotateCcw className="h-4 w-4" />
             デモ初期化
+          </Button>
+          <Button onClick={onImportToSpeakerLog} variant="outline">
+            <MessageSquareText className="h-4 w-4" />
+            話者付きログ化
           </Button>
           <Button onClick={onExtract}>
             <Wand2 className="h-4 w-4" />
@@ -611,7 +695,9 @@ function SpeakerLogEditor({
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background p-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">{liveLog.sourceType === "sample" ? "サンプル" : "手動"}</Badge>
+            <Badge variant="outline">
+              {liveLog.sourceType === "sample" ? "サンプル" : liveLog.sourceType === "imported" ? "取り込み" : "手動"}
+            </Badge>
             <Badge variant="muted">{liveLog.segments.length}発話</Badge>
             <Badge variant="muted">{liveLog.speakers.length}話者</Badge>
           </div>
