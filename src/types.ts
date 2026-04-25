@@ -84,13 +84,20 @@ export type LiveLogSession = {
   segments: TranscriptSegment[];
 };
 
-export type CampaignState = {
-  campaignName: string;
+export type SessionState = {
+  id: string;
+  title: string;
+  date: string;
   log: string;
   liveLog: LiveLogSession;
   extractionItems: ExtractionItem[];
   extractionRun: ExtractionRun | null;
   approvedIds: string[];
+};
+
+export type CampaignState = {
+  campaignName: string;
+  currentSession: SessionState;
   chronicle: Chronicle;
   quickResult: string;
 };

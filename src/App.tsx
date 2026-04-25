@@ -32,6 +32,7 @@ import type {
   ExtractionRun,
   ExtractionItem,
   LiveLogSession,
+  SessionState,
   SpeakerRole,
   Speaker,
   TranscriptSegment,
@@ -81,11 +82,16 @@ const quickPrompts = [
 
 const initialCampaignState: CampaignState = {
   campaignName: "灰ヶ浦異聞",
-  log: sampleLog,
-  liveLog: sampleLiveLog,
-  extractionItems: [],
-  extractionRun: null,
-  approvedIds: [],
+  currentSession: {
+    id: "session-haigaura-01",
+    title: "第1夜",
+    date: "2026-04-25",
+    log: sampleLog,
+    liveLog: sampleLiveLog,
+    extractionItems: [],
+    extractionRun: null,
+    approvedIds: [],
+  },
   chronicle: initialChronicle,
   quickResult: quickPrompts[0].result,
 };
@@ -127,12 +133,24 @@ function loadCampaignState(): CampaignState {
   }
 
   try {
-    const parsedState = JSON.parse(savedState) as Partial<CampaignState>;
+    const parsedState = JSON.parse(savedState) as Partial<CampaignState> & Partial<SessionState>;
+    const currentSession = parsedState.currentSession ?? {
+      ...initialCampaignState.currentSession,
+      log: parsedState.log ?? initialCampaignState.currentSession.log,
+      liveLog: parsedState.liveLog ?? initialCampaignState.currentSession.liveLog,
+      extractionItems: parsedState.extractionItems ?? initialCampaignState.currentSession.extractionItems,
+      extractionRun: parsedState.extractionRun ?? initialCampaignState.currentSession.extractionRun,
+      approvedIds: parsedState.approvedIds ?? initialCampaignState.currentSession.approvedIds,
+    };
 
     return {
       ...initialCampaignState,
       ...parsedState,
-      liveLog: parsedState.liveLog ?? initialCampaignState.liveLog,
+      currentSession: {
+        ...initialCampaignState.currentSession,
+        ...currentSession,
+        liveLog: currentSession.liveLog ?? initialCampaignState.currentSession.liveLog,
+      },
     };
   } catch {
     return initialCampaignState;
@@ -445,14 +463,17 @@ export function App() {
   const [logInputMode, setLogInputMode] = useState<LogInputMode>("plain");
   const [campaignState, setCampaignState] = useState<CampaignState>(loadCampaignState);
 
+  const { currentSession } = campaignState;
   const {
     approvedIds,
-    campaignName,
-    chronicle,
     extractionItems: items,
     extractionRun,
     liveLog,
     log,
+  } = currentSession;
+  const {
+    campaignName,
+    chronicle,
     quickResult,
   } = campaignState;
 
@@ -474,10 +495,23 @@ export function App() {
     setCampaignState((current) => ({ ...current, ...updates }));
   };
 
+  const updateCurrentSession = (updates: Partial<SessionState>): void => {
+    setCampaignState((current) => ({
+      ...current,
+      currentSession: {
+        ...current.currentSession,
+        ...updates,
+      },
+    }));
+  };
+
   const updateLiveLog = (updater: (current: LiveLogSession) => LiveLogSession): void => {
     setCampaignState((current) => ({
       ...current,
-      liveLog: updater(current.liveLog),
+      currentSession: {
+        ...current.currentSession,
+        liveLog: updater(current.currentSession.liveLog),
+      },
     }));
   };
 
@@ -492,7 +526,7 @@ export function App() {
     const generatedItems = runRuleBasedExtraction(extractionLines);
     const nextItems = generatedItems.length > 0 ? generatedItems : mockExtraction;
 
-    updateCampaignState({
+    updateCurrentSession({
       extractionItems: nextItems,
       extractionRun: {
         sourceType: generatedItems.length > 0 ? logInputMode : "fallback",
@@ -504,7 +538,7 @@ export function App() {
   };
 
   const applyLiveLogToPlainLog = (): void => {
-    updateCampaignState({ log: liveLogToPlainText(liveLog) });
+    updateCurrentSession({ log: liveLogToPlainText(liveLog) });
     setLogInputMode("plain");
   };
 
@@ -514,12 +548,12 @@ export function App() {
       return;
     }
 
-    updateCampaignState({ liveLog: importedLiveLog });
+    updateCurrentSession({ liveLog: importedLiveLog });
     setLogInputMode("speaker");
   };
 
   const restoreSampleLiveLog = (): void => {
-    updateCampaignState({ liveLog: sampleLiveLog });
+    updateCurrentSession({ liveLog: sampleLiveLog });
   };
 
   const updateSpeakerName = (speakerId: string, name: string): void => {
@@ -579,7 +613,10 @@ export function App() {
     }
     setCampaignState((current) => ({
       ...current,
-      approvedIds: [...current.approvedIds, item.id],
+      currentSession: {
+        ...current.currentSession,
+        approvedIds: [...current.currentSession.approvedIds, item.id],
+      },
       chronicle: applyExtraction(current.chronicle, item),
     }));
   };
@@ -587,17 +624,23 @@ export function App() {
   const rejectItem = (itemId: string): void => {
     setCampaignState((current) => ({
       ...current,
-      approvedIds: current.approvedIds.filter((id) => id !== itemId),
-      extractionItems: current.extractionItems.filter((item) => item.id !== itemId),
+      currentSession: {
+        ...current.currentSession,
+        approvedIds: current.currentSession.approvedIds.filter((id) => id !== itemId),
+        extractionItems: current.currentSession.extractionItems.filter((item) => item.id !== itemId),
+      },
     }));
   };
 
   const updateExtractionItem = (itemId: string, updates: Partial<ExtractionItem>): void => {
     setCampaignState((current) => ({
       ...current,
-      extractionItems: current.extractionItems.map((item) =>
-        item.id === itemId ? { ...item, ...updates } : item,
-      ),
+      currentSession: {
+        ...current.currentSession,
+        extractionItems: current.currentSession.extractionItems.map((item) =>
+          item.id === itemId ? { ...item, ...updates } : item,
+        ),
+      },
     }));
   };
 
@@ -666,6 +709,25 @@ export function App() {
               <p className="text-sm text-muted-foreground">
                 セッションログから手がかり、秘密、伏線を抽出して次回準備へつなげます。
               </p>
+              <div className="mt-3 flex flex-wrap items-end gap-2">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">今回のセッション</label>
+                  <Input
+                    className="mt-1 w-44"
+                    value={currentSession.title}
+                    onChange={(event) => updateCurrentSession({ title: event.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">日付</label>
+                  <Input
+                    className="mt-1 w-40"
+                    type="date"
+                    value={currentSession.date}
+                    onChange={(event) => updateCurrentSession({ date: event.target.value })}
+                  />
+                </div>
+              </div>
             </div>
             <Tabs value={activeTab} options={tabOptions} onChange={setActiveTab} />
           </header>
@@ -692,7 +754,7 @@ export function App() {
                     {logInputMode === "plain" ? (
                       <PlainLogEditor
                         log={log}
-                        onChange={(nextLog) => updateCampaignState({ log: nextLog })}
+                        onChange={(nextLog) => updateCurrentSession({ log: nextLog })}
                         onExtract={runExtractionPreview}
                         onImportToSpeakerLog={importPlainLogToLiveLog}
                         onReset={resetCampaignState}
