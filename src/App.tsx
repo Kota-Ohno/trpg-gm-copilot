@@ -98,6 +98,9 @@ const logInputOptions: Array<{ value: LogInputMode; label: string }> = [
   { value: "speaker", label: "話者付きログ" },
 ];
 
+const extractionKindOptions: ExtractionItem["kind"][] = ["出来事", "NPC", "手がかり", "GM秘密", "伏線"];
+const extractionVisibilityOptions: ExtractionItem["visibility"][] = ["PL既知", "GMのみ", "未開示候補"];
+
 function loadCampaignState(): CampaignState {
   if (typeof window === "undefined") {
     return initialCampaignState;
@@ -398,6 +401,15 @@ export function App() {
     }));
   };
 
+  const updateExtractionItem = (itemId: string, updates: Partial<ExtractionItem>): void => {
+    setCampaignState((current) => ({
+      ...current,
+      extractionItems: current.extractionItems.map((item) =>
+        item.id === itemId ? { ...item, ...updates } : item,
+      ),
+    }));
+  };
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="grid min-h-screen grid-cols-[260px_1fr_320px] max-xl:grid-cols-[220px_1fr] max-lg:grid-cols-1">
@@ -521,34 +533,14 @@ export function App() {
                     const isApproved = approvedIds.includes(item.id);
 
                     return (
-                      <Card className={isApproved ? "border-primary/40 bg-primary/5" : ""} key={item.id}>
-                        <CardHeader className="flex-row items-start justify-between gap-4">
-                          <div>
-                            <div className="mb-2 flex flex-wrap gap-2">
-                              <Badge>{item.kind}</Badge>
-                              <Badge variant={item.visibility === "GMのみ" ? "secondary" : "outline"}>
-                                {item.visibility}
-                              </Badge>
-                            </div>
-                            <CardTitle>{item.title}</CardTitle>
-                            <CardDescription className="mt-2 leading-6">{item.detail}</CardDescription>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              aria-label="採用"
-                              disabled={isApproved}
-                              onClick={() => approveItem(item)}
-                              size="icon"
-                              variant={isApproved ? "secondary" : "default"}
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button aria-label="破棄" onClick={() => rejectItem(item.id)} size="icon" variant="outline">
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </CardHeader>
-                      </Card>
+                      <ExtractionReviewCard
+                        isApproved={isApproved}
+                        item={item}
+                        key={item.id}
+                        onApprove={approveItem}
+                        onReject={rejectItem}
+                        onUpdate={updateExtractionItem}
+                      />
                     );
                   })
                 )}
@@ -838,6 +830,110 @@ function SpeakerLogEditor({
         </div>
       </section>
     </div>
+  );
+}
+
+function ExtractionReviewCard({
+  isApproved,
+  item,
+  onApprove,
+  onReject,
+  onUpdate,
+}: {
+  isApproved: boolean;
+  item: ExtractionItem;
+  onApprove: (item: ExtractionItem) => void;
+  onReject: (itemId: string) => void;
+  onUpdate: (itemId: string, updates: Partial<ExtractionItem>) => void;
+}) {
+  return (
+    <Card className={isApproved ? "border-primary/40 bg-primary/5" : ""}>
+      <CardHeader>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="mb-2 flex flex-wrap gap-2">
+              <Badge>{item.kind}</Badge>
+              <Badge variant={item.visibility === "GMのみ" ? "secondary" : "outline"}>{item.visibility}</Badge>
+              {isApproved && <Badge variant="muted">採用済み</Badge>}
+            </div>
+            <CardTitle>{item.title || "無題の抽出候補"}</CardTitle>
+            <CardDescription className="mt-2 leading-6">
+              GMが確認して、必要なら直してから採用します。
+            </CardDescription>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              aria-label="採用"
+              disabled={isApproved}
+              onClick={() => onApprove(item)}
+              size="icon"
+              variant={isApproved ? "secondary" : "default"}
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+            <Button aria-label="破棄" onClick={() => onReject(item.id)} size="icon" variant="outline">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">種別</label>
+            <select
+              className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isApproved}
+              value={item.kind}
+              onChange={(event) => onUpdate(item.id, { kind: event.target.value as ExtractionItem["kind"] })}
+            >
+              {extractionKindOptions.map((kind) => (
+                <option key={kind} value={kind}>
+                  {kind}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">公開範囲</label>
+            <select
+              className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isApproved}
+              value={item.visibility}
+              onChange={(event) =>
+                onUpdate(item.id, { visibility: event.target.value as ExtractionItem["visibility"] })
+              }
+            >
+              {extractionVisibilityOptions.map((visibility) => (
+                <option key={visibility} value={visibility}>
+                  {visibility}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">タイトル</label>
+          <Input
+            className="mt-1"
+            disabled={isApproved}
+            value={item.title}
+            onChange={(event) => onUpdate(item.id, { title: event.target.value })}
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">本文</label>
+          <Textarea
+            className="mt-1 min-h-[116px] resize-y text-sm leading-6 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isApproved}
+            value={item.detail}
+            onChange={(event) => onUpdate(item.id, { detail: event.target.value })}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
