@@ -50,6 +50,13 @@ export type PrepNote = {
 
 export type WorkspaceTab = "log" | "review" | "chronicle" | "prep";
 
+export type ExtractionSourceType = "plain" | "speaker" | "fallback";
+
+export type ExtractionRun = {
+  sourceType: ExtractionSourceType;
+  itemCount: number;
+};
+
 export type SpeakerRole = "GM" | "PL" | "unknown";
 
 export type TranscriptSourceType = "manual" | "sample" | "imported";
@@ -82,6 +89,7 @@ export type CampaignState = {
   log: string;
   liveLog: LiveLogSession;
   extractionItems: ExtractionItem[];
+  extractionRun: ExtractionRun | null;
   approvedIds: string[];
   chronicle: Chronicle;
   quickResult: string;
