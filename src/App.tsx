@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
-  Check,
   Clock3,
   Compass,
   Download,
@@ -10,23 +9,23 @@ import {
   KeyRound,
   Lightbulb,
   Map as MapIcon,
-  MessageSquareText,
   Plus,
-  RotateCcw,
   Search,
   Sparkles,
   Swords,
   Trash2,
   UserRound,
-  Wand2,
-  X,
 } from "lucide-react";
+import { ChronicleView } from "./components/chronicle-view";
+import { ExtractionReviewCard } from "./components/extraction-review-card";
+import { PlainLogEditor } from "./components/plain-log-editor";
+import { PrepSection } from "./components/prep-section";
+import { SpeakerLogEditor } from "./components/speaker-log-editor";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
 import { Tabs } from "./components/ui/tabs";
-import { Textarea } from "./components/ui/textarea";
 import { mockExtraction, sampleLiveLog } from "./data/sample";
 import {
   applyExtraction,
@@ -45,7 +44,6 @@ import {
 } from "./lib/extraction";
 import type {
   CampaignState,
-  Chronicle,
   ExtractionRun,
   ExtractionItem,
   LiveLogSession,
@@ -89,25 +87,11 @@ const quickPrompts = [
   },
 ];
 
-const statusLabels = {
-  known: "PL既知",
-  partial: "一部既知",
-  hidden: "GM秘密",
-};
-
-const speakerRoleLabels: Record<SpeakerRole, string> = {
-  GM: "GM",
-  PL: "PL",
-  unknown: "不明",
-};
-
 const logInputOptions: Array<{ value: LogInputMode; label: string }> = [
   { value: "plain", label: "通常ログ" },
   { value: "speaker", label: "話者付きログ" },
 ];
 
-const extractionKindOptions: ExtractionItem["kind"][] = ["出来事", "NPC", "手がかり", "GM秘密", "伏線"];
-const extractionVisibilityOptions: ExtractionItem["visibility"][] = ["PL既知", "GMのみ", "未開示候補"];
 const extractionSourceLabels: Record<ExtractionRun["sourceType"], string> = {
   plain: "通常ログ由来",
   speaker: "話者付きログ由来",
@@ -129,16 +113,6 @@ function loadCampaignState(): CampaignState {
   } catch {
     return initialCampaignState;
   }
-}
-
-function formatTimestamp(seconds: number): string {
-  const safeSeconds = Math.max(0, Math.round(seconds));
-  const minutes = Math.floor(safeSeconds / 60)
-    .toString()
-    .padStart(2, "0");
-  const remainingSeconds = (safeSeconds % 60).toString().padStart(2, "0");
-
-  return `${minutes}:${remainingSeconds}`;
 }
 
 export function App() {
@@ -735,328 +709,6 @@ export function App() {
   );
 }
 
-function PlainLogEditor({
-  log,
-  onChange,
-  onExtract,
-  onImportToSpeakerLog,
-  onReset,
-}: {
-  log: string;
-  onChange: (log: string) => void;
-  onExtract: () => void;
-  onImportToSpeakerLog: () => void;
-  onReset: () => void;
-}) {
-  return (
-    <>
-      <Textarea
-        className="min-h-[420px] resize-y font-mono text-sm leading-6"
-        value={log}
-        onChange={(event) => onChange(event.target.value)}
-      />
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm text-muted-foreground">{log.length.toLocaleString()}文字</p>
-          <Badge variant="outline">ローカル自動保存</Badge>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={onReset} variant="outline">
-            <RotateCcw className="h-4 w-4" />
-            デモ初期化
-          </Button>
-          <Button onClick={onImportToSpeakerLog} variant="outline">
-            <MessageSquareText className="h-4 w-4" />
-            話者付きログ化
-          </Button>
-          <Button onClick={onExtract}>
-            <Wand2 className="h-4 w-4" />
-            抽出プレビュー
-          </Button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-function SpeakerLogEditor({
-  liveLog,
-  onAddSegment,
-  onApplyToPlainLog,
-  onDeleteSegment,
-  onReset,
-  onRestoreSample,
-  onUpdateSegment,
-  onUpdateSpeakerName,
-  onUpdateSpeakerRole,
-}: {
-  liveLog: LiveLogSession;
-  onAddSegment: () => void;
-  onApplyToPlainLog: () => void;
-  onDeleteSegment: (segmentId: string) => void;
-  onReset: () => void;
-  onRestoreSample: () => void;
-  onUpdateSegment: (segmentId: string, updates: Partial<TranscriptSegment>) => void;
-  onUpdateSpeakerName: (speakerId: string, name: string) => void;
-  onUpdateSpeakerRole: (speakerId: string, role: SpeakerRole) => void;
-}) {
-  const sortedSegments = [...liveLog.segments].sort((first, second) => first.startTimeSec - second.startTimeSec);
-
-  return (
-    <div className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background p-3">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">
-              {liveLog.sourceType === "sample" ? "サンプル" : liveLog.sourceType === "imported" ? "取り込み" : "手動"}
-            </Badge>
-            <Badge variant="muted">{liveLog.segments.length}発話</Badge>
-            <Badge variant="muted">{liveLog.speakers.length}話者</Badge>
-          </div>
-          <p className="mt-2 text-sm font-medium">{liveLog.title}</p>
-          <p className="text-xs text-muted-foreground">
-            音声連携前の検証用です。話者付き発話を通常ログへ反映して、既存の抽出フローに渡します。
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={onRestoreSample} variant="outline">
-            <RotateCcw className="h-4 w-4" />
-            サンプル復元
-          </Button>
-          <Button onClick={onReset} variant="outline">
-            <RotateCcw className="h-4 w-4" />
-            デモ初期化
-          </Button>
-          <Button onClick={onApplyToPlainLog}>
-            <FileText className="h-4 w-4" />
-            通常ログへ反映
-          </Button>
-        </div>
-      </div>
-
-      <section className="grid gap-3">
-        <div className="flex items-center gap-2">
-          <UserRound className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">話者</h2>
-        </div>
-        <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-1">
-          {liveLog.speakers.map((speaker) => (
-            <div className="rounded-md border bg-background p-3" key={speaker.id}>
-              <label className="text-xs font-medium text-muted-foreground">名前</label>
-              <Input
-                className="mt-1"
-                value={speaker.name}
-                onChange={(event) => onUpdateSpeakerName(speaker.id, event.target.value)}
-              />
-              <label className="mt-3 block text-xs font-medium text-muted-foreground">ロール</label>
-              <select
-                className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                value={speaker.role}
-                onChange={(event) => onUpdateSpeakerRole(speaker.id, event.target.value as SpeakerRole)}
-              >
-                {Object.entries(speakerRoleLabels).map(([role, label]) => (
-                  <option key={role} value={role}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="grid gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <MessageSquareText className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold">発話ログ</h2>
-          </div>
-          <Button onClick={onAddSegment} size="sm" variant="outline">
-            <Plus className="h-4 w-4" />
-            発話を追加
-          </Button>
-        </div>
-
-        <div className="grid gap-3">
-          {sortedSegments.map((segment) => {
-            const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
-
-            return (
-              <div className="grid grid-cols-[120px_160px_1fr_40px] gap-3 rounded-md border bg-background p-3 max-lg:grid-cols-1" key={segment.id}>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">時刻</label>
-                  <div className="mt-1 grid grid-cols-2 gap-2">
-                    <Input
-                      aria-label="開始秒"
-                      min={0}
-                      type="number"
-                      value={segment.startTimeSec}
-                      onChange={(event) =>
-                        onUpdateSegment(segment.id, { startTimeSec: Number(event.target.value) || 0 })
-                      }
-                    />
-                    <Input
-                      aria-label="終了秒"
-                      min={0}
-                      type="number"
-                      value={segment.endTimeSec}
-                      onChange={(event) =>
-                        onUpdateSegment(segment.id, { endTimeSec: Number(event.target.value) || 0 })
-                      }
-                    />
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formatTimestamp(segment.startTimeSec)} - {formatTimestamp(segment.endTimeSec)}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">話者</label>
-                  <select
-                    className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    value={segment.speakerId}
-                    onChange={(event) => onUpdateSegment(segment.id, { speakerId: event.target.value })}
-                  >
-                    {liveLog.speakers.map((candidate) => (
-                      <option key={candidate.id} value={candidate.id}>
-                        {candidate.name} / {speakerRoleLabels[candidate.role]}
-                      </option>
-                    ))}
-                  </select>
-                  {speaker && (
-                    <Badge className="mt-2" variant={speaker.role === "GM" ? "secondary" : "outline"}>
-                      {speakerRoleLabels[speaker.role]}
-                    </Badge>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">発話</label>
-                  <Textarea
-                    className="mt-1 min-h-[84px] resize-y text-sm leading-6"
-                    value={segment.text}
-                    onChange={(event) => onUpdateSegment(segment.id, { text: event.target.value })}
-                  />
-                </div>
-
-                <div className="flex items-start justify-end">
-                  <Button aria-label="発話を削除" onClick={() => onDeleteSegment(segment.id)} size="icon" variant="outline">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function ExtractionReviewCard({
-  isApproved,
-  item,
-  onApprove,
-  onReject,
-  onUpdate,
-}: {
-  isApproved: boolean;
-  item: ExtractionItem;
-  onApprove: (item: ExtractionItem) => void;
-  onReject: (itemId: string) => void;
-  onUpdate: (itemId: string, updates: Partial<ExtractionItem>) => void;
-}) {
-  return (
-    <Card className={isApproved ? "border-primary/40 bg-primary/5" : ""}>
-      <CardHeader>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="mb-2 flex flex-wrap gap-2">
-              <Badge>{item.kind}</Badge>
-              <Badge variant={item.visibility === "GMのみ" ? "secondary" : "outline"}>{item.visibility}</Badge>
-              {isApproved && <Badge variant="muted">採用済み</Badge>}
-            </div>
-            <CardTitle>{item.title || "無題の抽出候補"}</CardTitle>
-            <CardDescription className="mt-2 leading-6">
-              GMが確認して、必要なら直してから採用します。
-            </CardDescription>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              aria-label="採用"
-              disabled={isApproved}
-              onClick={() => onApprove(item)}
-              size="icon"
-              variant={isApproved ? "secondary" : "default"}
-            >
-              <Check className="h-4 w-4" />
-            </Button>
-            <Button aria-label="破棄" onClick={() => onReject(item.id)} size="icon" variant="outline">
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="grid gap-3">
-        <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">種別</label>
-            <select
-              className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isApproved}
-              value={item.kind}
-              onChange={(event) => onUpdate(item.id, { kind: event.target.value as ExtractionItem["kind"] })}
-            >
-              {extractionKindOptions.map((kind) => (
-                <option key={kind} value={kind}>
-                  {kind}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">公開範囲</label>
-            <select
-              className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isApproved}
-              value={item.visibility}
-              onChange={(event) =>
-                onUpdate(item.id, { visibility: event.target.value as ExtractionItem["visibility"] })
-              }
-            >
-              {extractionVisibilityOptions.map((visibility) => (
-                <option key={visibility} value={visibility}>
-                  {visibility}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="text-xs font-medium text-muted-foreground">タイトル</label>
-          <Input
-            className="mt-1"
-            disabled={isApproved}
-            value={item.title}
-            onChange={(event) => onUpdate(item.id, { title: event.target.value })}
-          />
-        </div>
-
-        <div>
-          <label className="text-xs font-medium text-muted-foreground">本文</label>
-          <Textarea
-            className="mt-1 min-h-[116px] resize-y text-sm leading-6 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isApproved}
-            value={item.detail}
-            onChange={(event) => onUpdate(item.id, { detail: event.target.value })}
-          />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function EmptyState({ onStart }: { onStart: () => void }) {
   return (
     <Card>
@@ -1066,91 +718,6 @@ function EmptyState({ onStart }: { onStart: () => void }) {
       </CardHeader>
       <CardContent>
         <Button onClick={onStart}>ログへ戻る</Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
-  return (
-    <div className="grid gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>手がかり</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3">
-          {chronicle.clues.map((clue) => (
-            <div className="rounded-md border p-3" key={`${clue.title}-${clue.detail}`}>
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-medium">{clue.title}</p>
-                <Badge variant={clue.status === "hidden" ? "secondary" : "outline"}>{statusLabels[clue.status]}</Badge>
-              </div>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{clue.detail}</p>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-        <Card>
-          <CardHeader>
-            <CardTitle>NPC</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {chronicle.npcs.map((npc) => (
-              <div className="rounded-md border p-3" key={npc.name}>
-                <p className="font-medium">{npc.name}</p>
-                <p className="text-sm text-muted-foreground">{npc.role}</p>
-                <p className="mt-2 text-sm leading-6">{npc.publicKnowledge}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>伏線</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {chronicle.threads.map((thread) => (
-              <div className="rounded-md border p-3" key={thread.title}>
-                <p className="font-medium">{thread.title}</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{thread.detail}</p>
-                <p className="mt-2 text-sm leading-6">{thread.nextMove}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function PrepSection({
-  title,
-  items,
-  icon: Icon,
-}: {
-  title: string;
-  items: string[];
-  icon: typeof FileText;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Icon className="h-4 w-4" />
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ul className="space-y-2">
-          {items.map((item) => (
-            <li className="rounded-md border bg-background px-3 py-2 text-sm leading-6" key={item}>
-              {item}
-            </li>
-          ))}
-        </ul>
       </CardContent>
     </Card>
   );

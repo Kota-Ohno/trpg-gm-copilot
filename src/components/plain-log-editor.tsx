@@ -1,0 +1,50 @@
+import { MessageSquareText, RotateCcw, Wand2 } from "lucide-react";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Textarea } from "./ui/textarea";
+
+type PlainLogEditorProps = {
+  log: string;
+  onChange: (log: string) => void;
+  onExtract: () => void;
+  onImportToSpeakerLog: () => void;
+  onReset: () => void;
+};
+
+export function PlainLogEditor({
+  log,
+  onChange,
+  onExtract,
+  onImportToSpeakerLog,
+  onReset,
+}: PlainLogEditorProps) {
+  return (
+    <>
+      <Textarea
+        className="min-h-[420px] resize-y font-mono text-sm leading-6"
+        value={log}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-muted-foreground">{log.length.toLocaleString()}文字</p>
+          <Badge variant="outline">ローカル自動保存</Badge>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={onReset} variant="outline">
+            <RotateCcw className="h-4 w-4" />
+            デモ初期化
+          </Button>
+          <Button onClick={onImportToSpeakerLog} variant="outline">
+            <MessageSquareText className="h-4 w-4" />
+            話者付きログ化
+          </Button>
+          <Button onClick={onExtract}>
+            <Wand2 className="h-4 w-4" />
+            抽出プレビュー
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+}
