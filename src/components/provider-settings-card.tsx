@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bot, CheckCircle2, KeyRound, Server, Unplug } from "lucide-react";
 import { extractionProviders, getExtractionProvider } from "../lib/extraction-provider-settings";
 import {
@@ -29,6 +29,10 @@ export function ProviderSettingsCard({
   const selectedProvider = getExtractionProvider(settings.providerId);
   const needsApiKey = settings.providerId === "openai";
 
+  useEffect(() => {
+    setConnectionResult(null);
+  }, [secrets.openAiApiKey, settings.endpoint, settings.model, settings.providerId]);
+
   const updateSettings = (updates: Partial<ExtractionProviderSettings>): void => {
     onChange({
       ...settings,
@@ -38,7 +42,6 @@ export function ProviderSettingsCard({
 
   const selectProvider = (providerId: ExtractionProviderId): void => {
     const provider = getExtractionProvider(providerId);
-    setConnectionResult(null);
     onChange({
       providerId,
       model: provider.defaultModel,
