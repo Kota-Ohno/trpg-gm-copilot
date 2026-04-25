@@ -77,6 +77,9 @@ const connectionTestJsonSchema = {
   },
 } as const;
 
+const EXTRACTION_TIMEOUT_MS = 45_000;
+const CONNECTION_TEST_TIMEOUT_MS = 12_000;
+
 function normalizeEndpoint(endpoint: string, fallbackEndpoint: string): string {
   return (endpoint.trim() || fallbackEndpoint).replace(/\/+$/, "");
 }
@@ -109,6 +112,35 @@ function parseConnectionTestResponse(text: string): boolean {
   } catch {
     return false;
   }
+}
+
+async function fetchJsonWithTimeout<T>(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<{ body: T; response: Response }> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+    const body = (await response.json()) as T;
+
+    return { body, response };
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+function getProviderErrorMessage(error: unknown, providerLabel: string, timeoutMs: number): string {
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return `${providerLabel} API が${Math.round(timeoutMs / 1000)}秒以内に応答しませんでした。`;
+  }
+
+  return error instanceof Error ? error.message : `${providerLabel} API 呼び出しに失敗しました。`;
 }
 
 function buildRuleBasedFallback(
@@ -184,7 +216,7 @@ async function runOpenAiExtraction(request: ExtractionRequest, context: Provider
 
   try {
     const endpoint = normalizeEndpoint(request.settings.endpoint, "https://api.openai.com/v1");
-    const response = await fetch(joinEndpoint(endpoint, "responses"), {
+    const { body: responseBody, response } = await fetchJsonWithTimeout<OpenAiResponseBody>(joinEndpoint(endpoint, "responses"), {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -200,9 +232,7 @@ async function runOpenAiExtraction(request: ExtractionRequest, context: Provider
           },
         },
       }),
-    });
-
-    const responseBody = (await response.json()) as OpenAiResponseBody;
+    }, EXTRACTION_TIMEOUT_MS);
     if (!response.ok) {
       return buildRuleBasedFallback(
         request,
@@ -235,7 +265,7 @@ async function runOpenAiExtraction(request: ExtractionRequest, context: Provider
       },
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "OpenAI API 呼び出しに失敗しました。";
+    const message = getProviderErrorMessage(error, "OpenAI", EXTRACTION_TIMEOUT_MS);
 
     return buildRuleBasedFallback(
       request,
@@ -250,7 +280,7 @@ async function runOpenAiExtraction(request: ExtractionRequest, context: Provider
 async function runOllamaExtraction(request: ExtractionRequest, context: ProviderContext): Promise<ExtractionResult> {
   try {
     const endpoint = normalizeEndpoint(request.settings.endpoint, "http://localhost:11434");
-    const response = await fetch(joinEndpoint(endpoint, "api/generate"), {
+    const { body: responseBody, response } = await fetchJsonWithTimeout<OllamaResponseBody>(joinEndpoint(endpoint, "api/generate"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -261,9 +291,7 @@ async function runOllamaExtraction(request: ExtractionRequest, context: Provider
         stream: false,
         format: extractionResponseJsonSchema.schema,
       }),
-    });
-
-    const responseBody = (await response.json()) as OllamaResponseBody;
+    }, EXTRACTION_TIMEOUT_MS);
     if (!response.ok) {
       return buildRuleBasedFallback(
         request,
@@ -296,7 +324,7 @@ async function runOllamaExtraction(request: ExtractionRequest, context: Provider
       },
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Ollama API 呼び出しに失敗しました。";
+    const message = getProviderErrorMessage(error, "Ollama", EXTRACTION_TIMEOUT_MS);
 
     return buildRuleBasedFallback(
       request,
@@ -365,7 +393,7 @@ export async function testExtractionProviderConnection({
 
     try {
       const endpoint = normalizeEndpoint(settings.endpoint, "https://api.openai.com/v1");
-      const response = await fetch(joinEndpoint(endpoint, "responses"), {
+      const { body: responseBody, response } = await fetchJsonWithTimeout<OpenAiResponseBody>(joinEndpoint(endpoint, "responses"), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -383,8 +411,7 @@ export async function testExtractionProviderConnection({
             },
           },
         }),
-      });
-      const responseBody = (await response.json()) as OpenAiResponseBody;
+      }, CONNECTION_TEST_TIMEOUT_MS);
 
       if (!response.ok) {
         return {
@@ -403,7 +430,7 @@ export async function testExtractionProviderConnection({
     } catch (error) {
       return {
         ok: false,
-        message: error instanceof Error ? error.message : "OpenAI Provider の接続テストに失敗しました。",
+        message: getProviderErrorMessage(error, "OpenAI", CONNECTION_TEST_TIMEOUT_MS),
       };
     }
   }
@@ -411,7 +438,7 @@ export async function testExtractionProviderConnection({
   if (provider.id === "ollama") {
     try {
       const endpoint = normalizeEndpoint(settings.endpoint, "http://localhost:11434");
-      const response = await fetch(joinEndpoint(endpoint, "api/generate"), {
+      const { body: responseBody, response } = await fetchJsonWithTimeout<OllamaResponseBody>(joinEndpoint(endpoint, "api/generate"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -422,8 +449,7 @@ export async function testExtractionProviderConnection({
           stream: false,
           format: connectionTestJsonSchema,
         }),
-      });
-      const responseBody = (await response.json()) as OllamaResponseBody;
+      }, CONNECTION_TEST_TIMEOUT_MS);
 
       if (!response.ok) {
         return {
@@ -442,7 +468,7 @@ export async function testExtractionProviderConnection({
     } catch (error) {
       return {
         ok: false,
-        message: error instanceof Error ? error.message : "Ollama Provider の接続テストに失敗しました。",
+        message: getProviderErrorMessage(error, "Ollama", CONNECTION_TEST_TIMEOUT_MS),
       };
     }
   }
