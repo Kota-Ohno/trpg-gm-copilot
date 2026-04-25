@@ -50,9 +50,37 @@ export type PrepNote = {
 
 export type WorkspaceTab = "log" | "review" | "chronicle" | "prep";
 
+export type SpeakerRole = "GM" | "PL" | "unknown";
+
+export type TranscriptSourceType = "manual" | "sample";
+
+export type Speaker = {
+  id: string;
+  name: string;
+  role: SpeakerRole;
+};
+
+export type TranscriptSegment = {
+  id: string;
+  speakerId: string;
+  startTimeSec: number;
+  endTimeSec: number;
+  text: string;
+  confidence?: number;
+};
+
+export type LiveLogSession = {
+  id: string;
+  title: string;
+  sourceType: TranscriptSourceType;
+  speakers: Speaker[];
+  segments: TranscriptSegment[];
+};
+
 export type CampaignState = {
   campaignName: string;
   log: string;
+  liveLog: LiveLogSession;
   extractionItems: ExtractionItem[];
   approvedIds: string[];
   chronicle: Chronicle;

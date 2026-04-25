@@ -8,11 +8,13 @@ import {
   KeyRound,
   Lightbulb,
   Map,
+  MessageSquareText,
   Plus,
   RotateCcw,
   Search,
   Sparkles,
   Swords,
+  Trash2,
   UserRound,
   Wand2,
   X,
@@ -23,10 +25,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./com
 import { Input } from "./components/ui/input";
 import { Tabs } from "./components/ui/tabs";
 import { Textarea } from "./components/ui/textarea";
-import { initialChronicle, mockExtraction, prepNote, sampleLog } from "./data/sample";
-import type { CampaignState, Chronicle, ExtractionItem, WorkspaceTab } from "./types";
+import { initialChronicle, mockExtraction, prepNote, sampleLiveLog, sampleLog } from "./data/sample";
+import type {
+  CampaignState,
+  Chronicle,
+  ExtractionItem,
+  LiveLogSession,
+  SpeakerRole,
+  TranscriptSegment,
+  WorkspaceTab,
+} from "./types";
 
 const STORAGE_KEY = "chronicle-gm.campaign-state.v1";
+
+type LogInputMode = "plain" | "speaker";
 
 const tabOptions: Array<{ value: WorkspaceTab; label: string }> = [
   { value: "log", label: "ログ" },
@@ -61,6 +73,7 @@ const quickPrompts = [
 const initialCampaignState: CampaignState = {
   campaignName: "灰ヶ浦異聞",
   log: sampleLog,
+  liveLog: sampleLiveLog,
   extractionItems: [],
   approvedIds: [],
   chronicle: initialChronicle,
@@ -73,6 +86,17 @@ const statusLabels = {
   hidden: "GM秘密",
 };
 
+const speakerRoleLabels: Record<SpeakerRole, string> = {
+  GM: "GM",
+  PL: "PL",
+  unknown: "不明",
+};
+
+const logInputOptions: Array<{ value: LogInputMode; label: string }> = [
+  { value: "plain", label: "通常ログ" },
+  { value: "speaker", label: "話者付きログ" },
+];
+
 function loadCampaignState(): CampaignState {
   if (typeof window === "undefined") {
     return initialCampaignState;
@@ -84,13 +108,44 @@ function loadCampaignState(): CampaignState {
   }
 
   try {
+    const parsedState = JSON.parse(savedState) as Partial<CampaignState>;
+
     return {
       ...initialCampaignState,
-      ...(JSON.parse(savedState) as Partial<CampaignState>),
+      ...parsedState,
+      liveLog: parsedState.liveLog ?? initialCampaignState.liveLog,
     };
   } catch {
     return initialCampaignState;
   }
+}
+
+function createId(prefix: string): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function formatTimestamp(seconds: number): string {
+  const safeSeconds = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(safeSeconds / 60)
+    .toString()
+    .padStart(2, "0");
+  const remainingSeconds = (safeSeconds % 60).toString().padStart(2, "0");
+
+  return `${minutes}:${remainingSeconds}`;
+}
+
+function liveLogToPlainText(liveLog: LiveLogSession): string {
+  return [...liveLog.segments]
+    .sort((first, second) => first.startTimeSec - second.startTimeSec)
+    .map((segment) => {
+      const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
+      return `${speaker?.name ?? "話者不明"}: ${segment.text}`;
+    })
+    .join("\n");
 }
 
 function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chronicle {
@@ -146,9 +201,10 @@ function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chronicle 
 
 export function App() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("log");
+  const [logInputMode, setLogInputMode] = useState<LogInputMode>("plain");
   const [campaignState, setCampaignState] = useState<CampaignState>(loadCampaignState);
 
-  const { approvedIds, campaignName, chronicle, extractionItems: items, log, quickResult } = campaignState;
+  const { approvedIds, campaignName, chronicle, extractionItems: items, liveLog, log, quickResult } = campaignState;
 
   const approvedCount = approvedIds.length;
   const remainingCount = items.length - approvedCount;
@@ -168,6 +224,13 @@ export function App() {
     setCampaignState((current) => ({ ...current, ...updates }));
   };
 
+  const updateLiveLog = (updater: (current: LiveLogSession) => LiveLogSession): void => {
+    setCampaignState((current) => ({
+      ...current,
+      liveLog: updater(current.liveLog),
+    }));
+  };
+
   const resetCampaignState = (): void => {
     window.localStorage.removeItem(STORAGE_KEY);
     setCampaignState(initialCampaignState);
@@ -177,6 +240,66 @@ export function App() {
   const runMockExtraction = (): void => {
     updateCampaignState({ extractionItems: mockExtraction, approvedIds: [] });
     setActiveTab("review");
+  };
+
+  const applyLiveLogToPlainLog = (): void => {
+    updateCampaignState({ log: liveLogToPlainText(liveLog) });
+    setLogInputMode("plain");
+  };
+
+  const restoreSampleLiveLog = (): void => {
+    updateCampaignState({ liveLog: sampleLiveLog });
+  };
+
+  const updateSpeakerName = (speakerId: string, name: string): void => {
+    updateLiveLog((current) => ({
+      ...current,
+      speakers: current.speakers.map((speaker) => (speaker.id === speakerId ? { ...speaker, name } : speaker)),
+    }));
+  };
+
+  const updateSpeakerRole = (speakerId: string, role: SpeakerRole): void => {
+    updateLiveLog((current) => ({
+      ...current,
+      speakers: current.speakers.map((speaker) => (speaker.id === speakerId ? { ...speaker, role } : speaker)),
+    }));
+  };
+
+  const updateSegment = (segmentId: string, updates: Partial<TranscriptSegment>): void => {
+    updateLiveLog((current) => ({
+      ...current,
+      segments: current.segments.map((segment) =>
+        segment.id === segmentId ? { ...segment, ...updates } : segment,
+      ),
+    }));
+  };
+
+  const addSegment = (): void => {
+    updateLiveLog((current) => {
+      const lastSegment = current.segments[current.segments.length - 1];
+      const startTimeSec = lastSegment ? lastSegment.endTimeSec + 1 : 0;
+
+      return {
+        ...current,
+        segments: [
+          ...current.segments,
+          {
+            id: createId("segment"),
+            speakerId: current.speakers[0]?.id ?? "",
+            startTimeSec,
+            endTimeSec: startTimeSec + 5,
+            text: "",
+          },
+        ],
+      };
+    });
+  };
+
+  const deleteSegment = (segmentId: string): void => {
+    updateLiveLog((current) => ({
+      ...current,
+      segments: current.segments.filter((segment) => segment.id !== segmentId),
+    }));
   };
 
   const approveItem = (item: ExtractionItem): void => {
@@ -272,36 +395,40 @@ export function App() {
               <div className="grid gap-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      セッションログ
-                    </CardTitle>
-                    <CardDescription>
-                      初期MVPでは貼り付け入力に絞ります。ココフォリアやDiscordログの取り込みは後から足せます。
-                    </CardDescription>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          セッションログ
+                        </CardTitle>
+                        <CardDescription className="mt-2">
+                          初期MVPでは貼り付け入力に絞ります。ココフォリアやDiscordログの取り込みは後から足せます。
+                        </CardDescription>
+                      </div>
+                      <Tabs value={logInputMode} options={logInputOptions} onChange={setLogInputMode} />
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <Textarea
-                      className="min-h-[420px] resize-y font-mono text-sm leading-6"
-                      value={log}
-                      onChange={(event) => updateCampaignState({ log: event.target.value })}
-                    />
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm text-muted-foreground">{log.length.toLocaleString()}文字</p>
-                        <Badge variant="outline">ローカル自動保存</Badge>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button onClick={resetCampaignState} variant="outline">
-                          <RotateCcw className="h-4 w-4" />
-                          デモ初期化
-                        </Button>
-                        <Button onClick={runMockExtraction}>
-                          <Wand2 className="h-4 w-4" />
-                          抽出プレビュー
-                        </Button>
-                      </div>
-                    </div>
+                    {logInputMode === "plain" ? (
+                      <PlainLogEditor
+                        log={log}
+                        onChange={(nextLog) => updateCampaignState({ log: nextLog })}
+                        onExtract={runMockExtraction}
+                        onReset={resetCampaignState}
+                      />
+                    ) : (
+                      <SpeakerLogEditor
+                        liveLog={liveLog}
+                        onAddSegment={addSegment}
+                        onApplyToPlainLog={applyLiveLogToPlainLog}
+                        onDeleteSegment={deleteSegment}
+                        onReset={resetCampaignState}
+                        onRestoreSample={restoreSampleLiveLog}
+                        onUpdateSegment={updateSegment}
+                        onUpdateSpeakerName={updateSpeakerName}
+                        onUpdateSpeakerRole={updateSpeakerRole}
+                      />
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -415,6 +542,216 @@ export function App() {
         </aside>
       </div>
     </main>
+  );
+}
+
+function PlainLogEditor({
+  log,
+  onChange,
+  onExtract,
+  onReset,
+}: {
+  log: string;
+  onChange: (log: string) => void;
+  onExtract: () => void;
+  onReset: () => void;
+}) {
+  return (
+    <>
+      <Textarea
+        className="min-h-[420px] resize-y font-mono text-sm leading-6"
+        value={log}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-muted-foreground">{log.length.toLocaleString()}文字</p>
+          <Badge variant="outline">ローカル自動保存</Badge>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={onReset} variant="outline">
+            <RotateCcw className="h-4 w-4" />
+            デモ初期化
+          </Button>
+          <Button onClick={onExtract}>
+            <Wand2 className="h-4 w-4" />
+            抽出プレビュー
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function SpeakerLogEditor({
+  liveLog,
+  onAddSegment,
+  onApplyToPlainLog,
+  onDeleteSegment,
+  onReset,
+  onRestoreSample,
+  onUpdateSegment,
+  onUpdateSpeakerName,
+  onUpdateSpeakerRole,
+}: {
+  liveLog: LiveLogSession;
+  onAddSegment: () => void;
+  onApplyToPlainLog: () => void;
+  onDeleteSegment: (segmentId: string) => void;
+  onReset: () => void;
+  onRestoreSample: () => void;
+  onUpdateSegment: (segmentId: string, updates: Partial<TranscriptSegment>) => void;
+  onUpdateSpeakerName: (speakerId: string, name: string) => void;
+  onUpdateSpeakerRole: (speakerId: string, role: SpeakerRole) => void;
+}) {
+  const sortedSegments = [...liveLog.segments].sort((first, second) => first.startTimeSec - second.startTimeSec);
+
+  return (
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background p-3">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline">{liveLog.sourceType === "sample" ? "サンプル" : "手動"}</Badge>
+            <Badge variant="muted">{liveLog.segments.length}発話</Badge>
+            <Badge variant="muted">{liveLog.speakers.length}話者</Badge>
+          </div>
+          <p className="mt-2 text-sm font-medium">{liveLog.title}</p>
+          <p className="text-xs text-muted-foreground">
+            音声連携前の検証用です。話者付き発話を通常ログへ反映して、既存の抽出フローに渡します。
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={onRestoreSample} variant="outline">
+            <RotateCcw className="h-4 w-4" />
+            サンプル復元
+          </Button>
+          <Button onClick={onReset} variant="outline">
+            <RotateCcw className="h-4 w-4" />
+            デモ初期化
+          </Button>
+          <Button onClick={onApplyToPlainLog}>
+            <FileText className="h-4 w-4" />
+            通常ログへ反映
+          </Button>
+        </div>
+      </div>
+
+      <section className="grid gap-3">
+        <div className="flex items-center gap-2">
+          <UserRound className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold">話者</h2>
+        </div>
+        <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-1">
+          {liveLog.speakers.map((speaker) => (
+            <div className="rounded-md border bg-background p-3" key={speaker.id}>
+              <label className="text-xs font-medium text-muted-foreground">名前</label>
+              <Input
+                className="mt-1"
+                value={speaker.name}
+                onChange={(event) => onUpdateSpeakerName(speaker.id, event.target.value)}
+              />
+              <label className="mt-3 block text-xs font-medium text-muted-foreground">ロール</label>
+              <select
+                className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={speaker.role}
+                onChange={(event) => onUpdateSpeakerRole(speaker.id, event.target.value as SpeakerRole)}
+              >
+                {Object.entries(speakerRoleLabels).map(([role, label]) => (
+                  <option key={role} value={role}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <MessageSquareText className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold">発話ログ</h2>
+          </div>
+          <Button onClick={onAddSegment} size="sm" variant="outline">
+            <Plus className="h-4 w-4" />
+            発話を追加
+          </Button>
+        </div>
+
+        <div className="grid gap-3">
+          {sortedSegments.map((segment) => {
+            const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
+
+            return (
+              <div className="grid grid-cols-[120px_160px_1fr_40px] gap-3 rounded-md border bg-background p-3 max-lg:grid-cols-1" key={segment.id}>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">時刻</label>
+                  <div className="mt-1 grid grid-cols-2 gap-2">
+                    <Input
+                      aria-label="開始秒"
+                      min={0}
+                      type="number"
+                      value={segment.startTimeSec}
+                      onChange={(event) =>
+                        onUpdateSegment(segment.id, { startTimeSec: Number(event.target.value) || 0 })
+                      }
+                    />
+                    <Input
+                      aria-label="終了秒"
+                      min={0}
+                      type="number"
+                      value={segment.endTimeSec}
+                      onChange={(event) =>
+                        onUpdateSegment(segment.id, { endTimeSec: Number(event.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {formatTimestamp(segment.startTimeSec)} - {formatTimestamp(segment.endTimeSec)}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">話者</label>
+                  <select
+                    className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    value={segment.speakerId}
+                    onChange={(event) => onUpdateSegment(segment.id, { speakerId: event.target.value })}
+                  >
+                    {liveLog.speakers.map((candidate) => (
+                      <option key={candidate.id} value={candidate.id}>
+                        {candidate.name} / {speakerRoleLabels[candidate.role]}
+                      </option>
+                    ))}
+                  </select>
+                  {speaker && (
+                    <Badge className="mt-2" variant={speaker.role === "GM" ? "secondary" : "outline"}>
+                      {speakerRoleLabels[speaker.role]}
+                    </Badge>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">発話</label>
+                  <Textarea
+                    className="mt-1 min-h-[84px] resize-y text-sm leading-6"
+                    value={segment.text}
+                    onChange={(event) => onUpdateSegment(segment.id, { text: event.target.value })}
+                  />
+                </div>
+
+                <div className="flex items-start justify-end">
+                  <Button aria-label="発話を削除" onClick={() => onDeleteSegment(segment.id)} size="icon" variant="outline">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    </div>
   );
 }
 
