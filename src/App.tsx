@@ -522,12 +522,19 @@ export function App() {
                 <Download className="h-3.5 w-3.5" />
                 書き出し
               </Button>
-              <label className="inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
+              <label
+                className={
+                  isExtracting
+                    ? "inline-flex h-8 cursor-not-allowed items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-xs font-medium opacity-50"
+                    : "inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                }
+              >
                 <Upload className="h-3.5 w-3.5" />
                 読み込み
                 <input
                   accept="application/json,.json"
                   className="sr-only"
+                  disabled={isExtracting}
                   type="file"
                   onChange={(event) => {
                     const file = event.target.files?.[0];
@@ -544,7 +551,7 @@ export function App() {
           <div className="mt-6 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <label className="text-xs font-medium text-muted-foreground">セッション</label>
-              <Button onClick={addNewSession} size="sm" variant="outline">
+              <Button disabled={isExtracting} onClick={addNewSession} size="sm" variant="outline">
                 <Plus className="h-3.5 w-3.5" />
                 追加
               </Button>

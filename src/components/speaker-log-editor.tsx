@@ -74,7 +74,7 @@ export function SpeakerLogEditor({
             <RotateCcw className="h-4 w-4" />
             サンプル復元
           </Button>
-          <Button onClick={onReset} variant="outline">
+          <Button disabled={isExtracting} onClick={onReset} variant="outline">
             <RotateCcw className="h-4 w-4" />
             デモ初期化
           </Button>
