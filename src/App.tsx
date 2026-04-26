@@ -505,7 +505,9 @@ export function App() {
   const updateExtractionItem = (itemId: string, updates: Partial<ExtractionItem>): void => {
     updateActiveSession((session) => ({
       ...session,
-      extractionItems: session.extractionItems.map((item) => (item.id === itemId ? { ...item, ...updates } : item)),
+      extractionItems: session.approvedIds.includes(itemId)
+        ? session.extractionItems
+        : session.extractionItems.map((item) => (item.id === itemId ? { ...item, ...updates } : item)),
     }));
   };
 
