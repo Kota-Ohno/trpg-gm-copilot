@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
+import { RotateCcw } from "lucide-react";
 import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import type { Chronicle, ClueStatus } from "../types";
@@ -30,6 +32,7 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
   const [query, setQuery] = useState("");
   const [clueStatusFilter, setClueStatusFilter] = useState<ClueStatusFilter>("all");
   const normalizedQuery = query.trim().toLowerCase();
+  const hasFilter = normalizedQuery.length > 0 || clueStatusFilter !== "all";
   const filteredChronicle = useMemo(() => {
     const includesQuery = (values: string[]) =>
       !normalizedQuery ||
@@ -82,17 +85,30 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
             <Badge variant="outline">場所 {chronicle.locations.length}</Badge>
             <Badge variant="outline">伏線 {chronicle.threads.length}</Badge>
           </div>
-          <select
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            value={clueStatusFilter}
-            onChange={(event) => setClueStatusFilter(event.target.value as ClueStatusFilter)}
-          >
-            {clueStatusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-wrap gap-2">
+            <select
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={clueStatusFilter}
+              onChange={(event) => setClueStatusFilter(event.target.value as ClueStatusFilter)}
+            >
+              {clueStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <Button
+              disabled={!hasFilter}
+              onClick={() => {
+                setQuery("");
+                setClueStatusFilter("all");
+              }}
+              variant="outline"
+            >
+              <RotateCcw className="h-4 w-4" />
+              解除
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
