@@ -966,15 +966,23 @@ export function App() {
                     {reviewItems.length === 0 ? (
                       <Card>
                         <CardContent className="py-6 text-center">
-                          <p className="text-sm font-medium">未確認の抽出候補はありません</p>
-                          <Button
-                            className="mt-3"
-                            onClick={() => setShowApprovedReviewItems(true)}
-                            size="sm"
-                            variant="outline"
-                          >
-                            採用済みも表示
-                          </Button>
+                          <p className="text-sm font-medium">条件に一致する抽出候補はありません</p>
+                          <div className="mt-3 flex flex-wrap justify-center gap-2">
+                            {!showApprovedReviewItems && (
+                              <Button
+                                onClick={() => setShowApprovedReviewItems(true)}
+                                size="sm"
+                                variant="outline"
+                              >
+                                採用済みも表示
+                              </Button>
+                            )}
+                            {reviewKindFilter !== "all" && (
+                              <Button onClick={() => setReviewKindFilter("all")} size="sm" variant="outline">
+                                種別フィルタを解除
+                              </Button>
+                            )}
+                          </div>
                         </CardContent>
                       </Card>
                     ) : (
