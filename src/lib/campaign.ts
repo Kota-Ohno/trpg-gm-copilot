@@ -103,7 +103,7 @@ export function createExportFileName(campaignName: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9一-龠ぁ-んァ-ヶー]+/gi, "-")
     .replace(/^-+|-+$/g, "");
-  const date = new Date().toISOString().slice(0, 10);
+  const date = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
 
   return `chronicle-gm-${safeName || "campaign"}-${date}.json`;
 }
