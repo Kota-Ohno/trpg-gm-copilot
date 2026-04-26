@@ -73,7 +73,10 @@ function plainLogToExtractionLines(log: string): ExtractionInputLine[] {
     });
   });
 
-  return lines;
+  return lines.map((line) => ({
+    ...line,
+    text: line.text.trim(),
+  }));
 }
 
 function lineToDetail(line: ExtractionInputLine): string {
