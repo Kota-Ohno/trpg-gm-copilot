@@ -116,6 +116,9 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
                 session.extractionRun.fallbackUsed ?? session.extractionRun.sourceType === "fallback",
               itemCount: extractionItems.length,
               promptLength: session.extractionRun.promptLength ?? 0,
+              validationErrors: Array.isArray(session.extractionRun.validationErrors)
+                ? session.extractionRun.validationErrors
+                : [],
             }
           : null,
       };
