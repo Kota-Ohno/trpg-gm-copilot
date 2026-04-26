@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, CheckCircle2, KeyRound, Server, Unplug } from "lucide-react";
+import { Bot, CheckCircle2, KeyRound, Server, Trash2, Unplug } from "lucide-react";
 import { extractionProviders, getExtractionProvider } from "../lib/extraction-provider-settings";
 import {
   testExtractionProviderConnection,
@@ -146,14 +146,24 @@ export function ProviderSettingsCard({
               <KeyRound className="h-3 w-3" />
               API key
             </label>
-            <Input
-              className="mt-1"
-              disabled={isLocked}
-              onChange={(event) => onChangeSecrets({ ...secrets, openAiApiKey: event.target.value })}
-              placeholder="ユーザーAPIキー"
-              type="password"
-              value={secrets.openAiApiKey}
-            />
+            <div className="mt-1 flex gap-2">
+              <Input
+                disabled={isLocked}
+                onChange={(event) => onChangeSecrets({ ...secrets, openAiApiKey: event.target.value })}
+                placeholder="ユーザーAPIキー"
+                type="password"
+                value={secrets.openAiApiKey}
+              />
+              <Button
+                aria-label="API keyを消去"
+                disabled={isLocked || !secrets.openAiApiKey}
+                onClick={() => onChangeSecrets({ ...secrets, openAiApiKey: "" })}
+                size="icon"
+                variant="outline"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
 
