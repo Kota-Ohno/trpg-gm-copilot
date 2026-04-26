@@ -495,8 +495,10 @@ export function App() {
   const rejectItem = (itemId: string): void => {
     updateActiveSession((session) => ({
       ...session,
-      approvedIds: session.approvedIds.filter((id) => id !== itemId),
-      extractionItems: session.extractionItems.filter((item) => item.id !== itemId),
+      approvedIds: session.approvedIds,
+      extractionItems: session.approvedIds.includes(itemId)
+        ? session.extractionItems
+        : session.extractionItems.filter((item) => item.id !== itemId),
     }));
   };
 
