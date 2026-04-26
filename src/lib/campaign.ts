@@ -105,14 +105,16 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
         ? getExtractionProvider(session.extractionRun.executedProviderId ?? session.extractionRun.providerId ?? "rule-based")
         : null;
 
+      const title = session.title?.trim() || "無題セッション";
+
       return {
         ...initialSession,
         ...session,
-        title: session.title?.trim() || "無題セッション",
+        title,
         date: session.date || getLocalDateString(),
         approvedIds: (session.approvedIds ?? initialSession.approvedIds).filter((id) => extractionItemIds.has(id)),
         extractionItems,
-        liveLog: normalizeLiveLog(session.liveLog ?? initialSession.liveLog),
+        liveLog: normalizeLiveLog(session.liveLog ?? initialSession.liveLog, title),
         extractionRun: session.extractionRun
           ? {
               ...session.extractionRun,
@@ -196,7 +198,7 @@ function normalizeExtractionItems(items: ExtractionItem[]): ExtractionItem[] {
   });
 }
 
-function normalizeLiveLog(liveLog: LiveLogSession): LiveLogSession {
+function normalizeLiveLog(liveLog: LiveLogSession, fallbackTitle: string): LiveLogSession {
   const rawSpeakers =
     liveLog.speakers.length > 0
       ? liveLog.speakers
@@ -224,6 +226,7 @@ function normalizeLiveLog(liveLog: LiveLogSession): LiveLogSession {
 
   return {
     ...liveLog,
+    title: liveLog.title?.trim() || fallbackTitle,
     speakers,
     segments: liveLog.segments.map((segment) => {
       const startTimeSec = Math.max(0, segment.startTimeSec);
