@@ -690,6 +690,9 @@ export function App() {
                     disabled={isExtracting}
                     type="date"
                     value={currentSession.date}
+                    onBlur={(event) =>
+                      updateCurrentSession({ date: event.target.value || new Date().toISOString().slice(0, 10) })
+                    }
                     onChange={(event) => updateCurrentSession({ date: event.target.value })}
                   />
                 </div>
