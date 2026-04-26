@@ -79,6 +79,7 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
           />
           <div className="flex flex-wrap gap-2">
             <Badge variant="muted">{normalizedQuery ? `${filteredCount}/${totalCount}件表示` : `${totalCount}件`}</Badge>
+            {normalizedQuery && <Badge variant="secondary">検索: {query.trim()}</Badge>}
             <Badge variant="outline">出来事 {chronicle.events.length}</Badge>
             <Badge variant="outline">手がかり {chronicle.clues.length}</Badge>
             <Badge variant="outline">NPC {chronicle.npcs.length}</Badge>
