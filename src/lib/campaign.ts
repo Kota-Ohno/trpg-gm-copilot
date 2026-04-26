@@ -195,10 +195,17 @@ function normalizeLiveLog(liveLog: LiveLogSession): LiveLogSession {
   return {
     ...liveLog,
     speakers,
-    segments: liveLog.segments.map((segment) => ({
-      ...segment,
-      speakerId: speakerIds.has(segment.speakerId) ? segment.speakerId : fallbackSpeakerId,
-    })),
+    segments: liveLog.segments.map((segment) => {
+      const startTimeSec = Math.max(0, segment.startTimeSec);
+      const endTimeSec = Math.max(startTimeSec, segment.endTimeSec);
+
+      return {
+        ...segment,
+        endTimeSec,
+        speakerId: speakerIds.has(segment.speakerId) ? segment.speakerId : fallbackSpeakerId,
+        startTimeSec,
+      };
+    }),
   };
 }
 
