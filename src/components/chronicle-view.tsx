@@ -13,6 +13,19 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
     <div className="grid gap-4">
       <Card>
         <CardHeader>
+          <CardTitle>出来事</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-2">
+          {chronicle.events.map((event, index) => (
+            <div className="rounded-md border p-3" key={`${event}-${index}`}>
+              <p className="text-sm leading-6">{event}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>手がかり</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3">
@@ -39,6 +52,20 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
                 <p className="font-medium">{npc.name}</p>
                 <p className="text-sm text-muted-foreground">{npc.role}</p>
                 <p className="mt-2 text-sm leading-6">{npc.publicKnowledge}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>場所</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {chronicle.locations.map((location) => (
+              <div className="rounded-md border p-3" key={location.name}>
+                <p className="font-medium">{location.name}</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{location.detail}</p>
               </div>
             ))}
           </CardContent>
