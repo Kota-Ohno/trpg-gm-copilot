@@ -169,7 +169,11 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
       endpoint: providerEndpoint ?? provider.defaultEndpoint,
     },
     sessions: sessions.map((session) => {
-      const extractionItems = normalizeExtractionItems(session.extractionItems ?? defaultSession.extractionItems);
+      const rawExtractionItems = Array.isArray(session.extractionItems)
+        ? session.extractionItems
+        : defaultSession.extractionItems;
+      const rawApprovedIds = Array.isArray(session.approvedIds) ? session.approvedIds : defaultSession.approvedIds;
+      const extractionItems = normalizeExtractionItems(rawExtractionItems);
       const extractionItemIds = new Set(extractionItems.map((item) => item.id));
       const runProvider = session.extractionRun
         ? getExtractionProvider(session.extractionRun.providerId ?? "rule-based")
@@ -185,7 +189,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
         ...session,
         title,
         date: session.date || getLocalDateString(),
-        approvedIds: (session.approvedIds ?? defaultSession.approvedIds).filter((id) => extractionItemIds.has(id)),
+        approvedIds: rawApprovedIds.filter((id) => extractionItemIds.has(id)),
         extractionItems,
         liveLog: normalizeLiveLog(session.liveLog ?? defaultSession.liveLog, title),
         extractionRun: session.extractionRun
