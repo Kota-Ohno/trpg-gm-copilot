@@ -4,6 +4,7 @@ import type {
   Chronicle,
   Clue,
   ExtractionItem,
+  ExtractionRun,
   LiveLogSession,
   Location,
   Npc,
@@ -151,6 +152,28 @@ function normalizeChronicle(rawChronicle: unknown): Chronicle {
   };
 }
 
+function normalizeExtractionRun(run: ExtractionRun | null, itemCount: number): ExtractionRun | null {
+  if (!run) {
+    return null;
+  }
+
+  const runProvider = getExtractionProvider(run.providerId ?? "rule-based");
+  const executedProvider = getExtractionProvider(run.executedProviderId ?? run.providerId ?? "rule-based");
+
+  return {
+    ...run,
+    sourceType: normalizeExtractionSourceType(run.sourceType),
+    providerId: runProvider.id,
+    providerLabel: runProvider.label,
+    executedProviderId: executedProvider.id,
+    executedProviderLabel: executedProvider.label,
+    fallbackUsed: run.fallbackUsed ?? run.sourceType === "fallback",
+    itemCount,
+    promptLength: run.promptLength ?? 0,
+    validationErrors: Array.isArray(run.validationErrors) ? run.validationErrors : [],
+  };
+}
+
 export function normalizeCampaignState(rawState: unknown): CampaignState {
   if (!isRecord(rawState)) {
     return createInitialCampaignState();
@@ -196,12 +219,6 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
         : defaultSession.approvedIds;
       const extractionItems = normalizeExtractionItems(rawExtractionItems);
       const extractionItemIds = new Set(extractionItems.map((item) => item.id));
-      const runProvider = session.extractionRun
-        ? getExtractionProvider(session.extractionRun.providerId ?? "rule-based")
-        : null;
-      const executedProvider = session.extractionRun
-        ? getExtractionProvider(session.extractionRun.executedProviderId ?? session.extractionRun.providerId ?? "rule-based")
-        : null;
 
       const title = session.title?.trim() || "無題セッション";
 
@@ -213,23 +230,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
         approvedIds: rawApprovedIds.filter((id) => extractionItemIds.has(id)),
         extractionItems,
         liveLog: normalizeLiveLog(session.liveLog ?? defaultSession.liveLog, title),
-        extractionRun: session.extractionRun
-          ? {
-              ...session.extractionRun,
-              sourceType: normalizeExtractionSourceType(session.extractionRun.sourceType),
-              providerId: runProvider?.id ?? "rule-based",
-              providerLabel: runProvider?.label ?? "ルールベース",
-              executedProviderId: executedProvider?.id ?? "rule-based",
-              executedProviderLabel: executedProvider?.label ?? "ルールベース",
-              fallbackUsed:
-                session.extractionRun.fallbackUsed ?? session.extractionRun.sourceType === "fallback",
-              itemCount: extractionItems.length,
-              promptLength: session.extractionRun.promptLength ?? 0,
-              validationErrors: Array.isArray(session.extractionRun.validationErrors)
-                ? session.extractionRun.validationErrors
-                : [],
-            }
-          : null,
+        extractionRun: normalizeExtractionRun(session.extractionRun, extractionItems.length),
       };
     }),
     activeSessionId: sessions.some((session) => session.id === activeSessionId) ? activeSessionId : sessions[0].id,
