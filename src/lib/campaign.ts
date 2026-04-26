@@ -76,7 +76,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
       endpoint: parsedExtractionProvider.endpoint ?? defaultExtractionProviderSettings.endpoint,
     },
     sessions: sessions.map((session) => {
-      const extractionItems = session.extractionItems ?? initialSession.extractionItems;
+      const extractionItems = normalizeExtractionItems(session.extractionItems ?? initialSession.extractionItems);
       const extractionItemIds = new Set(extractionItems.map((item) => item.id));
 
       return {
@@ -144,6 +144,24 @@ function uniqueItems(items: string[]): string[] {
 
 function getApprovedItems(session: SessionState): ExtractionItem[] {
   return session.extractionItems.filter((item) => session.approvedIds.includes(item.id));
+}
+
+function normalizeExtractionItems(items: ExtractionItem[]): ExtractionItem[] {
+  const seenIds = new Set<string>();
+
+  return items.map((item, index) => {
+    if (!seenIds.has(item.id)) {
+      seenIds.add(item.id);
+      return item;
+    }
+
+    const nextItem = {
+      ...item,
+      id: `${item.id}-${index + 1}`,
+    };
+    seenIds.add(nextItem.id);
+    return nextItem;
+  });
 }
 
 export function generatePrepNote(chronicle: Chronicle, sessions: SessionState[], activeSession: SessionState): PrepNote {
