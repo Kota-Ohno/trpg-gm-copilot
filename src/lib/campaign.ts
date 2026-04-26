@@ -178,7 +178,7 @@ function normalizeExtractionItems(items: ExtractionItem[]): ExtractionItem[] {
 }
 
 function normalizeLiveLog(liveLog: LiveLogSession): LiveLogSession {
-  const speakers =
+  const rawSpeakers =
     liveLog.speakers.length > 0
       ? liveLog.speakers
       : [
@@ -188,6 +188,17 @@ function normalizeLiveLog(liveLog: LiveLogSession): LiveLogSession {
             role: "GM" as const,
           },
         ];
+  const seenSpeakerIds = new Set<string>();
+  const speakers = rawSpeakers.map((speaker, index) => {
+    const speakerId = speaker.id && !seenSpeakerIds.has(speaker.id) ? speaker.id : createId("speaker");
+    seenSpeakerIds.add(speakerId);
+
+    return {
+      ...speaker,
+      id: speakerId,
+      name: speaker.name.trim() || `話者${index + 1}`,
+    };
+  });
 
   const speakerIds = new Set(speakers.map((speaker) => speaker.id));
   const fallbackSpeakerId = speakers[0].id;
