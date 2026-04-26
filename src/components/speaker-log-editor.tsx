@@ -51,6 +51,7 @@ export function SpeakerLogEditor({
   onUpdateSpeakerRole,
 }: SpeakerLogEditorProps) {
   const sortedSegments = [...liveLog.segments].sort((first, second) => first.startTimeSec - second.startTimeSec);
+  const hasSegmentText = liveLog.segments.some((segment) => segment.text.trim().length > 0);
 
   return (
     <div className="grid gap-4">
@@ -77,7 +78,7 @@ export function SpeakerLogEditor({
             <RotateCcw className="h-4 w-4" />
             デモ初期化
           </Button>
-          <Button onClick={onApplyToPlainLog}>
+          <Button disabled={!hasSegmentText} onClick={onApplyToPlainLog}>
             <FileText className="h-4 w-4" />
             通常ログへ反映
           </Button>
