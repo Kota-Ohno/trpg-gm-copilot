@@ -70,6 +70,22 @@ export function createInitialCampaignState(): CampaignState {
 
 const initialSession = initialCampaignState.sessions[0];
 
+function normalizeStringArray(value: unknown, fallback: string[]): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : fallback;
+}
+
+function normalizeChronicle(rawChronicle: unknown): Chronicle {
+  const chronicle = rawChronicle && typeof rawChronicle === "object" ? rawChronicle as Partial<Chronicle> : {};
+
+  return {
+    events: normalizeStringArray(chronicle.events, initialChronicle.events),
+    npcs: Array.isArray(chronicle.npcs) ? chronicle.npcs : initialChronicle.npcs,
+    clues: Array.isArray(chronicle.clues) ? chronicle.clues : initialChronicle.clues,
+    locations: Array.isArray(chronicle.locations) ? chronicle.locations : initialChronicle.locations,
+    threads: Array.isArray(chronicle.threads) ? chronicle.threads : initialChronicle.threads,
+  };
+}
+
 export function normalizeCampaignState(rawState: unknown): CampaignState {
   if (!rawState || typeof rawState !== "object") {
     return createInitialCampaignState();
@@ -99,6 +115,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
     ...initialCampaignState,
     ...parsedState,
     campaignName: parsedState.campaignName?.trim() || "無題キャンペーン",
+    chronicle: normalizeChronicle(parsedState.chronicle),
     extractionProvider: {
       providerId: provider.id,
       model: providerModel || provider.defaultModel,
