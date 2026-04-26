@@ -114,6 +114,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
               executedProviderLabel: executedProvider?.label ?? "ルールベース",
               fallbackUsed:
                 session.extractionRun.fallbackUsed ?? session.extractionRun.sourceType === "fallback",
+              itemCount: extractionItems.length,
               promptLength: session.extractionRun.promptLength ?? 0,
             }
           : null,
