@@ -75,24 +75,31 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
       model: parsedExtractionProvider.model ?? defaultExtractionProviderSettings.model,
       endpoint: parsedExtractionProvider.endpoint ?? defaultExtractionProviderSettings.endpoint,
     },
-    sessions: sessions.map((session) => ({
-      ...initialSession,
-      ...session,
-      liveLog: session.liveLog ?? initialSession.liveLog,
-      extractionRun: session.extractionRun
-        ? {
-            ...session.extractionRun,
-            providerId: session.extractionRun.providerId ?? "rule-based",
-            providerLabel: session.extractionRun.providerLabel ?? "ルールベース",
-            executedProviderId: session.extractionRun.executedProviderId ?? session.extractionRun.providerId ?? "rule-based",
-            executedProviderLabel:
-              session.extractionRun.executedProviderLabel ?? session.extractionRun.providerLabel ?? "ルールベース",
-            fallbackUsed:
-              session.extractionRun.fallbackUsed ?? session.extractionRun.sourceType === "fallback",
-            promptLength: session.extractionRun.promptLength ?? 0,
-          }
-        : null,
-    })),
+    sessions: sessions.map((session) => {
+      const extractionItems = session.extractionItems ?? initialSession.extractionItems;
+      const extractionItemIds = new Set(extractionItems.map((item) => item.id));
+
+      return {
+        ...initialSession,
+        ...session,
+        approvedIds: (session.approvedIds ?? initialSession.approvedIds).filter((id) => extractionItemIds.has(id)),
+        extractionItems,
+        liveLog: session.liveLog ?? initialSession.liveLog,
+        extractionRun: session.extractionRun
+          ? {
+              ...session.extractionRun,
+              providerId: session.extractionRun.providerId ?? "rule-based",
+              providerLabel: session.extractionRun.providerLabel ?? "ルールベース",
+              executedProviderId: session.extractionRun.executedProviderId ?? session.extractionRun.providerId ?? "rule-based",
+              executedProviderLabel:
+                session.extractionRun.executedProviderLabel ?? session.extractionRun.providerLabel ?? "ルールベース",
+              fallbackUsed:
+                session.extractionRun.fallbackUsed ?? session.extractionRun.sourceType === "fallback",
+              promptLength: session.extractionRun.promptLength ?? 0,
+            }
+          : null,
+      };
+    }),
     activeSessionId: sessions.some((session) => session.id === activeSessionId) ? activeSessionId : sessions[0].id,
   };
 }
