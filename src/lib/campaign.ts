@@ -97,7 +97,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
         date: session.date || getLocalDateString(),
         approvedIds: (session.approvedIds ?? initialSession.approvedIds).filter((id) => extractionItemIds.has(id)),
         extractionItems,
-        liveLog: session.liveLog ?? initialSession.liveLog,
+        liveLog: normalizeLiveLog(session.liveLog ?? initialSession.liveLog),
         extractionRun: session.extractionRun
           ? {
               ...session.extractionRun,
@@ -175,6 +175,24 @@ function normalizeExtractionItems(items: ExtractionItem[]): ExtractionItem[] {
     seenIds.add(nextItem.id);
     return nextItem;
   });
+}
+
+function normalizeLiveLog(liveLog: LiveLogSession): LiveLogSession {
+  const speakers =
+    liveLog.speakers.length > 0
+      ? liveLog.speakers
+      : [
+          {
+            id: createId("speaker"),
+            name: "GM",
+            role: "GM" as const,
+          },
+        ];
+
+  return {
+    ...liveLog,
+    speakers,
+  };
 }
 
 export function generatePrepNote(chronicle: Chronicle, sessions: SessionState[], activeSession: SessionState): PrepNote {
