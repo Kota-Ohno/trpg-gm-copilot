@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, CheckCircle2, KeyRound, Server, Trash2, Unplug } from "lucide-react";
+import { Bot, CheckCircle2, KeyRound, RotateCcw, Server, Trash2, Unplug } from "lucide-react";
 import { extractionProviders, getExtractionProvider } from "../lib/extraction-provider-settings";
 import {
   testExtractionProviderConnection,
@@ -66,6 +66,14 @@ export function ProviderSettingsCard({
     });
   };
 
+  const restoreProviderDefaults = (): void => {
+    onChange({
+      providerId: selectedProvider.id,
+      model: selectedProvider.defaultModel,
+      endpoint: selectedProvider.defaultEndpoint,
+    });
+  };
+
   const testConnection = async (): Promise<void> => {
     const testKey = connectionTestKey;
     latestTestKeyRef.current = testKey;
@@ -119,9 +127,14 @@ export function ProviderSettingsCard({
         </div>
 
         <div>
-          <label className="text-xs font-medium text-muted-foreground">Model</label>
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-xs font-medium text-muted-foreground">Model</label>
+            <Button disabled={isLocked} onClick={restoreProviderDefaults} size="sm" variant="ghost">
+              <RotateCcw className="h-3.5 w-3.5" />
+              既定値
+            </Button>
+          </div>
           <Input
-            className="mt-1"
             disabled={isLocked}
             onBlur={(event) => updateSettings({ model: event.target.value.trim() })}
             onChange={(event) => updateSettings({ model: event.target.value })}
