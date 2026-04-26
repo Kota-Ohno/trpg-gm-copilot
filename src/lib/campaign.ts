@@ -32,6 +32,14 @@ export function getLocalDateString(date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
+function getLocalDateTimeString(date = new Date()): string {
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+
+  return `${getLocalDateString(date)}T${hours}-${minutes}-${seconds}`;
+}
+
 export const initialCampaignState: CampaignState = {
   campaignName: "灰ヶ浦異聞",
   extractionProvider: defaultExtractionProviderSettings,
@@ -134,7 +142,7 @@ export function createExportFileName(campaignName: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9一-龠ぁ-んァ-ヶー]+/gi, "-")
     .replace(/^-+|-+$/g, "");
-  const date = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const date = getLocalDateTimeString();
 
   return `chronicle-gm-${safeName || "campaign"}-${date}.json`;
 }
