@@ -90,6 +90,12 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
     sessions: sessions.map((session) => {
       const extractionItems = normalizeExtractionItems(session.extractionItems ?? initialSession.extractionItems);
       const extractionItemIds = new Set(extractionItems.map((item) => item.id));
+      const runProvider = session.extractionRun
+        ? getExtractionProvider(session.extractionRun.providerId ?? "rule-based")
+        : null;
+      const executedProvider = session.extractionRun
+        ? getExtractionProvider(session.extractionRun.executedProviderId ?? session.extractionRun.providerId ?? "rule-based")
+        : null;
 
       return {
         ...initialSession,
@@ -102,11 +108,10 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
         extractionRun: session.extractionRun
           ? {
               ...session.extractionRun,
-              providerId: session.extractionRun.providerId ?? "rule-based",
-              providerLabel: session.extractionRun.providerLabel ?? "ルールベース",
-              executedProviderId: session.extractionRun.executedProviderId ?? session.extractionRun.providerId ?? "rule-based",
-              executedProviderLabel:
-                session.extractionRun.executedProviderLabel ?? session.extractionRun.providerLabel ?? "ルールベース",
+              providerId: runProvider?.id ?? "rule-based",
+              providerLabel: runProvider?.label ?? "ルールベース",
+              executedProviderId: executedProvider?.id ?? "rule-based",
+              executedProviderLabel: executedProvider?.label ?? "ルールベース",
               fallbackUsed:
                 session.extractionRun.fallbackUsed ?? session.extractionRun.sourceType === "fallback",
               promptLength: session.extractionRun.promptLength ?? 0,
