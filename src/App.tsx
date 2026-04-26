@@ -433,9 +433,21 @@ export function App() {
   const updateSegment = (segmentId: string, updates: Partial<TranscriptSegment>): void => {
     updateLiveLog((current) => ({
       ...current,
-      segments: current.segments.map((segment) =>
-        segment.id === segmentId ? { ...segment, ...updates } : segment,
-      ),
+      segments: current.segments.map((segment) => {
+        if (segment.id !== segmentId) {
+          return segment;
+        }
+
+        const nextSegment = { ...segment, ...updates };
+        const startTimeSec = Math.max(0, nextSegment.startTimeSec);
+        const endTimeSec = Math.max(startTimeSec, nextSegment.endTimeSec);
+
+        return {
+          ...nextSegment,
+          startTimeSec,
+          endTimeSec,
+        };
+      }),
     }));
   };
 
