@@ -205,6 +205,9 @@ export function App() {
 
   const approvedCount = approvedIds.length;
   const remainingCount = items.length - approvedCount;
+  const approvableRemainingCount = items.filter(
+    (item) => !approvedIds.includes(item.id) && item.title.trim() && item.detail.trim(),
+  ).length;
   const reviewItems = showApprovedReviewItems ? items : items.filter((item) => !approvedIds.includes(item.id));
   const canExtractLog =
     logInputMode === "plain"
@@ -910,6 +913,9 @@ export function App() {
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="muted">{approvedCount}採用済み</Badge>
                           <Badge variant="muted">{remainingCount}未確認</Badge>
+                          {approvableRemainingCount !== remainingCount && (
+                            <Badge variant="outline">{approvableRemainingCount}件採用可能</Badge>
+                          )}
                           {!showApprovedReviewItems && <Badge variant="outline">{reviewItems.length}件を表示中</Badge>}
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -920,7 +926,7 @@ export function App() {
                           >
                             {showApprovedReviewItems ? "採用済みを隠す" : "採用済みも表示"}
                           </Button>
-                          <Button disabled={remainingCount === 0} onClick={approveRemainingItems} size="sm">
+                          <Button disabled={approvableRemainingCount === 0} onClick={approveRemainingItems} size="sm">
                             <ShieldCheck className="h-4 w-4" />
                             残りをまとめて採用
                           </Button>
