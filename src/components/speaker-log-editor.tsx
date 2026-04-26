@@ -32,6 +32,7 @@ type SpeakerLogEditorProps = {
   onReset: () => void;
   onRestoreSample: () => void;
   onUpdateSegment: (segmentId: string, updates: Partial<TranscriptSegment>) => void;
+  onNormalizeSpeakerName: (speakerId: string, name: string) => void;
   onUpdateSpeakerName: (speakerId: string, name: string) => void;
   onUpdateSpeakerRole: (speakerId: string, role: SpeakerRole) => void;
 };
@@ -47,6 +48,7 @@ export function SpeakerLogEditor({
   onReset,
   onRestoreSample,
   onUpdateSegment,
+  onNormalizeSpeakerName,
   onUpdateSpeakerName,
   onUpdateSpeakerRole,
 }: SpeakerLogEditorProps) {
@@ -102,6 +104,7 @@ export function SpeakerLogEditor({
                 className="mt-1"
                 disabled={isExtracting}
                 value={speaker.name}
+                onBlur={(event) => onNormalizeSpeakerName(speaker.id, event.target.value)}
                 onChange={(event) => onUpdateSpeakerName(speaker.id, event.target.value)}
               />
               <label className="mt-3 block text-xs font-medium text-muted-foreground">ロール</label>

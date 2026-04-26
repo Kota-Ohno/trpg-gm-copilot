@@ -423,6 +423,10 @@ export function App() {
     }));
   };
 
+  const normalizeSpeakerName = (speakerId: string, name: string): void => {
+    updateSpeakerName(speakerId, name.trim() || "話者不明");
+  };
+
   const updateSpeakerRole = (speakerId: string, role: SpeakerRole): void => {
     updateLiveLog((current) => ({
       ...current,
@@ -733,6 +737,7 @@ export function App() {
                         onReset={resetCampaignState}
                         onRestoreSample={restoreSampleLiveLog}
                         onUpdateSegment={updateSegment}
+                        onNormalizeSpeakerName={normalizeSpeakerName}
                         onUpdateSpeakerName={updateSpeakerName}
                         onUpdateSpeakerRole={updateSpeakerRole}
                       />
