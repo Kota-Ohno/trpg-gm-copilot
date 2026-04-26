@@ -78,6 +78,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
   return {
     ...initialCampaignState,
     ...parsedState,
+    campaignName: parsedState.campaignName?.trim() || "無題キャンペーン",
     extractionProvider: {
       providerId: parsedExtractionProvider.providerId ?? defaultExtractionProviderSettings.providerId,
       model: parsedExtractionProvider.model ?? defaultExtractionProviderSettings.model,
