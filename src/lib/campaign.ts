@@ -210,6 +210,7 @@ function normalizeSessionState(session: SessionState, defaultSession: SessionSta
   return {
     ...defaultSession,
     ...session,
+    id: readString(session.id, createId("session")),
     title,
     date: session.date || getLocalDateString(),
     approvedIds: rawApprovedIds.filter((id) => extractionItemIds.has(id)),
@@ -238,7 +239,8 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
     approvedIds: legacyState.approvedIds ?? defaultSession.approvedIds,
   };
   const sessions = Array.isArray(parsedState.sessions) && parsedState.sessions.length > 0 ? parsedState.sessions : [migratedSession];
-  const activeSessionId = parsedState.activeSessionId ?? sessions[0].id;
+  const normalizedSessions = sessions.map((session) => normalizeSessionState(session, defaultSession));
+  const activeSessionId = readString(parsedState.activeSessionId, normalizedSessions[0].id);
 
   return {
     ...initialCampaignState,
@@ -247,8 +249,10 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
     chronicle: normalizeChronicle(parsedState.chronicle),
     quickResult: readString(parsedState.quickResult, initialCampaignState.quickResult),
     extractionProvider: normalizeExtractionProviderSettings(parsedState.extractionProvider),
-    sessions: sessions.map((session) => normalizeSessionState(session, defaultSession)),
-    activeSessionId: sessions.some((session) => session.id === activeSessionId) ? activeSessionId : sessions[0].id,
+    sessions: normalizedSessions,
+    activeSessionId: normalizedSessions.some((session) => session.id === activeSessionId)
+      ? activeSessionId
+      : normalizedSessions[0].id,
   };
 }
 
