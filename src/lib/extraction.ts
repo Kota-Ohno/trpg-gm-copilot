@@ -24,9 +24,10 @@ export function inferSpeakerRole(name: string): SpeakerRole {
 export function liveLogToPlainText(liveLog: LiveLogSession): string {
   return [...liveLog.segments]
     .sort((first, second) => first.startTimeSec - second.startTimeSec)
+    .filter((segment) => segment.text.trim().length > 0)
     .map((segment) => {
       const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
-      return `${speaker?.name ?? "話者不明"}: ${segment.text}`;
+      return `${speaker?.name ?? "話者不明"}: ${segment.text.trim()}`;
     })
     .join("\n");
 }
