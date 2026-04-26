@@ -23,6 +23,8 @@ export function PlainLogEditor({
   onReset,
 }: PlainLogEditorProps) {
   const hasLogText = log.trim().length > 0;
+  const nonEmptyLines = log.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  const speakerLineCount = nonEmptyLines.filter((line) => /^(?:\[[^\]]+\]\s*)?[^:：]{1,32}[:：]\s*.+$/.test(line.trim())).length;
 
   return (
     <>
@@ -35,6 +37,8 @@ export function PlainLogEditor({
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm text-muted-foreground">{log.length.toLocaleString()}文字</p>
+          <Badge variant="muted">{nonEmptyLines.length.toLocaleString()}行</Badge>
+          {speakerLineCount > 0 && <Badge variant="muted">{speakerLineCount.toLocaleString()}発話候補</Badge>}
           <Badge variant="outline">ローカル自動保存</Badge>
         </div>
         <div className="flex flex-wrap gap-2">
