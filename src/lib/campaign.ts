@@ -74,6 +74,8 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
   const sessions = parsedState.sessions && parsedState.sessions.length > 0 ? parsedState.sessions : [migratedSession];
   const activeSessionId = parsedState.activeSessionId ?? sessions[0].id;
   const parsedExtractionProvider = parsedState.extractionProvider ?? defaultExtractionProviderSettings;
+  const providerModel = parsedExtractionProvider.model?.trim();
+  const providerEndpoint = parsedExtractionProvider.endpoint?.trim();
 
   return {
     ...initialCampaignState,
@@ -81,8 +83,8 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
     campaignName: parsedState.campaignName?.trim() || "無題キャンペーン",
     extractionProvider: {
       providerId: parsedExtractionProvider.providerId ?? defaultExtractionProviderSettings.providerId,
-      model: parsedExtractionProvider.model ?? defaultExtractionProviderSettings.model,
-      endpoint: parsedExtractionProvider.endpoint ?? defaultExtractionProviderSettings.endpoint,
+      model: providerModel || defaultExtractionProviderSettings.model,
+      endpoint: providerEndpoint ?? defaultExtractionProviderSettings.endpoint,
     },
     sessions: sessions.map((session) => {
       const extractionItems = normalizeExtractionItems(session.extractionItems ?? initialSession.extractionItems);
