@@ -123,6 +123,14 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
                   <p className="font-medium">{npc.name}</p>
                   <p className="text-sm text-muted-foreground">{npc.role}</p>
                   <p className="mt-2 text-sm leading-6">{npc.publicKnowledge}</p>
+                  <div className="mt-3 grid gap-2 text-sm">
+                    <p className="rounded-md bg-muted px-3 py-2">
+                      <span className="font-medium">態度:</span> {npc.attitude}
+                    </p>
+                    <p className="rounded-md bg-secondary/40 px-3 py-2">
+                      <span className="font-medium">GM秘密:</span> {npc.gmSecret}
+                    </p>
+                  </div>
                 </div>
               ))
             ) : (
