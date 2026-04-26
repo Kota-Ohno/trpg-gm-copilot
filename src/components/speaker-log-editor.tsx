@@ -1,4 +1,4 @@
-import { FileText, MessageSquareText, Plus, RotateCcw, Trash2, UserRound, Wand2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, MessageSquareText, Plus, RotateCcw, Trash2, UserRound, Wand2 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -200,6 +200,37 @@ export function SpeakerLogEditor({
                   <p className="mt-1 text-xs text-muted-foreground">
                     {formatTimestamp(segment.startTimeSec)} - {formatTimestamp(segment.endTimeSec)}
                   </p>
+                  <div className="mt-2 flex gap-2">
+                    <Button
+                      aria-label="時刻を5秒戻す"
+                      disabled={isExtracting || segment.startTimeSec <= 0}
+                      onClick={() => {
+                        const offset = Math.min(5, segment.startTimeSec);
+                        onUpdateSegment(segment.id, {
+                          endTimeSec: segment.endTimeSec - offset,
+                          startTimeSec: segment.startTimeSec - offset,
+                        });
+                      }}
+                      size="icon"
+                      variant="ghost"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      aria-label="時刻を5秒進める"
+                      disabled={isExtracting}
+                      onClick={() =>
+                        onUpdateSegment(segment.id, {
+                          endTimeSec: segment.endTimeSec + 5,
+                          startTimeSec: segment.startTimeSec + 5,
+                        })
+                      }
+                      size="icon"
+                      variant="ghost"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 <div>
