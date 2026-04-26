@@ -35,13 +35,14 @@ export function liveLogToPlainText(liveLog: LiveLogSession): string {
 function liveLogToExtractionLines(liveLog: LiveLogSession): ExtractionInputLine[] {
   return [...liveLog.segments]
     .sort((first, second) => first.startTimeSec - second.startTimeSec)
+    .filter((segment) => segment.text.trim().length > 0)
     .map((segment) => {
       const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
 
       return {
         role: speaker?.role,
         speakerName: speaker?.name,
-        text: segment.text,
+        text: segment.text.trim(),
       };
     });
 }
