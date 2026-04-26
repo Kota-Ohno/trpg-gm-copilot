@@ -31,6 +31,12 @@ export function ProviderSettingsCard({
   const latestTestKeyRef = useRef("");
   const selectedProvider = getExtractionProvider(settings.providerId);
   const needsApiKey = settings.providerId === "openai";
+  const providerHelpText =
+    settings.providerId === "openai"
+      ? "API key はキャンペーンJSONに含めず、ブラウザの別領域にだけ保存します。"
+      : settings.providerId === "ollama"
+        ? "Ollama はローカルの /api/generate を呼び出します。起動していない場合はルールベース抽出へ戻します。"
+        : "ブラウザ内のルールで抽出します。外部ProviderやAPI keyは使いません。";
   const connectionTestKey = [
     secrets.openAiApiKey,
     settings.endpoint,
@@ -152,9 +158,7 @@ export function ProviderSettingsCard({
         )}
 
         <p className="text-xs leading-5 text-muted-foreground">
-          {needsApiKey
-            ? "API key はキャンペーンJSONに含めず、ブラウザの別領域にだけ保存します。"
-            : "Ollama はローカルの /api/generate を呼び出します。起動していない場合はルールベース抽出へ戻します。"}
+          {providerHelpText}
         </p>
 
         <div className="flex flex-wrap items-center gap-2">
