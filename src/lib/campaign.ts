@@ -289,21 +289,27 @@ function getApprovedItems(session: SessionState): ExtractionItem[] {
   return session.extractionItems.filter((item) => session.approvedIds.includes(item.id));
 }
 
-function normalizeExtractionItems(items: ExtractionItem[]): ExtractionItem[] {
+function normalizeExtractionItems(items: unknown[]): ExtractionItem[] {
   const seenIds = new Set<string>();
   const validKinds: ExtractionItem["kind"][] = ["出来事", "NPC", "手がかり", "GM秘密", "伏線"];
   const validVisibilities: ExtractionItem["visibility"][] = ["PL既知", "GMのみ", "未開示候補"];
 
   return items.map((item, index) => {
-    const itemId = item.id && !seenIds.has(item.id) ? item.id : `${item.id || "item"}-${index + 1}`;
+    const itemRecord = readRecord<ExtractionItem>(item);
+    const rawId = readString(itemRecord.id, "item");
+    const itemId = !seenIds.has(rawId) ? rawId : `${rawId}-${index + 1}`;
     seenIds.add(itemId);
 
     return {
-      ...item,
+      ...itemRecord,
       id: itemId,
-      kind: validKinds.includes(item.kind) ? item.kind : "出来事",
-      title: item.title?.trim() || "無題の抽出候補",
-      visibility: validVisibilities.includes(item.visibility) ? item.visibility : "PL既知",
+      detail: readString(itemRecord.detail, "詳細未設定"),
+      kind: itemRecord.kind && validKinds.includes(itemRecord.kind) ? itemRecord.kind : "出来事",
+      title: readString(itemRecord.title, "無題の抽出候補"),
+      visibility:
+        itemRecord.visibility && validVisibilities.includes(itemRecord.visibility)
+          ? itemRecord.visibility
+          : "PL既知",
     };
   });
 }
