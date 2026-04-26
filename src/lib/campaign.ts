@@ -24,6 +24,14 @@ export function createId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+export function getLocalDateString(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 export const initialCampaignState: CampaignState = {
   campaignName: "灰ヶ浦異聞",
   extractionProvider: defaultExtractionProviderSettings,
@@ -121,7 +129,7 @@ export function createNewSession(index: number): SessionState {
   return {
     id: sessionId,
     title: `第${index}夜`,
-    date: new Date().toISOString().slice(0, 10),
+    date: getLocalDateString(),
     log: "",
     liveLog: {
       ...blankLiveLog,

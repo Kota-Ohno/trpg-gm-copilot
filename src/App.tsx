@@ -34,6 +34,7 @@ import {
   createId,
   createNewSession,
   generatePrepNote,
+  getLocalDateString,
   initialCampaignState,
   normalizeCampaignState,
 } from "./lib/campaign";
@@ -695,7 +696,7 @@ export function App() {
                     type="date"
                     value={currentSession.date}
                     onBlur={(event) =>
-                      updateCurrentSession({ date: event.target.value || new Date().toISOString().slice(0, 10) })
+                      updateCurrentSession({ date: event.target.value || getLocalDateString() })
                     }
                     onChange={(event) => updateCurrentSession({ date: event.target.value })}
                   />
