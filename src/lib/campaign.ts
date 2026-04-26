@@ -189,9 +189,16 @@ function normalizeLiveLog(liveLog: LiveLogSession): LiveLogSession {
           },
         ];
 
+  const speakerIds = new Set(speakers.map((speaker) => speaker.id));
+  const fallbackSpeakerId = speakers[0].id;
+
   return {
     ...liveLog,
     speakers,
+    segments: liveLog.segments.map((segment) => ({
+      ...segment,
+      speakerId: speakerIds.has(segment.speakerId) ? segment.speakerId : fallbackSpeakerId,
+    })),
   };
 }
 
