@@ -475,7 +475,7 @@ export function App() {
   };
 
   const approveItem = (item: ExtractionItem): void => {
-    if (approvedIds.includes(item.id)) {
+    if (approvedIds.includes(item.id) || !item.title.trim() || !item.detail.trim()) {
       return;
     }
     setCampaignState((current) => ({
