@@ -160,6 +160,7 @@ export function createExportFileName(campaignName: string): string {
 
 export function createNewSession(index: number): SessionState {
   const sessionId = createId("session");
+  const liveLog = cloneJson(blankLiveLog);
 
   return {
     id: sessionId,
@@ -167,10 +168,10 @@ export function createNewSession(index: number): SessionState {
     date: getLocalDateString(),
     log: "",
     liveLog: {
-      ...blankLiveLog,
+      ...liveLog,
       id: createId("live-log"),
       title: `第${index}夜`,
-      speakers: blankLiveLog.speakers.map((speaker) => ({
+      speakers: liveLog.speakers.map((speaker) => ({
         ...speaker,
         id: createId("speaker"),
       })),
