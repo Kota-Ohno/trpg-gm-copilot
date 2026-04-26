@@ -76,16 +76,17 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
   }
 
   const parsedState = rawState as Partial<CampaignState> & Partial<SessionState>;
+  const defaultSession = cloneJson(initialSession);
   const legacyState = parsedState as Partial<CampaignState> & {
     currentSession?: SessionState;
   } & Partial<SessionState>;
   const migratedSession = legacyState.currentSession ?? {
-    ...initialSession,
-    log: legacyState.log ?? initialSession.log,
-    liveLog: legacyState.liveLog ?? initialSession.liveLog,
-    extractionItems: legacyState.extractionItems ?? initialSession.extractionItems,
-    extractionRun: legacyState.extractionRun ?? initialSession.extractionRun,
-    approvedIds: legacyState.approvedIds ?? initialSession.approvedIds,
+    ...defaultSession,
+    log: legacyState.log ?? defaultSession.log,
+    liveLog: legacyState.liveLog ?? defaultSession.liveLog,
+    extractionItems: legacyState.extractionItems ?? defaultSession.extractionItems,
+    extractionRun: legacyState.extractionRun ?? defaultSession.extractionRun,
+    approvedIds: legacyState.approvedIds ?? defaultSession.approvedIds,
   };
   const sessions = parsedState.sessions && parsedState.sessions.length > 0 ? parsedState.sessions : [migratedSession];
   const activeSessionId = parsedState.activeSessionId ?? sessions[0].id;
@@ -104,7 +105,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
       endpoint: providerEndpoint ?? provider.defaultEndpoint,
     },
     sessions: sessions.map((session) => {
-      const extractionItems = normalizeExtractionItems(session.extractionItems ?? initialSession.extractionItems);
+      const extractionItems = normalizeExtractionItems(session.extractionItems ?? defaultSession.extractionItems);
       const extractionItemIds = new Set(extractionItems.map((item) => item.id));
       const runProvider = session.extractionRun
         ? getExtractionProvider(session.extractionRun.providerId ?? "rule-based")
@@ -116,13 +117,13 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
       const title = session.title?.trim() || "無題セッション";
 
       return {
-        ...initialSession,
+        ...defaultSession,
         ...session,
         title,
         date: session.date || getLocalDateString(),
-        approvedIds: (session.approvedIds ?? initialSession.approvedIds).filter((id) => extractionItemIds.has(id)),
+        approvedIds: (session.approvedIds ?? defaultSession.approvedIds).filter((id) => extractionItemIds.has(id)),
         extractionItems,
-        liveLog: normalizeLiveLog(session.liveLog ?? initialSession.liveLog, title),
+        liveLog: normalizeLiveLog(session.liveLog ?? defaultSession.liveLog, title),
         extractionRun: session.extractionRun
           ? {
               ...session.extractionRun,
