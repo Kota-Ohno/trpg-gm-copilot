@@ -546,6 +546,7 @@ export function App() {
             <Input
               disabled={isExtracting}
               value={campaignName}
+              onBlur={(event) => updateCampaignState({ campaignName: event.target.value.trim() || "無題キャンペーン" })}
               onChange={(event) => updateCampaignState({ campaignName: event.target.value })}
             />
             <div className="grid grid-cols-2 gap-2">
