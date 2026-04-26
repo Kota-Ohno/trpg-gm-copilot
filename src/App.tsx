@@ -30,6 +30,7 @@ import { Tabs } from "./components/ui/tabs";
 import { sampleLiveLog } from "./data/sample";
 import {
   applyExtraction,
+  cloneJson,
   createExportFileName,
   createId,
   createNewSession,
@@ -418,7 +419,7 @@ export function App() {
   };
 
   const restoreSampleLiveLog = (): void => {
-    updateCurrentSession({ liveLog: sampleLiveLog });
+    updateCurrentSession({ liveLog: cloneJson(sampleLiveLog) });
   };
 
   const updateSpeakerName = (speakerId: string, name: string): void => {

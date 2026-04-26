@@ -24,6 +24,10 @@ export function createId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+export function cloneJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 export function getLocalDateString(date = new Date()): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -49,7 +53,7 @@ export const initialCampaignState: CampaignState = {
       title: "第1夜",
       date: "2026-04-25",
       log: sampleLog,
-      liveLog: sampleLiveLog,
+      liveLog: cloneJson(sampleLiveLog),
       extractionItems: [],
       extractionRun: null,
       approvedIds: [],
