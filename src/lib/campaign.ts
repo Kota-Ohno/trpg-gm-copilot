@@ -182,19 +182,20 @@ function getApprovedItems(session: SessionState): ExtractionItem[] {
 
 function normalizeExtractionItems(items: ExtractionItem[]): ExtractionItem[] {
   const seenIds = new Set<string>();
+  const validKinds: ExtractionItem["kind"][] = ["出来事", "NPC", "手がかり", "GM秘密", "伏線"];
+  const validVisibilities: ExtractionItem["visibility"][] = ["PL既知", "GMのみ", "未開示候補"];
 
   return items.map((item, index) => {
-    if (!seenIds.has(item.id)) {
-      seenIds.add(item.id);
-      return item;
-    }
+    const itemId = item.id && !seenIds.has(item.id) ? item.id : `${item.id || "item"}-${index + 1}`;
+    seenIds.add(itemId);
 
-    const nextItem = {
+    return {
       ...item,
-      id: `${item.id}-${index + 1}`,
+      id: itemId,
+      kind: validKinds.includes(item.kind) ? item.kind : "出来事",
+      title: item.title?.trim() || "無題の抽出候補",
+      visibility: validVisibilities.includes(item.visibility) ? item.visibility : "PL既知",
     };
-    seenIds.add(nextItem.id);
-    return nextItem;
   });
 }
 
