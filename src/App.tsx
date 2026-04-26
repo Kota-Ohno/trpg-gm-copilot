@@ -678,6 +678,7 @@ export function App() {
                     className="mt-1 w-44"
                     disabled={isExtracting}
                     value={currentSession.title}
+                    onBlur={(event) => updateCurrentSession({ title: event.target.value.trim() || "無題セッション" })}
                     onChange={(event) => updateCurrentSession({ title: event.target.value })}
                   />
                 </div>
