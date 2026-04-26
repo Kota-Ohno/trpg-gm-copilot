@@ -573,7 +573,7 @@ export function App() {
                   </button>
                   <Button
                     aria-label={`${session.title}を削除`}
-                    disabled={campaignState.sessions.length <= 1}
+                    disabled={isExtracting || campaignState.sessions.length <= 1}
                     onClick={() => deleteSession(session.id)}
                     size="icon"
                     variant="ghost"
