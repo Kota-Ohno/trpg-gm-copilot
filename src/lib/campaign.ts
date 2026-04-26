@@ -174,6 +174,29 @@ function normalizeExtractionRun(run: ExtractionRun | null, itemCount: number): E
   };
 }
 
+function normalizeSessionState(session: SessionState, defaultSession: SessionState): SessionState {
+  const rawExtractionItems = Array.isArray(session.extractionItems)
+    ? session.extractionItems
+    : defaultSession.extractionItems;
+  const rawApprovedIds = Array.isArray(session.approvedIds)
+    ? session.approvedIds.filter((id): id is string => typeof id === "string")
+    : defaultSession.approvedIds;
+  const extractionItems = normalizeExtractionItems(rawExtractionItems);
+  const extractionItemIds = new Set(extractionItems.map((item) => item.id));
+  const title = session.title?.trim() || "無題セッション";
+
+  return {
+    ...defaultSession,
+    ...session,
+    title,
+    date: session.date || getLocalDateString(),
+    approvedIds: rawApprovedIds.filter((id) => extractionItemIds.has(id)),
+    extractionItems,
+    liveLog: normalizeLiveLog(session.liveLog ?? defaultSession.liveLog, title),
+    extractionRun: normalizeExtractionRun(session.extractionRun, extractionItems.length),
+  };
+}
+
 export function normalizeCampaignState(rawState: unknown): CampaignState {
   if (!isRecord(rawState)) {
     return createInitialCampaignState();
@@ -210,29 +233,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
       model: providerModel || provider.defaultModel,
       endpoint: providerEndpoint ?? provider.defaultEndpoint,
     },
-    sessions: sessions.map((session) => {
-      const rawExtractionItems = Array.isArray(session.extractionItems)
-        ? session.extractionItems
-        : defaultSession.extractionItems;
-      const rawApprovedIds = Array.isArray(session.approvedIds)
-        ? session.approvedIds.filter((id): id is string => typeof id === "string")
-        : defaultSession.approvedIds;
-      const extractionItems = normalizeExtractionItems(rawExtractionItems);
-      const extractionItemIds = new Set(extractionItems.map((item) => item.id));
-
-      const title = session.title?.trim() || "無題セッション";
-
-      return {
-        ...defaultSession,
-        ...session,
-        title,
-        date: session.date || getLocalDateString(),
-        approvedIds: rawApprovedIds.filter((id) => extractionItemIds.has(id)),
-        extractionItems,
-        liveLog: normalizeLiveLog(session.liveLog ?? defaultSession.liveLog, title),
-        extractionRun: normalizeExtractionRun(session.extractionRun, extractionItems.length),
-      };
-    }),
+    sessions: sessions.map((session) => normalizeSessionState(session, defaultSession)),
     activeSessionId: sessions.some((session) => session.id === activeSessionId) ? activeSessionId : sessions[0].id,
   };
 }
