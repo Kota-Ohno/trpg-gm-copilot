@@ -11,6 +11,7 @@ import {
   Map as MapIcon,
   Plus,
   Search,
+  ShieldCheck,
   Sparkles,
   Swords,
   Trash2,
@@ -570,6 +571,34 @@ export function App() {
     }));
   };
 
+  const approveRemainingItems = (): void => {
+    setCampaignState((current) => {
+      const session = current.sessions.find((candidate) => candidate.id === current.activeSessionId);
+      if (!session) {
+        return current;
+      }
+
+      const nextApprovedIds = [...session.approvedIds];
+      let nextChronicle = current.chronicle;
+      session.extractionItems.forEach((item) => {
+        if (nextApprovedIds.includes(item.id) || !item.title.trim() || !item.detail.trim()) {
+          return;
+        }
+
+        nextApprovedIds.push(item.id);
+        nextChronicle = applyExtraction(nextChronicle, item);
+      });
+
+      return {
+        ...current,
+        chronicle: nextChronicle,
+        sessions: current.sessions.map((candidate) =>
+          candidate.id === session.id ? { ...session, approvedIds: nextApprovedIds } : candidate,
+        ),
+      };
+    });
+  };
+
   const rejectItem = (itemId: string): void => {
     updateActiveSession((session) => ({
       ...session,
@@ -874,6 +903,18 @@ export function App() {
                   <EmptyState hasRun={extractionRun !== null} onStart={() => setActiveTab("log")} />
                 ) : (
                   <>
+                    <Card>
+                      <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="muted">{approvedCount}採用済み</Badge>
+                          <Badge variant="muted">{remainingCount}未確認</Badge>
+                        </div>
+                        <Button disabled={remainingCount === 0} onClick={approveRemainingItems} size="sm">
+                          <ShieldCheck className="h-4 w-4" />
+                          残りをまとめて採用
+                        </Button>
+                      </CardContent>
+                    </Card>
                     {items.map((item) => {
                       const isApproved = approvedIds.includes(item.id);
 
