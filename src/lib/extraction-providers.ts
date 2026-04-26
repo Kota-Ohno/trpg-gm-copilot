@@ -378,16 +378,17 @@ export async function testExtractionProviderConnection({
   if (provider.id === "rule-based") {
     return {
       ok: true,
-      message: "ルールベースProviderはローカルで利用できます。",
+      message: "ルールベースProviderはローカルで利用できます。model: local-rules-v1",
     };
   }
 
   if (provider.id === "openai") {
     const apiKey = secrets.openAiApiKey.trim();
+    const model = settings.model.trim() || "gpt-4.1-mini";
     if (!apiKey) {
       return {
         ok: false,
-        message: "OpenAI API key が未入力です。",
+        message: `OpenAI API key が未入力です。model: ${model}`,
       };
     }
 
@@ -424,8 +425,8 @@ export async function testExtractionProviderConnection({
       return {
         ok: parseConnectionTestResponse(responseText),
         message: parseConnectionTestResponse(responseText)
-          ? "OpenAI Provider に接続できました。"
-          : "OpenAI の応答をJSONとして確認できませんでした。",
+          ? `OpenAI Provider に接続できました。model: ${model}`
+          : `OpenAI の応答をJSONとして確認できませんでした。model: ${model}`,
       };
     } catch (error) {
       return {
@@ -436,6 +437,7 @@ export async function testExtractionProviderConnection({
   }
 
   if (provider.id === "ollama") {
+    const model = settings.model.trim() || "llama3.1";
     try {
       const endpoint = normalizeEndpoint(settings.endpoint, "http://localhost:11434");
       const { body: responseBody, response } = await fetchJsonWithTimeout<OllamaResponseBody>(joinEndpoint(endpoint, "api/generate"), {
@@ -462,8 +464,8 @@ export async function testExtractionProviderConnection({
       return {
         ok: parseConnectionTestResponse(responseText),
         message: parseConnectionTestResponse(responseText)
-          ? "Ollama Provider に接続できました。"
-          : "Ollama の応答をJSONとして確認できませんでした。",
+          ? `Ollama Provider に接続できました。model: ${model}`
+          : `Ollama の応答をJSONとして確認できませんでした。model: ${model}`,
       };
     } catch (error) {
       return {
