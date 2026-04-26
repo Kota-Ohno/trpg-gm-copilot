@@ -32,11 +32,11 @@ import {
   applyExtraction,
   cloneJson,
   createExportFileName,
+  createInitialCampaignState,
   createId,
   createNewSession,
   generatePrepNote,
   getLocalDateString,
-  initialCampaignState,
   normalizeCampaignState,
 } from "./lib/campaign";
 import {
@@ -105,18 +105,18 @@ const extractionSourceLabels: Record<ExtractionRun["sourceType"], string> = {
 
 function loadCampaignState(): CampaignState {
   if (typeof window === "undefined") {
-    return initialCampaignState;
+    return createInitialCampaignState();
   }
 
   const savedState = window.localStorage.getItem(STORAGE_KEY);
   if (!savedState) {
-    return initialCampaignState;
+    return createInitialCampaignState();
   }
 
   try {
     return normalizeCampaignState(JSON.parse(savedState));
   } catch {
-    return initialCampaignState;
+    return createInitialCampaignState();
   }
 }
 
@@ -367,7 +367,7 @@ export function App() {
 
   const resetCampaignState = (): void => {
     window.localStorage.removeItem(STORAGE_KEY);
-    setCampaignState(initialCampaignState);
+    setCampaignState(createInitialCampaignState());
     setActiveTab("log");
   };
 

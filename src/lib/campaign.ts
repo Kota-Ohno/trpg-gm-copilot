@@ -64,11 +64,15 @@ export const initialCampaignState: CampaignState = {
   quickResult: "潮見レン。灯台守の甥。怖がりだが、夜だけ灯台の鐘が鳴ることを知っている。",
 };
 
+export function createInitialCampaignState(): CampaignState {
+  return cloneJson(initialCampaignState);
+}
+
 const initialSession = initialCampaignState.sessions[0];
 
 export function normalizeCampaignState(rawState: unknown): CampaignState {
   if (!rawState || typeof rawState !== "object") {
-    return initialCampaignState;
+    return createInitialCampaignState();
   }
 
   const parsedState = rawState as Partial<CampaignState> & Partial<SessionState>;
