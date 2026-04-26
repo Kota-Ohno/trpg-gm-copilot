@@ -39,17 +39,37 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
       threads: chronicle.threads.filter((thread) => includesQuery([thread.title, thread.detail, thread.nextMove])),
     };
   }, [chronicle, normalizedQuery]);
+  const totalCount =
+    chronicle.events.length +
+    chronicle.clues.length +
+    chronicle.npcs.length +
+    chronicle.locations.length +
+    chronicle.threads.length;
+  const filteredCount =
+    filteredChronicle.events.length +
+    filteredChronicle.clues.length +
+    filteredChronicle.npcs.length +
+    filteredChronicle.locations.length +
+    filteredChronicle.threads.length;
 
   return (
     <div className="grid gap-4">
       <Card>
-        <CardContent className="py-3">
+        <CardContent className="grid gap-3 py-3">
           <Input
             aria-label="キャンペーン記憶を検索"
             placeholder="記憶を検索"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="muted">{normalizedQuery ? `${filteredCount}/${totalCount}件表示` : `${totalCount}件`}</Badge>
+            <Badge variant="outline">出来事 {chronicle.events.length}</Badge>
+            <Badge variant="outline">手がかり {chronicle.clues.length}</Badge>
+            <Badge variant="outline">NPC {chronicle.npcs.length}</Badge>
+            <Badge variant="outline">場所 {chronicle.locations.length}</Badge>
+            <Badge variant="outline">伏線 {chronicle.threads.length}</Badge>
+          </div>
         </CardContent>
       </Card>
 
