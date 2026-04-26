@@ -174,13 +174,14 @@ function normalizeExtractionProviderSettings(rawSettings: unknown): ExtractionPr
   };
 }
 
-function normalizeExtractionRun(run: ExtractionRun | null, itemCount: number): ExtractionRun | null {
-  if (!run) {
+function normalizeExtractionRun(rawRun: unknown, itemCount: number): ExtractionRun | null {
+  if (!isRecord(rawRun)) {
     return null;
   }
 
-  const runProvider = getExtractionProvider(run.providerId ?? "rule-based");
-  const executedProvider = getExtractionProvider(run.executedProviderId ?? run.providerId ?? "rule-based");
+  const run = readRecord<ExtractionRun>(rawRun);
+  const runProvider = getExtractionProvider((run.providerId ?? "rule-based") as ExtractionProviderId);
+  const executedProvider = getExtractionProvider((run.executedProviderId ?? run.providerId ?? "rule-based") as ExtractionProviderId);
 
   return {
     ...run,
@@ -189,10 +190,12 @@ function normalizeExtractionRun(run: ExtractionRun | null, itemCount: number): E
     providerLabel: runProvider.label,
     executedProviderId: executedProvider.id,
     executedProviderLabel: executedProvider.label,
-    fallbackUsed: run.fallbackUsed ?? run.sourceType === "fallback",
+    fallbackUsed: typeof run.fallbackUsed === "boolean" ? run.fallbackUsed : run.sourceType === "fallback",
     itemCount,
-    promptLength: run.promptLength ?? 0,
-    validationErrors: Array.isArray(run.validationErrors) ? run.validationErrors : [],
+    promptLength: readNumber(run.promptLength, 0),
+    validationErrors: Array.isArray(run.validationErrors)
+      ? run.validationErrors.filter((error): error is string => typeof error === "string")
+      : [],
   };
 }
 
