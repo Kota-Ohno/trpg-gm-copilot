@@ -847,6 +847,7 @@ export function App() {
 
           <div className="mt-4">
             <ProviderSettingsCard
+              isLocked={isExtracting}
               secrets={providerSecrets}
               settings={extractionProvider}
               onChangeSecrets={setProviderSecrets}

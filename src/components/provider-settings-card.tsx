@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Input } from "./ui/input";
 
 type ProviderSettingsCardProps = {
+  isLocked: boolean;
   secrets: ProviderSecretSettings;
   settings: ExtractionProviderSettings;
   onChangeSecrets: (settings: ProviderSecretSettings) => void;
@@ -19,6 +20,7 @@ type ProviderSettingsCardProps = {
 };
 
 export function ProviderSettingsCard({
+  isLocked,
   secrets,
   settings,
   onChange,
@@ -96,6 +98,7 @@ export function ProviderSettingsCard({
           <label className="text-xs font-medium text-muted-foreground">Provider</label>
           <select
             className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            disabled={isLocked}
             onChange={(event) => selectProvider(event.target.value as ExtractionProviderId)}
             value={settings.providerId}
           >
@@ -111,6 +114,7 @@ export function ProviderSettingsCard({
           <label className="text-xs font-medium text-muted-foreground">Model</label>
           <Input
             className="mt-1"
+            disabled={isLocked}
             onChange={(event) => updateSettings({ model: event.target.value })}
             value={settings.model}
           />
@@ -123,6 +127,7 @@ export function ProviderSettingsCard({
           </label>
           <Input
             className="mt-1"
+            disabled={isLocked}
             onChange={(event) => updateSettings({ endpoint: event.target.value })}
             placeholder="Provider endpoint"
             value={settings.endpoint}
@@ -137,6 +142,7 @@ export function ProviderSettingsCard({
             </label>
             <Input
               className="mt-1"
+              disabled={isLocked}
               onChange={(event) => onChangeSecrets({ ...secrets, openAiApiKey: event.target.value })}
               placeholder="ユーザーAPIキー"
               type="password"
@@ -152,7 +158,7 @@ export function ProviderSettingsCard({
         </p>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button disabled={isTestingConnection} onClick={testConnection} size="sm" variant="outline">
+          <Button disabled={isLocked || isTestingConnection} onClick={testConnection} size="sm" variant="outline">
             <Unplug className="h-4 w-4" />
             {isTestingConnection ? "確認中" : "接続テスト"}
           </Button>
