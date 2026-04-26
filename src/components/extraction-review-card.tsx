@@ -24,6 +24,8 @@ export function ExtractionReviewCard({
   onReject,
   onUpdate,
 }: ExtractionReviewCardProps) {
+  const canApprove = item.title.trim().length > 0 && item.detail.trim().length > 0;
+
   return (
     <Card className={isApproved ? "border-primary/40 bg-primary/5" : ""}>
       <CardHeader>
@@ -42,7 +44,7 @@ export function ExtractionReviewCard({
           <div className="flex gap-2">
             <Button
               aria-label="採用"
-              disabled={isApproved}
+              disabled={isApproved || !canApprove}
               onClick={() => onApprove(item)}
               size="icon"
               variant={isApproved ? "secondary" : "default"}
