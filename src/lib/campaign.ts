@@ -1,5 +1,16 @@
 import { initialChronicle, sampleLiveLog, sampleLog } from "../data/sample";
-import type { CampaignState, Chronicle, Clue, ExtractionItem, LiveLogSession, Location, Npc, PrepNote, SessionState, Thread } from "../types";
+import type {
+  CampaignState,
+  Chronicle,
+  Clue,
+  ExtractionItem,
+  LiveLogSession,
+  Location,
+  Npc,
+  PrepNote,
+  SessionState,
+  Thread,
+} from "../types";
 import { defaultExtractionProviderSettings, getExtractionProvider } from "./extraction-provider-settings";
 
 export const blankLiveLog: LiveLogSession = {
@@ -70,6 +81,14 @@ export function createInitialCampaignState(): CampaignState {
 
 const initialSession = initialCampaignState.sessions[0];
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readRecord<T>(value: unknown): Partial<T> {
+  return isRecord(value) ? (value as Partial<T>) : {};
+}
+
 function normalizeStringArray(value: unknown, fallback: string[]): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : fallback;
 }
@@ -79,7 +98,7 @@ function readString(value: unknown, fallback: string): string {
 }
 
 function normalizeNpc(value: unknown): Npc {
-  const npc = value && typeof value === "object" ? value as Partial<Npc> : {};
+  const npc = readRecord<Npc>(value);
 
   return {
     name: readString(npc.name, "無名NPC"),
@@ -91,7 +110,7 @@ function normalizeNpc(value: unknown): Npc {
 }
 
 function normalizeClue(value: unknown): Clue {
-  const clue = value && typeof value === "object" ? value as Partial<Clue> : {};
+  const clue = readRecord<Clue>(value);
   const status = clue.status === "known" || clue.status === "partial" || clue.status === "hidden" ? clue.status : "partial";
 
   return {
@@ -102,7 +121,7 @@ function normalizeClue(value: unknown): Clue {
 }
 
 function normalizeLocation(value: unknown): Location {
-  const location = value && typeof value === "object" ? value as Partial<Location> : {};
+  const location = readRecord<Location>(value);
 
   return {
     name: readString(location.name, "無名の場所"),
@@ -111,7 +130,7 @@ function normalizeLocation(value: unknown): Location {
 }
 
 function normalizeThread(value: unknown): Thread {
-  const thread = value && typeof value === "object" ? value as Partial<Thread> : {};
+  const thread = readRecord<Thread>(value);
 
   return {
     title: readString(thread.title, "無題の伏線"),
@@ -121,7 +140,7 @@ function normalizeThread(value: unknown): Thread {
 }
 
 function normalizeChronicle(rawChronicle: unknown): Chronicle {
-  const chronicle = rawChronicle && typeof rawChronicle === "object" ? rawChronicle as Partial<Chronicle> : {};
+  const chronicle = readRecord<Chronicle>(rawChronicle);
 
   return {
     events: normalizeStringArray(chronicle.events, initialChronicle.events),
@@ -133,7 +152,7 @@ function normalizeChronicle(rawChronicle: unknown): Chronicle {
 }
 
 export function normalizeCampaignState(rawState: unknown): CampaignState {
-  if (!rawState || typeof rawState !== "object") {
+  if (!isRecord(rawState)) {
     return createInitialCampaignState();
   }
 
