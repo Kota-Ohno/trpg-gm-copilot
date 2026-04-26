@@ -150,7 +150,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
     extractionRun: legacyState.extractionRun ?? defaultSession.extractionRun,
     approvedIds: legacyState.approvedIds ?? defaultSession.approvedIds,
   };
-  const sessions = parsedState.sessions && parsedState.sessions.length > 0 ? parsedState.sessions : [migratedSession];
+  const sessions = Array.isArray(parsedState.sessions) && parsedState.sessions.length > 0 ? parsedState.sessions : [migratedSession];
   const activeSessionId = parsedState.activeSessionId ?? sessions[0].id;
   const parsedExtractionProvider = parsedState.extractionProvider ?? defaultExtractionProviderSettings;
   const provider = getExtractionProvider(parsedExtractionProvider.providerId ?? defaultExtractionProviderSettings.providerId);
