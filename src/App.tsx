@@ -927,20 +927,36 @@ export function App() {
                         </div>
                       </CardContent>
                     </Card>
-                    {reviewItems.map((item) => {
-                      const isApproved = approvedIds.includes(item.id);
+                    {reviewItems.length === 0 ? (
+                      <Card>
+                        <CardContent className="py-6 text-center">
+                          <p className="text-sm font-medium">未確認の抽出候補はありません</p>
+                          <Button
+                            className="mt-3"
+                            onClick={() => setShowApprovedReviewItems(true)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            採用済みも表示
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      reviewItems.map((item) => {
+                        const isApproved = approvedIds.includes(item.id);
 
-                      return (
-                        <ExtractionReviewCard
-                          isApproved={isApproved}
-                          item={item}
-                          key={item.id}
-                          onApprove={approveItem}
-                          onReject={rejectItem}
-                          onUpdate={updateExtractionItem}
-                        />
-                      );
-                    })}
+                        return (
+                          <ExtractionReviewCard
+                            isApproved={isApproved}
+                            item={item}
+                            key={item.id}
+                            onApprove={approveItem}
+                            onReject={rejectItem}
+                            onUpdate={updateExtractionItem}
+                          />
+                        );
+                      })
+                    )}
                   </>
                 )}
               </div>
