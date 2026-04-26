@@ -557,7 +557,11 @@ export function App() {
                 />
               </label>
             </div>
-            {storageError && <p className="text-xs text-destructive">{storageError}</p>}
+            {storageError ? (
+              <p className="text-xs text-destructive">{storageError}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">ブラウザにローカル自動保存中</p>
+            )}
           </div>
 
           <div className="mt-6 space-y-2">
