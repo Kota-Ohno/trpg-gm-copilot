@@ -370,6 +370,10 @@ export function App() {
   };
 
   const runExtractionPreview = async (): Promise<void> => {
+    if (!canExtractLog) {
+      return;
+    }
+
     const targetSessionId = currentSession.id;
     setIsExtracting(true);
     try {
