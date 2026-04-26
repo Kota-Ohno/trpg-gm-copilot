@@ -108,6 +108,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
         extractionRun: session.extractionRun
           ? {
               ...session.extractionRun,
+              sourceType: normalizeExtractionSourceType(session.extractionRun.sourceType),
               providerId: runProvider?.id ?? "rule-based",
               providerLabel: runProvider?.label ?? "ルールベース",
               executedProviderId: executedProvider?.id ?? "rule-based",
@@ -229,6 +230,10 @@ function normalizeLiveLog(liveLog: LiveLogSession): LiveLogSession {
       };
     }),
   };
+}
+
+function normalizeExtractionSourceType(sourceType: unknown): "plain" | "speaker" | "fallback" {
+  return sourceType === "plain" || sourceType === "speaker" || sourceType === "fallback" ? sourceType : "fallback";
 }
 
 export function generatePrepNote(chronicle: Chronicle, sessions: SessionState[], activeSession: SessionState): PrepNote {
