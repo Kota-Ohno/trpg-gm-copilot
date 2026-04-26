@@ -164,130 +164,140 @@ export function SpeakerLogEditor({
           </Button>
         </div>
 
-        <div className="grid gap-3">
-          {sortedSegments.map((segment) => {
-            const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
+        {sortedSegments.length === 0 ? (
+          <div className="rounded-md border border-dashed bg-background p-6 text-center">
+            <p className="text-sm font-medium">発話ログはまだありません</p>
+            <Button className="mt-3" disabled={isExtracting} onClick={onAddSegment} size="sm" variant="outline">
+              <Plus className="h-4 w-4" />
+              発話を追加
+            </Button>
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {sortedSegments.map((segment) => {
+              const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
 
-            return (
-              <div
-                className="grid grid-cols-[120px_160px_1fr_40px] gap-3 rounded-md border bg-background p-3 max-lg:grid-cols-1"
-                key={segment.id}
-              >
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">時刻</label>
-                  <div className="mt-1 grid grid-cols-2 gap-2">
-                    <Input
-                      aria-label="開始秒"
+              return (
+                <div
+                  className="grid grid-cols-[120px_160px_1fr_40px] gap-3 rounded-md border bg-background p-3 max-lg:grid-cols-1"
+                  key={segment.id}
+                >
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">時刻</label>
+                    <div className="mt-1 grid grid-cols-2 gap-2">
+                      <Input
+                        aria-label="開始秒"
+                        disabled={isExtracting}
+                        min={0}
+                        type="number"
+                        value={segment.startTimeSec}
+                        onChange={(event) =>
+                          onUpdateSegment(segment.id, { startTimeSec: Number(event.target.value) || 0 })
+                        }
+                      />
+                      <Input
+                        aria-label="終了秒"
+                        disabled={isExtracting}
+                        min={0}
+                        type="number"
+                        value={segment.endTimeSec}
+                        onChange={(event) =>
+                          onUpdateSegment(segment.id, { endTimeSec: Number(event.target.value) || 0 })
+                        }
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formatTimestamp(segment.startTimeSec)} - {formatTimestamp(segment.endTimeSec)}
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <Button
+                        aria-label="時刻を5秒戻す"
+                        disabled={isExtracting || segment.startTimeSec <= 0}
+                        onClick={() => {
+                          const offset = Math.min(5, segment.startTimeSec);
+                          onUpdateSegment(segment.id, {
+                            endTimeSec: segment.endTimeSec - offset,
+                            startTimeSec: segment.startTimeSec - offset,
+                          });
+                        }}
+                        size="icon"
+                        variant="ghost"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        aria-label="時刻を5秒進める"
+                        disabled={isExtracting}
+                        onClick={() =>
+                          onUpdateSegment(segment.id, {
+                            endTimeSec: segment.endTimeSec + 5,
+                            startTimeSec: segment.startTimeSec + 5,
+                          })
+                        }
+                        size="icon"
+                        variant="ghost"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">話者</label>
+                    <select
+                      className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       disabled={isExtracting}
-                      min={0}
-                      type="number"
-                      value={segment.startTimeSec}
-                      onChange={(event) =>
-                        onUpdateSegment(segment.id, { startTimeSec: Number(event.target.value) || 0 })
-                      }
-                    />
-                    <Input
-                      aria-label="終了秒"
+                      value={segment.speakerId}
+                      onChange={(event) => onUpdateSegment(segment.id, { speakerId: event.target.value })}
+                    >
+                      {liveLog.speakers.map((candidate) => (
+                        <option key={candidate.id} value={candidate.id}>
+                          {candidate.name} / {speakerRoleLabels[candidate.role]}
+                        </option>
+                      ))}
+                    </select>
+                    {speaker && (
+                      <Badge className="mt-2" variant={speaker.role === "GM" ? "secondary" : "outline"}>
+                        {speakerRoleLabels[speaker.role]}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">発話</label>
+                    <Textarea
+                      className="mt-1 min-h-[84px] resize-y text-sm leading-6"
                       disabled={isExtracting}
-                      min={0}
-                      type="number"
-                      value={segment.endTimeSec}
-                      onChange={(event) =>
-                        onUpdateSegment(segment.id, { endTimeSec: Number(event.target.value) || 0 })
-                      }
+                      value={segment.text}
+                      onChange={(event) => onUpdateSegment(segment.id, { text: event.target.value })}
                     />
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formatTimestamp(segment.startTimeSec)} - {formatTimestamp(segment.endTimeSec)}
-                  </p>
-                  <div className="mt-2 flex gap-2">
+
+                  <div className="flex flex-col items-end gap-2">
                     <Button
-                      aria-label="時刻を5秒戻す"
-                      disabled={isExtracting || segment.startTimeSec <= 0}
-                      onClick={() => {
-                        const offset = Math.min(5, segment.startTimeSec);
-                        onUpdateSegment(segment.id, {
-                          endTimeSec: segment.endTimeSec - offset,
-                          startTimeSec: segment.startTimeSec - offset,
-                        });
-                      }}
+                      aria-label="この後に発話を追加"
+                      disabled={isExtracting}
+                      onClick={() => onAddSegmentAfter(segment.id)}
                       size="icon"
-                      variant="ghost"
+                      variant="outline"
                     >
-                      <ChevronLeft className="h-4 w-4" />
+                      <Plus className="h-4 w-4" />
                     </Button>
                     <Button
-                      aria-label="時刻を5秒進める"
+                      aria-label="発話を削除"
                       disabled={isExtracting}
-                      onClick={() =>
-                        onUpdateSegment(segment.id, {
-                          endTimeSec: segment.endTimeSec + 5,
-                          startTimeSec: segment.startTimeSec + 5,
-                        })
-                      }
+                      onClick={() => onDeleteSegment(segment.id)}
                       size="icon"
-                      variant="ghost"
+                      variant="outline"
                     >
-                      <ChevronRight className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
-
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">話者</label>
-                  <select
-                    className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    disabled={isExtracting}
-                    value={segment.speakerId}
-                    onChange={(event) => onUpdateSegment(segment.id, { speakerId: event.target.value })}
-                  >
-                    {liveLog.speakers.map((candidate) => (
-                      <option key={candidate.id} value={candidate.id}>
-                        {candidate.name} / {speakerRoleLabels[candidate.role]}
-                      </option>
-                    ))}
-                  </select>
-                  {speaker && (
-                    <Badge className="mt-2" variant={speaker.role === "GM" ? "secondary" : "outline"}>
-                      {speakerRoleLabels[speaker.role]}
-                    </Badge>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">発話</label>
-                  <Textarea
-                    className="mt-1 min-h-[84px] resize-y text-sm leading-6"
-                    disabled={isExtracting}
-                    value={segment.text}
-                    onChange={(event) => onUpdateSegment(segment.id, { text: event.target.value })}
-                  />
-                </div>
-
-                <div className="flex flex-col items-end gap-2">
-                  <Button
-                    aria-label="この後に発話を追加"
-                    disabled={isExtracting}
-                    onClick={() => onAddSegmentAfter(segment.id)}
-                    size="icon"
-                    variant="outline"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    aria-label="発話を削除"
-                    disabled={isExtracting}
-                    onClick={() => onDeleteSegment(segment.id)}
-                    size="icon"
-                    variant="outline"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </section>
     </div>
   );
