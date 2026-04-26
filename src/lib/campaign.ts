@@ -4,6 +4,8 @@ import type {
   Chronicle,
   Clue,
   ExtractionItem,
+  ExtractionProviderId,
+  ExtractionProviderSettings,
   ExtractionRun,
   LiveLogSession,
   Location,
@@ -160,6 +162,18 @@ function normalizeChronicle(rawChronicle: unknown): Chronicle {
   };
 }
 
+function normalizeExtractionProviderSettings(rawSettings: unknown): ExtractionProviderSettings {
+  const settings = readRecord<ExtractionProviderSettings>(rawSettings);
+  const providerId = (settings.providerId ?? defaultExtractionProviderSettings.providerId) as ExtractionProviderId;
+  const provider = getExtractionProvider(providerId);
+
+  return {
+    providerId: provider.id,
+    model: readString(settings.model, provider.defaultModel),
+    endpoint: typeof settings.endpoint === "string" ? settings.endpoint.trim() : provider.defaultEndpoint,
+  };
+}
+
 function normalizeExtractionRun(run: ExtractionRun | null, itemCount: number): ExtractionRun | null {
   if (!run) {
     return null;
@@ -225,10 +239,6 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
   };
   const sessions = Array.isArray(parsedState.sessions) && parsedState.sessions.length > 0 ? parsedState.sessions : [migratedSession];
   const activeSessionId = parsedState.activeSessionId ?? sessions[0].id;
-  const parsedExtractionProvider = parsedState.extractionProvider ?? defaultExtractionProviderSettings;
-  const provider = getExtractionProvider(parsedExtractionProvider.providerId ?? defaultExtractionProviderSettings.providerId);
-  const providerModel = parsedExtractionProvider.model?.trim();
-  const providerEndpoint = parsedExtractionProvider.endpoint?.trim();
 
   return {
     ...initialCampaignState,
@@ -236,11 +246,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
     campaignName: parsedState.campaignName?.trim() || "無題キャンペーン",
     chronicle: normalizeChronicle(parsedState.chronicle),
     quickResult: readString(parsedState.quickResult, initialCampaignState.quickResult),
-    extractionProvider: {
-      providerId: provider.id,
-      model: providerModel || provider.defaultModel,
-      endpoint: providerEndpoint ?? provider.defaultEndpoint,
-    },
+    extractionProvider: normalizeExtractionProviderSettings(parsedState.extractionProvider),
     sessions: sessions.map((session) => normalizeSessionState(session, defaultSession)),
     activeSessionId: sessions.some((session) => session.id === activeSessionId) ? activeSessionId : sessions[0].id,
   };
