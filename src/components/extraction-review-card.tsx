@@ -49,7 +49,13 @@ export function ExtractionReviewCard({
             >
               <Check className="h-4 w-4" />
             </Button>
-            <Button aria-label="破棄" onClick={() => onReject(item.id)} size="icon" variant="outline">
+            <Button
+              aria-label="破棄"
+              disabled={isApproved}
+              onClick={() => onReject(item.id)}
+              size="icon"
+              variant="outline"
+            >
               <X className="h-4 w-4" />
             </Button>
           </div>
