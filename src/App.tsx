@@ -418,14 +418,21 @@ export function App() {
     updateLiveLog((current) => {
       const lastSegment = current.segments[current.segments.length - 1];
       const startTimeSec = lastSegment ? lastSegment.endTimeSec + 1 : 0;
+      const fallbackSpeaker = {
+        id: createId("speaker"),
+        name: "GM",
+        role: "GM" as SpeakerRole,
+      };
+      const speakers = current.speakers.length > 0 ? current.speakers : [fallbackSpeaker];
 
       return {
         ...current,
+        speakers,
         segments: [
           ...current.segments,
           {
             id: createId("segment"),
-            speakerId: current.speakers[0]?.id ?? "",
+            speakerId: speakers[0].id,
             startTimeSec,
             endTimeSec: startTimeSec + 5,
             text: "",
