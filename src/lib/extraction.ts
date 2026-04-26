@@ -10,6 +10,7 @@ export type ExtractionInputLine = {
 };
 
 const npcNamePattern = /(?:女将|村長|灯台守|船長|医師|司祭|娘|甥|少女|少年|老人|男|女)(?:の)?([ァ-ヶー一-龠々]{1,8})|([ァ-ヶー一-龠々]{1,8})(?:は|が).*(?:話|言|証言)/;
+const plainLogLinePattern = /^(?:\[([0-9:.]+)\]\s*)?([^:：]{1,32})[:：]\s*(.+)$/;
 
 export function inferSpeakerRole(name: string): SpeakerRole {
   const normalizedName = name.trim().toLowerCase();
@@ -30,6 +31,21 @@ export function liveLogToPlainText(liveLog: LiveLogSession): string {
       return `${speaker?.name ?? "話者不明"}: ${segment.text.trim()}`;
     })
     .join("\n");
+}
+
+function parseTimestampSeconds(rawTimestamp: string | undefined): number | null {
+  if (!rawTimestamp) {
+    return null;
+  }
+
+  const parts = rawTimestamp.split(":").map((part) => Number(part));
+  if (parts.length < 2 || parts.length > 3 || parts.some((part) => !Number.isFinite(part) || part < 0)) {
+    return null;
+  }
+
+  const [hours, minutes, seconds] = parts.length === 3 ? parts : [0, parts[0], parts[1]];
+
+  return Math.round((hours * 60 + minutes) * 60 + seconds);
 }
 
 function liveLogToExtractionLines(liveLog: LiveLogSession): ExtractionInputLine[] {
@@ -56,7 +72,7 @@ function plainLogToExtractionLines(log: string): ExtractionInputLine[] {
       return;
     }
 
-    const match = line.match(/^(?:\[[^\]]+\]\s*)?([^:：]{1,32})[:：]\s*(.+)$/);
+    const match = line.match(plainLogLinePattern);
     if (!match) {
       const lastLine = lines[lines.length - 1];
       if (lastLine) {
@@ -65,11 +81,11 @@ function plainLogToExtractionLines(log: string): ExtractionInputLine[] {
       return;
     }
 
-    const speakerName = match[1].trim();
+    const speakerName = match[2].trim();
     lines.push({
       role: inferSpeakerRole(speakerName),
       speakerName,
-      text: match[2].trim(),
+      text: match[3].trim(),
     });
   });
 
@@ -203,7 +219,7 @@ export function parsePlainLogToLiveLog(log: string, title: string): LiveLogSessi
       return;
     }
 
-    const match = line.match(/^(?:\[[^\]]+\]\s*)?([^:：]{1,32})[:：]\s*(.+)$/);
+    const match = line.match(plainLogLinePattern);
     if (!match) {
       if (activeSegment) {
         activeSegment.text = `${activeSegment.text}\n${line}`;
@@ -211,8 +227,9 @@ export function parsePlainLogToLiveLog(log: string, title: string): LiveLogSessi
       return;
     }
 
-    const speakerName = match[1].trim();
-    const text = match[2].trim();
+    const parsedStartTimeSec = parseTimestampSeconds(match[1]);
+    const speakerName = match[2].trim();
+    const text = match[3].trim();
     let speaker = speakersByName.get(speakerName);
 
     if (!speaker) {
@@ -224,7 +241,7 @@ export function parsePlainLogToLiveLog(log: string, title: string): LiveLogSessi
       speakersByName.set(speakerName, speaker);
     }
 
-    const startTimeSec = segments.length * 8;
+    const startTimeSec = parsedStartTimeSec ?? segments.length * 8;
     activeSegment = {
       id: createId("segment"),
       speakerId: speaker.id,
