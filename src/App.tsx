@@ -180,6 +180,7 @@ export function App() {
   const [isExtracting, setIsExtracting] = useState(false);
   const [logInputMode, setLogInputMode] = useState<LogInputMode>("plain");
   const [campaignState, setCampaignState] = useState<CampaignState>(loadCampaignState);
+  const [storageError, setStorageError] = useState<string | null>(null);
   const [providerSecrets, setProviderSecrets] = useState<ProviderSecretSettings>(loadProviderSecrets);
 
   const currentSession =
@@ -217,11 +218,20 @@ export function App() {
   }, [approvedCount, items.length]);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(campaignState));
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(campaignState));
+      setStorageError(null);
+    } catch {
+      setStorageError("キャンペーン状態をブラウザに保存できませんでした。書き出しで退避してください。");
+    }
   }, [campaignState]);
 
   useEffect(() => {
-    window.localStorage.setItem(PROVIDER_SECRETS_STORAGE_KEY, JSON.stringify(providerSecrets));
+    try {
+      window.localStorage.setItem(PROVIDER_SECRETS_STORAGE_KEY, JSON.stringify(providerSecrets));
+    } catch {
+      setStorageError("Provider secrets をブラウザに保存できませんでした。");
+    }
   }, [providerSecrets]);
 
   const updateCampaignState = (updates: Partial<CampaignState>): void => {
@@ -545,6 +555,7 @@ export function App() {
                 />
               </label>
             </div>
+            {storageError && <p className="text-xs text-destructive">{storageError}</p>}
           </div>
 
           <div className="mt-6 space-y-2">
