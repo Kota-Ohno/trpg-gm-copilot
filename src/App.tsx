@@ -912,8 +912,8 @@ export function App() {
                         <details className="text-xs text-destructive">
                           <summary className="cursor-pointer">検証メモを表示</summary>
                           <ul className="mt-2 grid gap-1">
-                            {extractionRun.validationErrors.map((error) => (
-                              <li key={error}>{error}</li>
+                            {extractionRun.validationErrors.map((error, index) => (
+                              <li key={`${error}-${index}`}>{error}</li>
                             ))}
                           </ul>
                         </details>
