@@ -1,5 +1,5 @@
 import { initialChronicle, sampleLiveLog, sampleLog } from "../data/sample";
-import type { CampaignState, Chronicle, ExtractionItem, LiveLogSession, PrepNote, SessionState } from "../types";
+import type { CampaignState, Chronicle, Clue, ExtractionItem, LiveLogSession, Location, Npc, PrepNote, SessionState, Thread } from "../types";
 import { defaultExtractionProviderSettings, getExtractionProvider } from "./extraction-provider-settings";
 
 export const blankLiveLog: LiveLogSession = {
@@ -74,15 +74,61 @@ function normalizeStringArray(value: unknown, fallback: string[]): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : fallback;
 }
 
+function readString(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function normalizeNpc(value: unknown): Npc {
+  const npc = value && typeof value === "object" ? value as Partial<Npc> : {};
+
+  return {
+    name: readString(npc.name, "無名NPC"),
+    role: readString(npc.role, "役割未設定"),
+    publicKnowledge: readString(npc.publicKnowledge, "公開情報未設定"),
+    gmSecret: readString(npc.gmSecret, "GM秘密未設定"),
+    attitude: readString(npc.attitude, "態度未設定"),
+  };
+}
+
+function normalizeClue(value: unknown): Clue {
+  const clue = value && typeof value === "object" ? value as Partial<Clue> : {};
+  const status = clue.status === "known" || clue.status === "partial" || clue.status === "hidden" ? clue.status : "partial";
+
+  return {
+    title: readString(clue.title, "無題の手がかり"),
+    detail: readString(clue.detail, "詳細未設定"),
+    status,
+  };
+}
+
+function normalizeLocation(value: unknown): Location {
+  const location = value && typeof value === "object" ? value as Partial<Location> : {};
+
+  return {
+    name: readString(location.name, "無名の場所"),
+    detail: readString(location.detail, "詳細未設定"),
+  };
+}
+
+function normalizeThread(value: unknown): Thread {
+  const thread = value && typeof value === "object" ? value as Partial<Thread> : {};
+
+  return {
+    title: readString(thread.title, "無題の伏線"),
+    detail: readString(thread.detail, "詳細未設定"),
+    nextMove: readString(thread.nextMove, "次の一手未設定"),
+  };
+}
+
 function normalizeChronicle(rawChronicle: unknown): Chronicle {
   const chronicle = rawChronicle && typeof rawChronicle === "object" ? rawChronicle as Partial<Chronicle> : {};
 
   return {
     events: normalizeStringArray(chronicle.events, initialChronicle.events),
-    npcs: Array.isArray(chronicle.npcs) ? chronicle.npcs : initialChronicle.npcs,
-    clues: Array.isArray(chronicle.clues) ? chronicle.clues : initialChronicle.clues,
-    locations: Array.isArray(chronicle.locations) ? chronicle.locations : initialChronicle.locations,
-    threads: Array.isArray(chronicle.threads) ? chronicle.threads : initialChronicle.threads,
+    npcs: Array.isArray(chronicle.npcs) ? chronicle.npcs.map(normalizeNpc) : initialChronicle.npcs,
+    clues: Array.isArray(chronicle.clues) ? chronicle.clues.map(normalizeClue) : initialChronicle.clues,
+    locations: Array.isArray(chronicle.locations) ? chronicle.locations.map(normalizeLocation) : initialChronicle.locations,
+    threads: Array.isArray(chronicle.threads) ? chronicle.threads.map(normalizeThread) : initialChronicle.threads,
   };
 }
 
