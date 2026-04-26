@@ -172,7 +172,9 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
       const rawExtractionItems = Array.isArray(session.extractionItems)
         ? session.extractionItems
         : defaultSession.extractionItems;
-      const rawApprovedIds = Array.isArray(session.approvedIds) ? session.approvedIds : defaultSession.approvedIds;
+      const rawApprovedIds = Array.isArray(session.approvedIds)
+        ? session.approvedIds.filter((id): id is string => typeof id === "string")
+        : defaultSession.approvedIds;
       const extractionItems = normalizeExtractionItems(rawExtractionItems);
       const extractionItemIds = new Set(extractionItems.map((item) => item.id));
       const runProvider = session.extractionRun
