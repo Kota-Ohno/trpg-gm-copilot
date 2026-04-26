@@ -121,6 +121,7 @@ export function ProviderSettingsCard({
           <Input
             className="mt-1"
             disabled={isLocked}
+            onBlur={(event) => updateSettings({ model: event.target.value.trim() })}
             onChange={(event) => updateSettings({ model: event.target.value })}
             value={settings.model}
           />
@@ -134,6 +135,7 @@ export function ProviderSettingsCard({
           <Input
             className="mt-1"
             disabled={isLocked}
+            onBlur={(event) => updateSettings({ endpoint: event.target.value.trim() })}
             onChange={(event) => updateSettings({ endpoint: event.target.value })}
             placeholder="Provider endpoint"
             value={settings.endpoint}
@@ -149,6 +151,7 @@ export function ProviderSettingsCard({
             <div className="mt-1 flex gap-2">
               <Input
                 disabled={isLocked}
+                onBlur={(event) => onChangeSecrets({ ...secrets, openAiApiKey: event.target.value.trim() })}
                 onChange={(event) => onChangeSecrets({ ...secrets, openAiApiKey: event.target.value })}
                 placeholder="ユーザーAPIキー"
                 type="password"
