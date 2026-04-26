@@ -1,6 +1,6 @@
 import { initialChronicle, sampleLiveLog, sampleLog } from "../data/sample";
 import type { CampaignState, Chronicle, ExtractionItem, LiveLogSession, PrepNote, SessionState } from "../types";
-import { defaultExtractionProviderSettings } from "./extraction-provider-settings";
+import { defaultExtractionProviderSettings, getExtractionProvider } from "./extraction-provider-settings";
 
 export const blankLiveLog: LiveLogSession = {
   id: "live-log-empty",
@@ -74,6 +74,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
   const sessions = parsedState.sessions && parsedState.sessions.length > 0 ? parsedState.sessions : [migratedSession];
   const activeSessionId = parsedState.activeSessionId ?? sessions[0].id;
   const parsedExtractionProvider = parsedState.extractionProvider ?? defaultExtractionProviderSettings;
+  const provider = getExtractionProvider(parsedExtractionProvider.providerId ?? defaultExtractionProviderSettings.providerId);
   const providerModel = parsedExtractionProvider.model?.trim();
   const providerEndpoint = parsedExtractionProvider.endpoint?.trim();
 
@@ -82,9 +83,9 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
     ...parsedState,
     campaignName: parsedState.campaignName?.trim() || "無題キャンペーン",
     extractionProvider: {
-      providerId: parsedExtractionProvider.providerId ?? defaultExtractionProviderSettings.providerId,
-      model: providerModel || defaultExtractionProviderSettings.model,
-      endpoint: providerEndpoint ?? defaultExtractionProviderSettings.endpoint,
+      providerId: provider.id,
+      model: providerModel || provider.defaultModel,
+      endpoint: providerEndpoint ?? provider.defaultEndpoint,
     },
     sessions: sessions.map((session) => {
       const extractionItems = normalizeExtractionItems(session.extractionItems ?? initialSession.extractionItems);
