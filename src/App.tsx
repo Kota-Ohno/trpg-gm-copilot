@@ -226,6 +226,23 @@ export function App() {
 
     return reviewKindFilter === "all" || item.kind === reviewKindFilter;
   });
+  const reviewKindCounts = reviewKindOptions.reduce<Record<ReviewKindFilter, number>>(
+    (counts, option) => ({
+      ...counts,
+      [option.value]:
+        option.value === "all"
+          ? items.length
+          : items.filter((item) => item.kind === option.value).length,
+    }),
+    {
+      all: 0,
+      出来事: 0,
+      NPC: 0,
+      手がかり: 0,
+      GM秘密: 0,
+      伏線: 0,
+    },
+  );
   const canExtractLog =
     logInputMode === "plain"
       ? log.trim().length > 0
@@ -945,7 +962,7 @@ export function App() {
                           >
                             {reviewKindOptions.map((option) => (
                               <option key={option.value} value={option.value}>
-                                {option.label}
+                                {option.label} ({reviewKindCounts[option.value]})
                               </option>
                             ))}
                           </select>
