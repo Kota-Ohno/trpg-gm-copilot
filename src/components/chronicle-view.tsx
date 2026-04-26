@@ -28,6 +28,16 @@ function EmptyCategory({ label }: { label: string }) {
   );
 }
 
+function countChronicleItems(chronicle: Chronicle): number {
+  return (
+    chronicle.events.length +
+    chronicle.clues.length +
+    chronicle.npcs.length +
+    chronicle.locations.length +
+    chronicle.threads.length
+  );
+}
+
 export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
   const [query, setQuery] = useState("");
   const [clueStatusFilter, setClueStatusFilter] = useState<ClueStatusFilter>("all");
@@ -54,18 +64,8 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
       threads: chronicle.threads.filter((thread) => includesQuery([thread.title, thread.detail, thread.nextMove])),
     };
   }, [chronicle, clueStatusFilter, normalizedQuery]);
-  const totalCount =
-    chronicle.events.length +
-    chronicle.clues.length +
-    chronicle.npcs.length +
-    chronicle.locations.length +
-    chronicle.threads.length;
-  const filteredCount =
-    filteredChronicle.events.length +
-    filteredChronicle.clues.length +
-    filteredChronicle.npcs.length +
-    filteredChronicle.locations.length +
-    filteredChronicle.threads.length;
+  const totalCount = countChronicleItems(chronicle);
+  const filteredCount = countChronicleItems(filteredChronicle);
 
   return (
     <div className="grid gap-4">
