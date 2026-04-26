@@ -90,6 +90,8 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
       return {
         ...initialSession,
         ...session,
+        title: session.title?.trim() || "無題セッション",
+        date: session.date || getLocalDateString(),
         approvedIds: (session.approvedIds ?? initialSession.approvedIds).filter((id) => extractionItemIds.has(id)),
         extractionItems,
         liveLog: session.liveLog ?? initialSession.liveLog,
