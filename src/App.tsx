@@ -279,6 +279,15 @@ export function App() {
     }));
   };
 
+  const updateSessionById = (sessionId: string, updates: Partial<SessionState>): void => {
+    setCampaignState((current) => ({
+      ...current,
+      sessions: current.sessions.map((session) =>
+        session.id === sessionId ? { ...session, ...updates } : session,
+      ),
+    }));
+  };
+
   const updateLiveLog = (updater: (current: LiveLogSession) => LiveLogSession): void => {
     updateActiveSession((session) => ({
       ...session,
@@ -351,6 +360,7 @@ export function App() {
   };
 
   const runExtractionPreview = async (): Promise<void> => {
+    const targetSessionId = currentSession.id;
     setIsExtracting(true);
     try {
       const extractionResult = await runExtractionProvider({
@@ -361,11 +371,16 @@ export function App() {
         source: logInputMode,
       });
 
-      updateCurrentSession({
+      updateSessionById(targetSessionId, {
         extractionItems: extractionResult.items,
         extractionRun: extractionResult.run,
         approvedIds: [],
       });
+      setCampaignState((current) =>
+        current.activeSessionId === targetSessionId || !current.sessions.some((session) => session.id === targetSessionId)
+          ? current
+          : { ...current, activeSessionId: targetSessionId },
+      );
       setActiveTab("review");
     } finally {
       setIsExtracting(false);
