@@ -162,6 +162,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
     ...parsedState,
     campaignName: parsedState.campaignName?.trim() || "無題キャンペーン",
     chronicle: normalizeChronicle(parsedState.chronicle),
+    quickResult: readString(parsedState.quickResult, initialCampaignState.quickResult),
     extractionProvider: {
       providerId: provider.id,
       model: providerModel || provider.defaultModel,
