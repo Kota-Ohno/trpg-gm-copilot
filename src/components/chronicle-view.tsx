@@ -2,13 +2,21 @@ import { useMemo, useState } from "react";
 import { Badge } from "./ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
-import type { Chronicle } from "../types";
+import type { Chronicle, ClueStatus } from "../types";
 
 const statusLabels = {
   known: "PL既知",
   partial: "一部既知",
   hidden: "GM秘密",
 };
+
+type ClueStatusFilter = "all" | ClueStatus;
+const clueStatusOptions: Array<{ value: ClueStatusFilter; label: string }> = [
+  { value: "all", label: "全手がかり" },
+  { value: "known", label: "PL既知" },
+  { value: "partial", label: "一部既知" },
+  { value: "hidden", label: "GM秘密" },
+];
 
 function EmptyCategory({ label }: { label: string }) {
   return (
@@ -20,13 +28,11 @@ function EmptyCategory({ label }: { label: string }) {
 
 export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
   const [query, setQuery] = useState("");
+  const [clueStatusFilter, setClueStatusFilter] = useState<ClueStatusFilter>("all");
   const normalizedQuery = query.trim().toLowerCase();
   const filteredChronicle = useMemo(() => {
-    if (!normalizedQuery) {
-      return chronicle;
-    }
-
     const includesQuery = (values: string[]) =>
+      !normalizedQuery ||
       values.some((value) => value.toLowerCase().includes(normalizedQuery));
 
     return {
@@ -34,11 +40,17 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
       npcs: chronicle.npcs.filter((npc) =>
         includesQuery([npc.name, npc.role, npc.publicKnowledge, npc.gmSecret, npc.attitude]),
       ),
-      clues: chronicle.clues.filter((clue) => includesQuery([clue.title, clue.detail, statusLabels[clue.status]])),
+      clues: chronicle.clues.filter((clue) => {
+        if (clueStatusFilter !== "all" && clue.status !== clueStatusFilter) {
+          return false;
+        }
+
+        return includesQuery([clue.title, clue.detail, statusLabels[clue.status]]);
+      }),
       locations: chronicle.locations.filter((location) => includesQuery([location.name, location.detail])),
       threads: chronicle.threads.filter((thread) => includesQuery([thread.title, thread.detail, thread.nextMove])),
     };
-  }, [chronicle, normalizedQuery]);
+  }, [chronicle, clueStatusFilter, normalizedQuery]);
   const totalCount =
     chronicle.events.length +
     chronicle.clues.length +
@@ -70,6 +82,17 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
             <Badge variant="outline">場所 {chronicle.locations.length}</Badge>
             <Badge variant="outline">伏線 {chronicle.threads.length}</Badge>
           </div>
+          <select
+            className="h-10 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            value={clueStatusFilter}
+            onChange={(event) => setClueStatusFilter(event.target.value as ClueStatusFilter)}
+          >
+            {clueStatusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </CardContent>
       </Card>
 
