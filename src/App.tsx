@@ -249,6 +249,7 @@ export function App() {
     link.download = createExportFileName(campaignName);
     link.click();
     URL.revokeObjectURL(objectUrl);
+    setStorageError(null);
   };
 
   const importCampaignState = async (file: File): Promise<void> => {
