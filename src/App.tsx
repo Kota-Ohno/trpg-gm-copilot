@@ -514,6 +514,7 @@ export function App() {
           <div className="mt-6 space-y-2">
             <label className="text-xs font-medium text-muted-foreground">キャンペーン</label>
             <Input
+              disabled={isExtracting}
               value={campaignName}
               onChange={(event) => updateCampaignState({ campaignName: event.target.value })}
             />
@@ -640,6 +641,7 @@ export function App() {
                   <label className="text-xs font-medium text-muted-foreground">今回のセッション</label>
                   <Input
                     className="mt-1 w-44"
+                    disabled={isExtracting}
                     value={currentSession.title}
                     onChange={(event) => updateCurrentSession({ title: event.target.value })}
                   />
@@ -648,6 +650,7 @@ export function App() {
                   <label className="text-xs font-medium text-muted-foreground">日付</label>
                   <Input
                     className="mt-1 w-40"
+                    disabled={isExtracting}
                     type="date"
                     value={currentSession.date}
                     onChange={(event) => updateCurrentSession({ date: event.target.value })}
