@@ -9,8 +9,12 @@ import type {
   Location,
   Npc,
   PrepNote,
+  Speaker,
+  SpeakerRole,
   SessionState,
   Thread,
+  TranscriptSegment,
+  TranscriptSourceType,
 } from "../types";
 import { defaultExtractionProviderSettings, getExtractionProvider } from "./extraction-provider-settings";
 
@@ -96,6 +100,10 @@ function normalizeStringArray(value: unknown, fallback: string[]): string[] {
 
 function readString(value: unknown, fallback: string): string {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function readNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
 function normalizeNpc(value: unknown): Npc {
@@ -300,9 +308,10 @@ function normalizeExtractionItems(items: ExtractionItem[]): ExtractionItem[] {
   });
 }
 
-function normalizeLiveLog(liveLog: LiveLogSession, fallbackTitle: string): LiveLogSession {
-  const validRoles = new Set(["GM", "PL", "unknown"]);
-  const validSourceTypes = new Set(["manual", "sample", "imported"]);
+function normalizeLiveLog(rawLiveLog: unknown, fallbackTitle: string): LiveLogSession {
+  const liveLog = readRecord<LiveLogSession>(rawLiveLog);
+  const validRoles = new Set<SpeakerRole>(["GM", "PL", "unknown"]);
+  const validSourceTypes = new Set<TranscriptSourceType>(["manual", "sample", "imported"]);
   const rawSegments = Array.isArray(liveLog.segments) ? liveLog.segments : [];
   const rawSpeakers =
     Array.isArray(liveLog.speakers) && liveLog.speakers.length > 0
@@ -316,14 +325,18 @@ function normalizeLiveLog(liveLog: LiveLogSession, fallbackTitle: string): LiveL
         ];
   const seenSpeakerIds = new Set<string>();
   const speakers = rawSpeakers.map((speaker, index) => {
-    const speakerId = speaker.id && !seenSpeakerIds.has(speaker.id) ? speaker.id : createId("speaker");
+    const speakerRecord = readRecord<Speaker>(speaker);
+    const speakerId =
+      typeof speakerRecord.id === "string" && !seenSpeakerIds.has(speakerRecord.id)
+        ? speakerRecord.id
+        : createId("speaker");
     seenSpeakerIds.add(speakerId);
 
     return {
-      ...speaker,
+      ...speakerRecord,
       id: speakerId,
-      name: speaker.name.trim() || `話者${index + 1}`,
-      role: validRoles.has(speaker.role) ? speaker.role : "unknown",
+      name: readString(speakerRecord.name, `話者${index + 1}`),
+      role: speakerRecord.role && validRoles.has(speakerRecord.role) ? speakerRecord.role : "unknown",
     };
   });
 
@@ -332,19 +345,27 @@ function normalizeLiveLog(liveLog: LiveLogSession, fallbackTitle: string): LiveL
 
   return {
     ...liveLog,
-    sourceType: validSourceTypes.has(liveLog.sourceType) ? liveLog.sourceType : "imported",
-    title: liveLog.title?.trim() || fallbackTitle,
+    id: readString(liveLog.id, createId("live-log")),
+    sourceType: liveLog.sourceType && validSourceTypes.has(liveLog.sourceType) ? liveLog.sourceType : "imported",
+    title: readString(liveLog.title, fallbackTitle),
     speakers,
     segments: rawSegments.map((segment) => {
-      const startTimeSec = Math.max(0, segment.startTimeSec);
-      const endTimeSec = Math.max(startTimeSec, segment.endTimeSec);
+      const segmentRecord = readRecord<TranscriptSegment>(segment);
+      const startTimeSec = Math.max(0, readNumber(segmentRecord.startTimeSec, 0));
+      const endTimeSec = Math.max(startTimeSec, readNumber(segmentRecord.endTimeSec, startTimeSec));
+      const confidence = readNumber(segmentRecord.confidence, Number.NaN);
 
       return {
-        ...segment,
+        ...segmentRecord,
         endTimeSec,
-        id: segment.id || createId("segment"),
-        speakerId: speakerIds.has(segment.speakerId) ? segment.speakerId : fallbackSpeakerId,
+        id: readString(segmentRecord.id, createId("segment")),
+        speakerId:
+          typeof segmentRecord.speakerId === "string" && speakerIds.has(segmentRecord.speakerId)
+            ? segmentRecord.speakerId
+            : fallbackSpeakerId,
         startTimeSec,
+        text: typeof segmentRecord.text === "string" ? segmentRecord.text : "",
+        ...(Number.isNaN(confidence) ? {} : { confidence }),
       };
     }),
   };
