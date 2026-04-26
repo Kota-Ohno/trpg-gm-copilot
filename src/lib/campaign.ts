@@ -202,6 +202,7 @@ function normalizeLiveLog(liveLog: LiveLogSession): LiveLogSession {
       return {
         ...segment,
         endTimeSec,
+        id: segment.id || createId("segment"),
         speakerId: speakerIds.has(segment.speakerId) ? segment.speakerId : fallbackSpeakerId,
         startTimeSec,
       };
