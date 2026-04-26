@@ -105,6 +105,7 @@ export function ExtractionReviewCard({
             className="mt-1"
             disabled={isApproved}
             value={item.title}
+            onBlur={(event) => onUpdate(item.id, { title: event.target.value.trim() })}
             onChange={(event) => onUpdate(item.id, { title: event.target.value })}
           />
         </div>
@@ -115,6 +116,7 @@ export function ExtractionReviewCard({
             className="mt-1 min-h-[116px] resize-y text-sm leading-6 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isApproved}
             value={item.detail}
+            onBlur={(event) => onUpdate(item.id, { detail: event.target.value.trim() })}
             onChange={(event) => onUpdate(item.id, { detail: event.target.value })}
           />
         </div>
