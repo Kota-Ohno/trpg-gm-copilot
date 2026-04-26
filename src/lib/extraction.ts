@@ -28,9 +28,20 @@ export function liveLogToPlainText(liveLog: LiveLogSession): string {
     .filter((segment) => segment.text.trim().length > 0)
     .map((segment) => {
       const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
-      return `${speaker?.name ?? "話者不明"}: ${segment.text.trim()}`;
+      return `[${formatTimestamp(segment.startTimeSec)}] ${speaker?.name ?? "話者不明"}: ${segment.text.trim()}`;
     })
     .join("\n");
+}
+
+function formatTimestamp(seconds: number): string {
+  const safeSeconds = Math.max(0, Math.round(seconds));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60)
+    .toString()
+    .padStart(2, "0");
+  const remainingSeconds = (safeSeconds % 60).toString().padStart(2, "0");
+
+  return hours > 0 ? `${hours}:${minutes}:${remainingSeconds}` : `${minutes}:${remainingSeconds}`;
 }
 
 function parseTimestampSeconds(rawTimestamp: string | undefined): number | null {
