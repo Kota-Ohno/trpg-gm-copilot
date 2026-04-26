@@ -353,9 +353,7 @@ export function App() {
 
   const resetCampaignState = (): void => {
     window.localStorage.removeItem(STORAGE_KEY);
-    window.localStorage.removeItem(PROVIDER_SECRETS_STORAGE_KEY);
     setCampaignState(initialCampaignState);
-    setProviderSecrets(defaultProviderSecretSettings);
     setActiveTab("log");
   };
 
