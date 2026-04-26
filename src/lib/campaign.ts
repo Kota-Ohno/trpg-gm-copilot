@@ -210,6 +210,8 @@ function normalizeExtractionItems(items: ExtractionItem[]): ExtractionItem[] {
 }
 
 function normalizeLiveLog(liveLog: LiveLogSession, fallbackTitle: string): LiveLogSession {
+  const validRoles = new Set(["GM", "PL", "unknown"]);
+  const validSourceTypes = new Set(["manual", "sample", "imported"]);
   const rawSpeakers =
     liveLog.speakers.length > 0
       ? liveLog.speakers
@@ -229,6 +231,7 @@ function normalizeLiveLog(liveLog: LiveLogSession, fallbackTitle: string): LiveL
       ...speaker,
       id: speakerId,
       name: speaker.name.trim() || `話者${index + 1}`,
+      role: validRoles.has(speaker.role) ? speaker.role : "unknown",
     };
   });
 
@@ -237,6 +240,7 @@ function normalizeLiveLog(liveLog: LiveLogSession, fallbackTitle: string): LiveL
 
   return {
     ...liveLog,
+    sourceType: validSourceTypes.has(liveLog.sourceType) ? liveLog.sourceType : "imported",
     title: liveLog.title?.trim() || fallbackTitle,
     speakers,
     segments: liveLog.segments.map((segment) => {
