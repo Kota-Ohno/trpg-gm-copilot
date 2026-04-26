@@ -26,6 +26,7 @@ type SpeakerLogEditorProps = {
   isExtracting: boolean;
   liveLog: LiveLogSession;
   onAddSegment: () => void;
+  onAddSegmentAfter: (segmentId: string) => void;
   onApplyToPlainLog: () => void;
   onDeleteSegment: (segmentId: string) => void;
   onExtract: () => void | Promise<void>;
@@ -42,6 +43,7 @@ export function SpeakerLogEditor({
   isExtracting,
   liveLog,
   onAddSegment,
+  onAddSegmentAfter,
   onApplyToPlainLog,
   onDeleteSegment,
   onExtract,
@@ -206,7 +208,16 @@ export function SpeakerLogEditor({
                   />
                 </div>
 
-                <div className="flex items-start justify-end">
+                <div className="flex flex-col items-end gap-2">
+                  <Button
+                    aria-label="この後に発話を追加"
+                    disabled={isExtracting}
+                    onClick={() => onAddSegmentAfter(segment.id)}
+                    size="icon"
+                    variant="outline"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
                   <Button
                     aria-label="発話を削除"
                     disabled={isExtracting}

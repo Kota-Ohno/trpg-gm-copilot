@@ -463,7 +463,8 @@ export function App() {
 
   const addSegment = (): void => {
     updateLiveLog((current) => {
-      const lastSegment = current.segments[current.segments.length - 1];
+      const sortedSegments = [...current.segments].sort((first, second) => first.endTimeSec - second.endTimeSec);
+      const lastSegment = sortedSegments[sortedSegments.length - 1];
       const startTimeSec = lastSegment ? lastSegment.endTimeSec + 1 : 0;
       const fallbackSpeaker = {
         id: createId("speaker"),
@@ -484,6 +485,33 @@ export function App() {
             endTimeSec: startTimeSec + 5,
             text: "",
           },
+        ],
+      };
+    });
+  };
+
+  const addSegmentAfter = (segmentId: string): void => {
+    updateLiveLog((current) => {
+      const targetSegment = current.segments.find((segment) => segment.id === segmentId);
+      if (!targetSegment) {
+        return current;
+      }
+
+      const newSegment: TranscriptSegment = {
+        id: createId("segment"),
+        speakerId: targetSegment.speakerId,
+        startTimeSec: targetSegment.endTimeSec + 1,
+        endTimeSec: targetSegment.endTimeSec + 6,
+        text: "",
+      };
+      const targetIndex = current.segments.findIndex((segment) => segment.id === segmentId);
+
+      return {
+        ...current,
+        segments: [
+          ...current.segments.slice(0, targetIndex + 1),
+          newSegment,
+          ...current.segments.slice(targetIndex + 1),
         ],
       };
     });
@@ -742,6 +770,7 @@ export function App() {
                         isExtracting={isExtracting}
                         liveLog={liveLog}
                         onAddSegment={addSegment}
+                        onAddSegmentAfter={addSegmentAfter}
                         onApplyToPlainLog={applyLiveLogToPlainLog}
                         onDeleteSegment={deleteSegment}
                         onExtract={runExtractionPreview}
