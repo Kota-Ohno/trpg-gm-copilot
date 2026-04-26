@@ -22,6 +22,8 @@ export function PlainLogEditor({
   onImportToSpeakerLog,
   onReset,
 }: PlainLogEditorProps) {
+  const hasLogText = log.trim().length > 0;
+
   return (
     <>
       <Textarea
@@ -39,7 +41,7 @@ export function PlainLogEditor({
             <RotateCcw className="h-4 w-4" />
             デモ初期化
           </Button>
-          <Button onClick={onImportToSpeakerLog} variant="outline">
+          <Button disabled={!hasLogText} onClick={onImportToSpeakerLog} variant="outline">
             <MessageSquareText className="h-4 w-4" />
             話者付きログ化
           </Button>
