@@ -27,6 +27,7 @@ type SpeakerLogEditorProps = {
   liveLog: LiveLogSession;
   onAddSegment: () => void;
   onAddSegmentAfter: (segmentId: string) => void;
+  onAddSpeaker: () => void;
   onApplyToPlainLog: () => void;
   onDeleteSegment: (segmentId: string) => void;
   onExtract: () => void | Promise<void>;
@@ -44,6 +45,7 @@ export function SpeakerLogEditor({
   liveLog,
   onAddSegment,
   onAddSegmentAfter,
+  onAddSpeaker,
   onApplyToPlainLog,
   onDeleteSegment,
   onExtract,
@@ -94,9 +96,15 @@ export function SpeakerLogEditor({
       </div>
 
       <section className="grid gap-3">
-        <div className="flex items-center gap-2">
-          <UserRound className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">話者</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <UserRound className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold">話者</h2>
+          </div>
+          <Button disabled={isExtracting} onClick={onAddSpeaker} size="sm" variant="outline">
+            <Plus className="h-4 w-4" />
+            話者を追加
+          </Button>
         </div>
         <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-1">
           {liveLog.speakers.map((speaker) => (

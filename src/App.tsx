@@ -433,6 +433,20 @@ export function App() {
     updateSpeakerName(speakerId, name.trim() || "話者不明");
   };
 
+  const addSpeaker = (): void => {
+    updateLiveLog((current) => ({
+      ...current,
+      speakers: [
+        ...current.speakers,
+        {
+          id: createId("speaker"),
+          name: `話者${current.speakers.length + 1}`,
+          role: "PL",
+        },
+      ],
+    }));
+  };
+
   const updateSpeakerRole = (speakerId: string, role: SpeakerRole): void => {
     updateLiveLog((current) => ({
       ...current,
@@ -771,6 +785,7 @@ export function App() {
                         liveLog={liveLog}
                         onAddSegment={addSegment}
                         onAddSegmentAfter={addSegmentAfter}
+                        onAddSpeaker={addSpeaker}
                         onApplyToPlainLog={applyLiveLogToPlainLog}
                         onDeleteSegment={deleteSegment}
                         onExtract={runExtractionPreview}
