@@ -276,8 +276,9 @@ function normalizeExtractionItems(items: ExtractionItem[]): ExtractionItem[] {
 function normalizeLiveLog(liveLog: LiveLogSession, fallbackTitle: string): LiveLogSession {
   const validRoles = new Set(["GM", "PL", "unknown"]);
   const validSourceTypes = new Set(["manual", "sample", "imported"]);
+  const rawSegments = Array.isArray(liveLog.segments) ? liveLog.segments : [];
   const rawSpeakers =
-    liveLog.speakers.length > 0
+    Array.isArray(liveLog.speakers) && liveLog.speakers.length > 0
       ? liveLog.speakers
       : [
           {
@@ -307,7 +308,7 @@ function normalizeLiveLog(liveLog: LiveLogSession, fallbackTitle: string): LiveL
     sourceType: validSourceTypes.has(liveLog.sourceType) ? liveLog.sourceType : "imported",
     title: liveLog.title?.trim() || fallbackTitle,
     speakers,
-    segments: liveLog.segments.map((segment) => {
+    segments: rawSegments.map((segment) => {
       const startTimeSec = Math.max(0, segment.startTimeSec);
       const endTimeSec = Math.max(startTimeSec, segment.endTimeSec);
 
