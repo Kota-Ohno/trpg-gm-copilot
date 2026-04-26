@@ -29,6 +29,7 @@ type SpeakerLogEditorProps = {
   onAddSegmentAfter: (segmentId: string) => void;
   onAddSpeaker: () => void;
   onApplyToPlainLog: () => void;
+  onDeleteSpeaker: (speakerId: string) => void;
   onDeleteSegment: (segmentId: string) => void;
   onExtract: () => void | Promise<void>;
   onReset: () => void;
@@ -47,6 +48,7 @@ export function SpeakerLogEditor({
   onAddSegmentAfter,
   onAddSpeaker,
   onApplyToPlainLog,
+  onDeleteSpeaker,
   onDeleteSegment,
   onExtract,
   onReset,
@@ -107,31 +109,46 @@ export function SpeakerLogEditor({
           </Button>
         </div>
         <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-1">
-          {liveLog.speakers.map((speaker) => (
-            <div className="rounded-md border bg-background p-3" key={speaker.id}>
-              <label className="text-xs font-medium text-muted-foreground">名前</label>
-              <Input
-                className="mt-1"
-                disabled={isExtracting}
-                value={speaker.name}
-                onBlur={(event) => onNormalizeSpeakerName(speaker.id, event.target.value)}
-                onChange={(event) => onUpdateSpeakerName(speaker.id, event.target.value)}
-              />
-              <label className="mt-3 block text-xs font-medium text-muted-foreground">ロール</label>
-              <select
-                className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                disabled={isExtracting}
-                value={speaker.role}
-                onChange={(event) => onUpdateSpeakerRole(speaker.id, event.target.value as SpeakerRole)}
-              >
-                {Object.entries(speakerRoleLabels).map(([role, label]) => (
-                  <option key={role} value={role}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
+          {liveLog.speakers.map((speaker) => {
+            const isSpeakerUsed = liveLog.segments.some((segment) => segment.speakerId === speaker.id);
+
+            return (
+              <div className="rounded-md border bg-background p-3" key={speaker.id}>
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-xs font-medium text-muted-foreground">名前</label>
+                  <Button
+                    aria-label="話者を削除"
+                    disabled={isExtracting || isSpeakerUsed || liveLog.speakers.length <= 1}
+                    onClick={() => onDeleteSpeaker(speaker.id)}
+                    size="icon"
+                    variant="ghost"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Input
+                  className="mt-1"
+                  disabled={isExtracting}
+                  value={speaker.name}
+                  onBlur={(event) => onNormalizeSpeakerName(speaker.id, event.target.value)}
+                  onChange={(event) => onUpdateSpeakerName(speaker.id, event.target.value)}
+                />
+                <label className="mt-3 block text-xs font-medium text-muted-foreground">ロール</label>
+                <select
+                  className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  disabled={isExtracting}
+                  value={speaker.role}
+                  onChange={(event) => onUpdateSpeakerRole(speaker.id, event.target.value as SpeakerRole)}
+                >
+                  {Object.entries(speakerRoleLabels).map(([role, label]) => (
+                    <option key={role} value={role}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
         </div>
       </section>
 

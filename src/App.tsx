@@ -447,6 +447,20 @@ export function App() {
     }));
   };
 
+  const deleteSpeaker = (speakerId: string): void => {
+    updateLiveLog((current) => {
+      const isSpeakerUsed = current.segments.some((segment) => segment.speakerId === speakerId);
+      if (isSpeakerUsed || current.speakers.length <= 1) {
+        return current;
+      }
+
+      return {
+        ...current,
+        speakers: current.speakers.filter((speaker) => speaker.id !== speakerId),
+      };
+    });
+  };
+
   const updateSpeakerRole = (speakerId: string, role: SpeakerRole): void => {
     updateLiveLog((current) => ({
       ...current,
@@ -787,6 +801,7 @@ export function App() {
                         onAddSegmentAfter={addSegmentAfter}
                         onAddSpeaker={addSpeaker}
                         onApplyToPlainLog={applyLiveLogToPlainLog}
+                        onDeleteSpeaker={deleteSpeaker}
                         onDeleteSegment={deleteSegment}
                         onExtract={runExtractionPreview}
                         onReset={resetCampaignState}
