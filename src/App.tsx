@@ -866,7 +866,6 @@ export function App() {
           <div className="mt-4">
             <ProviderSettingsCard
               isLocked={isExtracting}
-              key={`${extractionProvider.providerId}:${extractionProvider.model}:${extractionProvider.endpoint}`}
               secrets={providerSecrets}
               settings={extractionProvider}
               onChangeSecrets={setProviderSecrets}

@@ -45,6 +45,8 @@ export function ProviderSettingsCard({
   ].join("\n");
 
   useEffect(() => {
+    latestTestKeyRef.current = connectionTestKey;
+    setIsTestingConnection(false);
     setConnectionResult(null);
   }, [connectionTestKey]);
 
