@@ -633,7 +633,7 @@ export function App() {
           <div className="mt-6 rounded-lg border bg-card p-3">
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium">承認進捗</span>
-              <span className="text-muted-foreground">{progress}%</span>
+              <span className="text-muted-foreground">{items.length === 0 ? "未抽出" : `${progress}%`}</span>
             </div>
             <div className="mt-3 h-2 rounded-full bg-muted">
               <div className="h-2 rounded-full bg-primary" style={{ width: `${progress}%` }} />
