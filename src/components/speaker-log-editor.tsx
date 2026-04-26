@@ -70,7 +70,7 @@ export function SpeakerLogEditor({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={onRestoreSample} variant="outline">
+          <Button disabled={isExtracting} onClick={onRestoreSample} variant="outline">
             <RotateCcw className="h-4 w-4" />
             サンプル復元
           </Button>
@@ -78,7 +78,7 @@ export function SpeakerLogEditor({
             <RotateCcw className="h-4 w-4" />
             デモ初期化
           </Button>
-          <Button disabled={!hasSegmentText} onClick={onApplyToPlainLog}>
+          <Button disabled={isExtracting || !hasSegmentText} onClick={onApplyToPlainLog}>
             <FileText className="h-4 w-4" />
             通常ログへ反映
           </Button>
@@ -100,12 +100,14 @@ export function SpeakerLogEditor({
               <label className="text-xs font-medium text-muted-foreground">名前</label>
               <Input
                 className="mt-1"
+                disabled={isExtracting}
                 value={speaker.name}
                 onChange={(event) => onUpdateSpeakerName(speaker.id, event.target.value)}
               />
               <label className="mt-3 block text-xs font-medium text-muted-foreground">ロール</label>
               <select
                 className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                disabled={isExtracting}
                 value={speaker.role}
                 onChange={(event) => onUpdateSpeakerRole(speaker.id, event.target.value as SpeakerRole)}
               >
@@ -126,7 +128,7 @@ export function SpeakerLogEditor({
             <MessageSquareText className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-sm font-semibold">発話ログ</h2>
           </div>
-          <Button onClick={onAddSegment} size="sm" variant="outline">
+          <Button disabled={isExtracting} onClick={onAddSegment} size="sm" variant="outline">
             <Plus className="h-4 w-4" />
             発話を追加
           </Button>
@@ -146,6 +148,7 @@ export function SpeakerLogEditor({
                   <div className="mt-1 grid grid-cols-2 gap-2">
                     <Input
                       aria-label="開始秒"
+                      disabled={isExtracting}
                       min={0}
                       type="number"
                       value={segment.startTimeSec}
@@ -155,6 +158,7 @@ export function SpeakerLogEditor({
                     />
                     <Input
                       aria-label="終了秒"
+                      disabled={isExtracting}
                       min={0}
                       type="number"
                       value={segment.endTimeSec}
@@ -172,6 +176,7 @@ export function SpeakerLogEditor({
                   <label className="text-xs font-medium text-muted-foreground">話者</label>
                   <select
                     className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    disabled={isExtracting}
                     value={segment.speakerId}
                     onChange={(event) => onUpdateSegment(segment.id, { speakerId: event.target.value })}
                   >
@@ -192,13 +197,20 @@ export function SpeakerLogEditor({
                   <label className="text-xs font-medium text-muted-foreground">発話</label>
                   <Textarea
                     className="mt-1 min-h-[84px] resize-y text-sm leading-6"
+                    disabled={isExtracting}
                     value={segment.text}
                     onChange={(event) => onUpdateSegment(segment.id, { text: event.target.value })}
                   />
                 </div>
 
                 <div className="flex items-start justify-end">
-                  <Button aria-label="発話を削除" onClick={() => onDeleteSegment(segment.id)} size="icon" variant="outline">
+                  <Button
+                    aria-label="発話を削除"
+                    disabled={isExtracting}
+                    onClick={() => onDeleteSegment(segment.id)}
+                    size="icon"
+                    variant="outline"
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>

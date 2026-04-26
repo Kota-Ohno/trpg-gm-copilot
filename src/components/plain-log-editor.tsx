@@ -28,6 +28,7 @@ export function PlainLogEditor({
     <>
       <Textarea
         className="min-h-[420px] resize-y font-mono text-sm leading-6"
+        disabled={isExtracting}
         value={log}
         onChange={(event) => onChange(event.target.value)}
       />
