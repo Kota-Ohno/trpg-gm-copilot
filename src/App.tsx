@@ -267,6 +267,7 @@ export function App() {
       if (importedLegacyApiKey) {
         setProviderSecrets((current) => ({ ...current, openAiApiKey: importedLegacyApiKey }));
       }
+      setStorageError(null);
       setLogInputMode("plain");
       setActiveTab("log");
     } catch {
