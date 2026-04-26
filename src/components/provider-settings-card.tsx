@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bot, CheckCircle2, KeyRound, Server, Unplug } from "lucide-react";
 import { extractionProviders, getExtractionProvider } from "../lib/extraction-provider-settings";
 import {
@@ -26,12 +26,19 @@ export function ProviderSettingsCard({
 }: ProviderSettingsCardProps) {
   const [connectionResult, setConnectionResult] = useState<ProviderConnectionTestResult | null>(null);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const latestTestKeyRef = useRef("");
   const selectedProvider = getExtractionProvider(settings.providerId);
   const needsApiKey = settings.providerId === "openai";
+  const connectionTestKey = [
+    secrets.openAiApiKey,
+    settings.endpoint,
+    settings.model,
+    settings.providerId,
+  ].join("\n");
 
   useEffect(() => {
     setConnectionResult(null);
-  }, [secrets.openAiApiKey, settings.endpoint, settings.model, settings.providerId]);
+  }, [connectionTestKey]);
 
   const updateSettings = (updates: Partial<ExtractionProviderSettings>): void => {
     onChange({
@@ -50,12 +57,19 @@ export function ProviderSettingsCard({
   };
 
   const testConnection = async (): Promise<void> => {
+    const testKey = connectionTestKey;
+    latestTestKeyRef.current = testKey;
     setIsTestingConnection(true);
     setConnectionResult(null);
     try {
-      setConnectionResult(await testExtractionProviderConnection({ secrets, settings }));
+      const result = await testExtractionProviderConnection({ secrets, settings });
+      if (latestTestKeyRef.current === testKey) {
+        setConnectionResult(result);
+      }
     } finally {
-      setIsTestingConnection(false);
+      if (latestTestKeyRef.current === testKey) {
+        setIsTestingConnection(false);
+      }
     }
   };
 
