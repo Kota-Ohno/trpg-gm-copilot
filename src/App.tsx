@@ -200,6 +200,10 @@ export function App() {
 
   const approvedCount = approvedIds.length;
   const remainingCount = items.length - approvedCount;
+  const canExtractLog =
+    logInputMode === "plain"
+      ? log.trim().length > 0
+      : liveLog.segments.some((segment) => segment.text.trim().length > 0);
   const dynamicPrepNote = useMemo(
     () => generatePrepNote(chronicle, campaignState.sessions, currentSession),
     [campaignState.sessions, chronicle, currentSession],
@@ -646,6 +650,7 @@ export function App() {
                   <CardContent>
                     {logInputMode === "plain" ? (
                       <PlainLogEditor
+                        canExtract={canExtractLog}
                         isExtracting={isExtracting}
                         log={log}
                         onChange={(nextLog) => updateCurrentSession({ log: nextLog })}
@@ -655,6 +660,7 @@ export function App() {
                       />
                     ) : (
                       <SpeakerLogEditor
+                        canExtract={canExtractLog}
                         isExtracting={isExtracting}
                         liveLog={liveLog}
                         onAddSegment={addSegment}

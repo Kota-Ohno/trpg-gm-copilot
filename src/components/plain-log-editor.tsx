@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 
 type PlainLogEditorProps = {
+  canExtract: boolean;
   isExtracting: boolean;
   log: string;
   onChange: (log: string) => void;
@@ -13,6 +14,7 @@ type PlainLogEditorProps = {
 };
 
 export function PlainLogEditor({
+  canExtract,
   isExtracting,
   log,
   onChange,
@@ -41,7 +43,7 @@ export function PlainLogEditor({
             <MessageSquareText className="h-4 w-4" />
             話者付きログ化
           </Button>
-          <Button disabled={isExtracting} onClick={onExtract}>
+          <Button disabled={isExtracting || !canExtract} onClick={onExtract}>
             <Wand2 className="h-4 w-4" />
             {isExtracting ? "抽出中" : "抽出プレビュー"}
           </Button>

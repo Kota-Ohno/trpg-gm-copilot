@@ -22,6 +22,7 @@ function formatTimestamp(seconds: number): string {
 }
 
 type SpeakerLogEditorProps = {
+  canExtract: boolean;
   isExtracting: boolean;
   liveLog: LiveLogSession;
   onAddSegment: () => void;
@@ -36,6 +37,7 @@ type SpeakerLogEditorProps = {
 };
 
 export function SpeakerLogEditor({
+  canExtract,
   isExtracting,
   liveLog,
   onAddSegment,
@@ -79,7 +81,7 @@ export function SpeakerLogEditor({
             <FileText className="h-4 w-4" />
             通常ログへ反映
           </Button>
-          <Button disabled={isExtracting} onClick={onExtract}>
+          <Button disabled={isExtracting || !canExtract} onClick={onExtract}>
             <Wand2 className="h-4 w-4" />
             {isExtracting ? "抽出中" : "抽出プレビュー"}
           </Button>
