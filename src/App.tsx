@@ -183,6 +183,7 @@ export function App() {
   const [isExtracting, setIsExtracting] = useState(false);
   const [logInputMode, setLogInputMode] = useState<LogInputMode>("plain");
   const [campaignState, setCampaignState] = useState<CampaignState>(loadCampaignState);
+  const [showApprovedReviewItems, setShowApprovedReviewItems] = useState(true);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [providerSecrets, setProviderSecrets] = useState<ProviderSecretSettings>(loadProviderSecrets);
 
@@ -204,6 +205,7 @@ export function App() {
 
   const approvedCount = approvedIds.length;
   const remainingCount = items.length - approvedCount;
+  const reviewItems = showApprovedReviewItems ? items : items.filter((item) => !approvedIds.includes(item.id));
   const canExtractLog =
     logInputMode === "plain"
       ? log.trim().length > 0
@@ -908,14 +910,24 @@ export function App() {
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="muted">{approvedCount}採用済み</Badge>
                           <Badge variant="muted">{remainingCount}未確認</Badge>
+                          {!showApprovedReviewItems && <Badge variant="outline">{reviewItems.length}件を表示中</Badge>}
                         </div>
-                        <Button disabled={remainingCount === 0} onClick={approveRemainingItems} size="sm">
-                          <ShieldCheck className="h-4 w-4" />
-                          残りをまとめて採用
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            onClick={() => setShowApprovedReviewItems((current) => !current)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            {showApprovedReviewItems ? "採用済みを隠す" : "採用済みも表示"}
+                          </Button>
+                          <Button disabled={remainingCount === 0} onClick={approveRemainingItems} size="sm">
+                            <ShieldCheck className="h-4 w-4" />
+                            残りをまとめて採用
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
-                    {items.map((item) => {
+                    {reviewItems.map((item) => {
                       const isApproved = approvedIds.includes(item.id);
 
                       return (
