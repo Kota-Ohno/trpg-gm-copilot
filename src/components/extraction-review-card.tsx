@@ -25,6 +25,10 @@ export function ExtractionReviewCard({
   onUpdate,
 }: ExtractionReviewCardProps) {
   const canApprove = item.title.trim().length > 0 && item.detail.trim().length > 0;
+  const missingFields = [
+    !item.title.trim() ? "タイトル" : "",
+    !item.detail.trim() ? "本文" : "",
+  ].filter(Boolean);
 
   return (
     <Card className={isApproved ? "border-primary/40 bg-primary/5" : ""}>
@@ -120,6 +124,12 @@ export function ExtractionReviewCard({
             onChange={(event) => onUpdate(item.id, { detail: event.target.value })}
           />
         </div>
+
+        {!canApprove && (
+          <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+            採用するには {missingFields.join("・")} を入力してください。
+          </p>
+        )}
       </CardContent>
     </Card>
   );
