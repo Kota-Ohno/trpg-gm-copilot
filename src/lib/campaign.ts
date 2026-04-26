@@ -196,7 +196,11 @@ function normalizeExtractionRun(run: ExtractionRun | null, itemCount: number): E
   };
 }
 
-function normalizeSessionState(session: SessionState, defaultSession: SessionState): SessionState {
+function normalizeSessionState(
+  session: SessionState,
+  defaultSession: SessionState,
+  seenSessionIds: Set<string>,
+): SessionState {
   const rawExtractionItems = Array.isArray(session.extractionItems)
     ? session.extractionItems
     : defaultSession.extractionItems;
@@ -205,12 +209,15 @@ function normalizeSessionState(session: SessionState, defaultSession: SessionSta
     : defaultSession.approvedIds;
   const extractionItems = normalizeExtractionItems(rawExtractionItems);
   const extractionItemIds = new Set(extractionItems.map((item) => item.id));
+  const rawSessionId = readString(session.id, createId("session"));
+  const sessionId = !seenSessionIds.has(rawSessionId) ? rawSessionId : createId("session");
   const title = session.title?.trim() || "無題セッション";
+  seenSessionIds.add(sessionId);
 
   return {
     ...defaultSession,
     ...session,
-    id: readString(session.id, createId("session")),
+    id: sessionId,
     title,
     date: session.date || getLocalDateString(),
     approvedIds: rawApprovedIds.filter((id) => extractionItemIds.has(id)),
@@ -239,7 +246,8 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
     approvedIds: legacyState.approvedIds ?? defaultSession.approvedIds,
   };
   const sessions = Array.isArray(parsedState.sessions) && parsedState.sessions.length > 0 ? parsedState.sessions : [migratedSession];
-  const normalizedSessions = sessions.map((session) => normalizeSessionState(session, defaultSession));
+  const seenSessionIds = new Set<string>();
+  const normalizedSessions = sessions.map((session) => normalizeSessionState(session, defaultSession, seenSessionIds));
   const activeSessionId = readString(parsedState.activeSessionId, normalizedSessions[0].id);
 
   return {
