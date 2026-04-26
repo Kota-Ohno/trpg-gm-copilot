@@ -62,6 +62,7 @@ const STORAGE_KEY = "chronicle-gm.campaign-state.v1";
 const PROVIDER_SECRETS_STORAGE_KEY = "chronicle-gm.provider-secrets.v1";
 
 type LogInputMode = "plain" | "speaker";
+type ReviewKindFilter = "all" | ExtractionItem["kind"];
 
 const tabOptions: Array<{ value: WorkspaceTab; label: string }> = [
   { value: "log", label: "ログ" },
@@ -96,6 +97,15 @@ const quickPrompts = [
 const logInputOptions: Array<{ value: LogInputMode; label: string }> = [
   { value: "plain", label: "通常ログ" },
   { value: "speaker", label: "話者付きログ" },
+];
+
+const reviewKindOptions: Array<{ value: ReviewKindFilter; label: string }> = [
+  { value: "all", label: "すべて" },
+  { value: "出来事", label: "出来事" },
+  { value: "NPC", label: "NPC" },
+  { value: "手がかり", label: "手がかり" },
+  { value: "GM秘密", label: "GM秘密" },
+  { value: "伏線", label: "伏線" },
 ];
 
 const extractionSourceLabels: Record<ExtractionRun["sourceType"], string> = {
@@ -184,6 +194,7 @@ export function App() {
   const [logInputMode, setLogInputMode] = useState<LogInputMode>("plain");
   const [campaignState, setCampaignState] = useState<CampaignState>(loadCampaignState);
   const [showApprovedReviewItems, setShowApprovedReviewItems] = useState(true);
+  const [reviewKindFilter, setReviewKindFilter] = useState<ReviewKindFilter>("all");
   const [storageError, setStorageError] = useState<string | null>(null);
   const [providerSecrets, setProviderSecrets] = useState<ProviderSecretSettings>(loadProviderSecrets);
 
@@ -208,7 +219,13 @@ export function App() {
   const approvableRemainingCount = items.filter(
     (item) => !approvedIds.includes(item.id) && item.title.trim() && item.detail.trim(),
   ).length;
-  const reviewItems = showApprovedReviewItems ? items : items.filter((item) => !approvedIds.includes(item.id));
+  const reviewItems = items.filter((item) => {
+    if (!showApprovedReviewItems && approvedIds.includes(item.id)) {
+      return false;
+    }
+
+    return reviewKindFilter === "all" || item.kind === reviewKindFilter;
+  });
   const canExtractLog =
     logInputMode === "plain"
       ? log.trim().length > 0
@@ -916,9 +933,22 @@ export function App() {
                           {approvableRemainingCount !== remainingCount && (
                             <Badge variant="outline">{approvableRemainingCount}件採用可能</Badge>
                           )}
-                          {!showApprovedReviewItems && <Badge variant="outline">{reviewItems.length}件を表示中</Badge>}
+                          {(reviewKindFilter !== "all" || !showApprovedReviewItems) && (
+                            <Badge variant="outline">{reviewItems.length}件を表示中</Badge>
+                          )}
                         </div>
                         <div className="flex flex-wrap gap-2">
+                          <select
+                            className="h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            value={reviewKindFilter}
+                            onChange={(event) => setReviewKindFilter(event.target.value as ReviewKindFilter)}
+                          >
+                            {reviewKindOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
                           <Button
                             onClick={() => setShowApprovedReviewItems((current) => !current)}
                             size="sm"
