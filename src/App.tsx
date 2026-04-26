@@ -780,7 +780,7 @@ export function App() {
                   </Card>
                 )}
                 {items.length === 0 ? (
-                  <EmptyState onStart={() => setActiveTab("log")} />
+                  <EmptyState hasRun={extractionRun !== null} onStart={() => setActiveTab("log")} />
                 ) : (
                   <>
                     {items.map((item) => {
@@ -891,12 +891,14 @@ export function App() {
   );
 }
 
-function EmptyState({ onStart }: { onStart: () => void }) {
+function EmptyState({ hasRun, onStart }: { hasRun: boolean; onStart: () => void }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>抽出結果はまだありません</CardTitle>
-        <CardDescription>ログを貼り付けて抽出プレビューを実行してください。</CardDescription>
+        <CardTitle>{hasRun ? "抽出候補は見つかりませんでした" : "抽出結果はまだありません"}</CardTitle>
+        <CardDescription>
+          {hasRun ? "ログの内容を調整するか、Provider設定を確認してもう一度実行してください。" : "ログを貼り付けて抽出プレビューを実行してください。"}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Button onClick={onStart}>ログへ戻る</Button>
