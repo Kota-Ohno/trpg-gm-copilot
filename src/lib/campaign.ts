@@ -108,6 +108,21 @@ function readNumber(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
+function normalizeSessionDate(value: unknown): string {
+  if (typeof value !== "string") {
+    return getLocalDateString();
+  }
+
+  const trimmedDate = value.trim();
+  const dateMatch = trimmedDate.match(/^(\d{4}-\d{2}-\d{2})(?:[T\s].*)?$/);
+
+  if (dateMatch) {
+    return dateMatch[1];
+  }
+
+  return trimmedDate || getLocalDateString();
+}
+
 function normalizeNpc(value: unknown): Npc {
   const npc = readRecord<Npc>(value);
 
@@ -222,7 +237,7 @@ function normalizeSessionState(
     ...session,
     id: sessionId,
     title,
-    date: session.date || getLocalDateString(),
+    date: normalizeSessionDate(session.date),
     approvedIds: rawApprovedIds.filter((id) => extractionItemIds.has(id)),
     extractionItems,
     liveLog: normalizeLiveLog(session.liveLog ?? defaultSession.liveLog, title),
