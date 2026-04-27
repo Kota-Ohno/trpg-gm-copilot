@@ -406,6 +406,11 @@ export function App() {
   };
 
   const resetCampaignState = (): void => {
+    const confirmed = window.confirm("デモ初期化を実行します。現在のキャンペーン状態は初期状態に戻ります。続行しますか？");
+    if (!confirmed) {
+      return;
+    }
+
     window.localStorage.removeItem(STORAGE_KEY);
     setCampaignState(createInitialCampaignState());
     setActiveTab("log");
@@ -682,7 +687,7 @@ export function App() {
             <div className="grid grid-cols-2 gap-2">
               <Button onClick={exportCampaignState} size="sm" variant="outline">
                 <Download className="h-3.5 w-3.5" />
-                書き出し
+                JSON書き出し
               </Button>
               <label
                 className={
@@ -692,7 +697,7 @@ export function App() {
                 }
               >
                 <Upload className="h-3.5 w-3.5" />
-                読み込み
+                JSON読み込み
                 <input
                   accept="application/json,.json"
                   className="sr-only"
@@ -708,10 +713,17 @@ export function App() {
                 />
               </label>
             </div>
+            <div className="flex flex-wrap gap-1.5">
+              <Badge variant="muted">ローカル自動保存</Badge>
+              <Badge variant="outline">APIキーは書き出し対象外</Badge>
+            </div>
             {storageError ? (
-              <p className="text-xs text-destructive">{storageError}</p>
+              <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                <p className="font-medium">保存状態を確認してください</p>
+                <p className="mt-1 leading-relaxed">{storageError}</p>
+              </div>
             ) : (
-              <p className="text-xs text-muted-foreground">ブラウザにローカル自動保存中</p>
+              <p className="text-xs text-muted-foreground">この端末のブラウザに保存中。JSONでバックアップできます。</p>
             )}
           </div>
 
@@ -939,7 +951,7 @@ export function App() {
                   </Card>
                 )}
                 {items.length === 0 ? (
-                  <EmptyState hasRun={extractionRun !== null} onStart={() => setActiveTab("log")} />
+                  <EmptyState extractionRun={extractionRun} onStart={() => setActiveTab("log")} />
                 ) : (
                   <>
                     <Card>
@@ -982,8 +994,11 @@ export function App() {
                     </Card>
                     {reviewItems.length === 0 ? (
                       <Card>
-                        <CardContent className="py-6 text-center">
+                        <CardContent className="space-y-3 py-6 text-center">
                           <p className="text-sm font-medium">条件に一致する抽出候補はありません</p>
+                          <p className="text-xs text-muted-foreground">
+                            フィルタを外すと、採用済みまたは別種別の候補を確認できます。
+                          </p>
                           <div className="mt-3 flex flex-wrap justify-center gap-2">
                             {!showApprovedReviewItems && (
                               <Button
@@ -1112,16 +1127,30 @@ export function App() {
   );
 }
 
-function EmptyState({ hasRun, onStart }: { hasRun: boolean; onStart: () => void }) {
+function EmptyState({ extractionRun, onStart }: { extractionRun: ExtractionRun | null; onStart: () => void }) {
+  const hasRun = extractionRun !== null;
+  const hasValidationErrors = Boolean(extractionRun?.validationErrors && extractionRun.validationErrors.length > 0);
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>{hasRun ? "抽出候補は見つかりませんでした" : "抽出結果はまだありません"}</CardTitle>
         <CardDescription>
-          {hasRun ? "ログの内容を調整するか、Provider設定を確認してもう一度実行してください。" : "ログを貼り付けて抽出プレビューを実行してください。"}
+          {hasRun
+            ? "この実行では採用できる候補が0件でした。ログの発言量やProvider設定を確認して、もう一度抽出してください。"
+            : "ログを貼り付けて抽出プレビューを実行すると、候補をここで確認できます。"}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
+        {extractionRun && (
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="muted">{extractionRun.sourceType === "fallback" ? "フォールバック由来" : "0件"}</Badge>
+            {extractionRun.fallbackUsed && <Badge variant="secondary">フォールバック済み</Badge>}
+            {hasValidationErrors && (
+              <Badge variant="secondary">検証エラー {extractionRun.validationErrors?.length}件</Badge>
+            )}
+          </div>
+        )}
         <Button onClick={onStart}>ログへ戻る</Button>
       </CardContent>
     </Card>
