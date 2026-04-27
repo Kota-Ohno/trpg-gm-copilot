@@ -106,6 +106,22 @@ export const sampleLiveLog: LiveLogSession = {
       text: "ミヨは、村長は怪物ではない、むしろ何かを封じているように見えた、と小声で話します。",
       confidence: 0.97,
     },
+    {
+      id: "segment-10",
+      speakerId: "speaker-makabe",
+      startTimeSec: 76,
+      endTimeSec: 80,
+      text: "じゃあ灯台へ。隠れて近づきます。",
+      confidence: 0.96,
+    },
+    {
+      id: "segment-11",
+      speakerId: "speaker-gm",
+      startTimeSec: 81,
+      endTimeSec: 94,
+      text: "灯台の地下扉には、潮で錆びた紋章と「月が沈むまで開けるな」という古い文字があります。",
+      confidence: 0.98,
+    },
   ],
 };
 
