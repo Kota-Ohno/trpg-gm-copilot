@@ -410,7 +410,9 @@ export function generatePrepNote(chronicle: Chronicle, sessions: SessionState[],
   ]).slice(0, 3);
   const clueHooks = chronicle.clues.slice(-3).map((clue) => `${clue.title}: ${clue.detail}`);
   const threadHooks = chronicle.threads.slice(-3).map((thread) => `${thread.title}: ${thread.nextMove}`);
-  const hooks = uniqueItems([...threadHooks, ...clueHooks]).slice(0, 4);
+  const locationHooks = chronicle.locations.slice(-2).map((location) => `${location.name}: ${location.detail}`);
+  const npcHooks = chronicle.npcs.slice(-2).map((npc) => `${npc.name}: ${npc.publicKnowledge}`);
+  const hooks = uniqueItems([...threadHooks, ...clueHooks, ...locationHooks, ...npcHooks]).slice(0, 4);
   const openQuestions = uniqueItems([
     ...chronicle.threads.map((thread) => `${thread.title}: ${thread.detail}`),
     ...chronicle.clues
@@ -438,6 +440,7 @@ export function generatePrepNote(chronicle: Chronicle, sessions: SessionState[],
       `${sessions.length}セッション分のログをキャンペーン記憶に積み上げ中。`,
       ...hiddenClues,
       ...approvedSecrets,
+      ...chronicle.locations.slice(-2).map((location) => `${location.name}: 場面に出すなら ${location.detail}`),
       ...chronicle.npcs.slice(-2).map((npc) => `${npc.name}: ${npc.attitude}`),
     ]).slice(0, 4),
   };
