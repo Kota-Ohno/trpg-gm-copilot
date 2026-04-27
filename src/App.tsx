@@ -754,7 +754,7 @@ export function App() {
                           : "block text-xs text-muted-foreground"
                       }
                     >
-                      {session.date} / {session.extractionItems.length}候補
+                      {session.date} / {session.approvedIds.length}採用 / {session.extractionItems.length}候補
                     </span>
                   </button>
                   <Button
