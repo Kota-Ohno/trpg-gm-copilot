@@ -31,6 +31,9 @@ export function ProviderSettingsCard({
   const latestTestKeyRef = useRef("");
   const selectedProvider = getExtractionProvider(settings.providerId);
   const needsApiKey = settings.providerId === "openai";
+  const hasApiKey = secrets.openAiApiKey.trim().length > 0;
+  const isModelDefault = settings.model.trim() === selectedProvider.defaultModel;
+  const isEndpointDefault = settings.endpoint.trim() === selectedProvider.defaultEndpoint;
   const providerHelpText =
     settings.providerId === "openai"
       ? "API key はキャンペーンJSONに含めず、ブラウザの別領域にだけ保存します。"
@@ -104,12 +107,27 @@ export function ProviderSettingsCard({
               ログ抽出の実装を差し替えるための設定です。
             </CardDescription>
           </div>
-          <Badge variant={selectedProvider.status === "available" ? "default" : "secondary"}>
-            {selectedProvider.status === "available" ? "利用中" : "未接続"}
+          <Badge className="shrink-0" variant={selectedProvider.status === "available" ? "default" : "secondary"}>
+            {selectedProvider.label}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
+        <div className="flex flex-wrap gap-2 rounded-md border bg-muted/30 p-2">
+          <Badge variant={selectedProvider.status === "available" ? "default" : "secondary"}>
+            {selectedProvider.status === "available" ? "利用可能" : "未接続"}
+          </Badge>
+          <Badge variant={isModelDefault ? "secondary" : "outline"}>
+            Model: {isModelDefault ? "既定値" : "変更済み"}
+          </Badge>
+          <Badge variant={isEndpointDefault ? "secondary" : "outline"}>
+            Endpoint: {isEndpointDefault ? "既定値" : "変更済み"}
+          </Badge>
+          <Badge variant={!needsApiKey || hasApiKey ? "secondary" : "outline"}>
+            API key: {!needsApiKey ? "不要" : hasApiKey ? "設定済み" : "未設定"}
+          </Badge>
+        </div>
+
         <div>
           <label className="text-xs font-medium text-muted-foreground">Provider</label>
           <select
@@ -128,7 +146,12 @@ export function ProviderSettingsCard({
 
         <div>
           <div className="flex items-center justify-between gap-2">
-            <label className="text-xs font-medium text-muted-foreground">Model</label>
+            <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              Model
+              <Badge variant={isModelDefault ? "secondary" : "outline"}>
+                {isModelDefault ? "既定値" : "変更済み"}
+              </Badge>
+            </label>
             <Button disabled={isLocked} onClick={restoreProviderDefaults} size="sm" variant="ghost">
               <RotateCcw className="h-3.5 w-3.5" />
               既定値
@@ -143,9 +166,14 @@ export function ProviderSettingsCard({
         </div>
 
         <div>
-          <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-            <Server className="h-3 w-3" />
-            Endpoint
+          <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Server className="h-3 w-3" />
+              Endpoint
+            </span>
+            <Badge variant={isEndpointDefault ? "secondary" : "outline"}>
+              {isEndpointDefault ? "既定値" : "変更済み"}
+            </Badge>
           </label>
           <Input
             className="mt-1"
@@ -159,9 +187,14 @@ export function ProviderSettingsCard({
 
         {needsApiKey && (
           <div>
-            <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-              <KeyRound className="h-3 w-3" />
-              API key
+            <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <KeyRound className="h-3 w-3" />
+                API key
+              </span>
+              <Badge variant={hasApiKey ? "secondary" : "outline"}>
+                {hasApiKey ? "設定済み" : "未設定"}
+              </Badge>
             </label>
             <div className="mt-1 flex gap-2">
               <Input
@@ -194,6 +227,12 @@ export function ProviderSettingsCard({
             <Unplug className="h-4 w-4" />
             {isTestingConnection ? "確認中" : "接続テスト"}
           </Button>
+          {isTestingConnection && (
+            <Badge className="gap-1" variant="secondary">
+              <Unplug className="h-3 w-3" />
+              確認中
+            </Badge>
+          )}
           {connectionResult && (
             <Badge
               className={connectionResult.ok ? "gap-1" : "gap-1 border-transparent bg-destructive text-destructive-foreground"}
