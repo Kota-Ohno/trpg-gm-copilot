@@ -13,12 +13,13 @@ const speakerRoleLabels: Record<SpeakerRole, string> = {
 
 function formatTimestamp(seconds: number): string {
   const safeSeconds = Math.max(0, Math.round(seconds));
-  const minutes = Math.floor(safeSeconds / 60)
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60)
     .toString()
     .padStart(2, "0");
   const remainingSeconds = (safeSeconds % 60).toString().padStart(2, "0");
 
-  return `${minutes}:${remainingSeconds}`;
+  return hours > 0 ? `${hours}:${minutes}:${remainingSeconds}` : `${minutes}:${remainingSeconds}`;
 }
 
 type SpeakerLogEditorProps = {
