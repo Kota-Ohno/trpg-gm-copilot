@@ -10,7 +10,7 @@ export type ExtractionInputLine = {
 };
 
 const npcNamePattern = /(?:女将|村長|灯台守|船長|医師|司祭|娘|甥|少女|少年|老人|男|女)(?:の)?([ァ-ヶー一-龠々]{1,8})|([ァ-ヶー一-龠々]{1,8})(?:は|が).*(?:話|言|証言)/;
-const plainLogLinePattern = /^(?:\[([0-9:.]+)\]\s*)?([^:：]{1,32})[:：]\s*(.+)$/;
+const plainLogLinePattern = /^(?:\[\s*([0-9０-９:.：\s]+)\s*\]\s*)?([^:：]{1,32})[:：]\s*(.+)$/;
 
 export function inferSpeakerRole(name: string): SpeakerRole {
   const normalizedName = name.trim().toLowerCase();
@@ -49,7 +49,11 @@ function parseTimestampSeconds(rawTimestamp: string | undefined): number | null 
     return null;
   }
 
-  const parts = rawTimestamp.split(":").map((part) => Number(part));
+  const normalizedTimestamp = rawTimestamp
+    .trim()
+    .replace(/[０-９]/g, (digit) => String.fromCharCode(digit.charCodeAt(0) - 0xfee0))
+    .replace(/：/g, ":");
+  const parts = normalizedTimestamp.split(":").map((part) => Number(part.trim()));
   if (parts.length < 2 || parts.length > 3 || parts.some((part) => !Number.isFinite(part) || part < 0)) {
     return null;
   }
@@ -252,7 +256,15 @@ export function parsePlainLogToLiveLog(log: string, title: string): LiveLogSessi
       speakersByName.set(speakerName, speaker);
     }
 
-    const startTimeSec = parsedStartTimeSec ?? segments.length * 8;
+    const previousSegment = segments[segments.length - 1];
+    const rawStartTimeSec = parsedStartTimeSec ?? segments.length * 8;
+    const startTimeSec = previousSegment ? Math.max(rawStartTimeSec, previousSegment.startTimeSec + 1) : rawStartTimeSec;
+    if (previousSegment) {
+      previousSegment.endTimeSec = Math.max(
+        previousSegment.startTimeSec + 1,
+        Math.min(previousSegment.endTimeSec, startTimeSec),
+      );
+    }
     activeSegment = {
       id: createId("segment"),
       speakerId: speaker.id,
