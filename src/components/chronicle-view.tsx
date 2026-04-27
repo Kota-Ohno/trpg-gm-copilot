@@ -28,6 +28,17 @@ function EmptyCategory({ label }: { label: string }) {
   );
 }
 
+function SectionTitle({ count, label, total }: { count: number; label: string; total: number }) {
+  const countLabel = count === total ? `${total}` : `${count}/${total}`;
+
+  return (
+    <CardTitle className="flex items-center gap-2">
+      <span>{label}</span>
+      <Badge variant="outline">{countLabel}件</Badge>
+    </CardTitle>
+  );
+}
+
 function countChronicleItems(chronicle: Chronicle): number {
   return (
     chronicle.events.length +
@@ -78,8 +89,11 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
             onChange={(event) => setQuery(event.target.value)}
           />
           <div className="flex flex-wrap gap-2">
-            <Badge variant="muted">{normalizedQuery ? `${filteredCount}/${totalCount}件表示` : `${totalCount}件`}</Badge>
+            <Badge variant="muted">{hasFilter ? `${filteredCount}/${totalCount}件表示` : `${totalCount}件`}</Badge>
             {normalizedQuery && <Badge variant="secondary">検索: {query.trim()}</Badge>}
+            {clueStatusFilter !== "all" && (
+              <Badge variant="secondary">手がかり: {statusLabels[clueStatusFilter]}</Badge>
+            )}
             <Badge variant="outline">出来事 {chronicle.events.length}</Badge>
             <Badge variant="outline">手がかり {chronicle.clues.length}</Badge>
             <Badge variant="outline">NPC {chronicle.npcs.length}</Badge>
@@ -115,7 +129,7 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>出来事</CardTitle>
+          <SectionTitle count={filteredChronicle.events.length} label="出来事" total={chronicle.events.length} />
         </CardHeader>
         <CardContent className="grid gap-2">
           {filteredChronicle.events.length > 0 ? (
@@ -132,7 +146,7 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>手がかり</CardTitle>
+          <SectionTitle count={filteredChronicle.clues.length} label="手がかり" total={chronicle.clues.length} />
         </CardHeader>
         <CardContent className="grid gap-3">
           {filteredChronicle.clues.length > 0 ? (
@@ -154,7 +168,7 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Card>
           <CardHeader>
-            <CardTitle>NPC</CardTitle>
+            <SectionTitle count={filteredChronicle.npcs.length} label="NPC" total={chronicle.npcs.length} />
           </CardHeader>
           <CardContent className="space-y-3">
             {filteredChronicle.npcs.length > 0 ? (
@@ -181,7 +195,7 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
 
         <Card>
           <CardHeader>
-            <CardTitle>場所</CardTitle>
+            <SectionTitle count={filteredChronicle.locations.length} label="場所" total={chronicle.locations.length} />
           </CardHeader>
           <CardContent className="space-y-3">
             {filteredChronicle.locations.length > 0 ? (
@@ -199,7 +213,7 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
 
         <Card>
           <CardHeader>
-            <CardTitle>伏線</CardTitle>
+            <SectionTitle count={filteredChronicle.threads.length} label="伏線" total={chronicle.threads.length} />
           </CardHeader>
           <CardContent className="space-y-3">
             {filteredChronicle.threads.length > 0 ? (
