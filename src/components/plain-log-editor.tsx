@@ -1,4 +1,4 @@
-import { MessageSquareText, RotateCcw, Wand2 } from "lucide-react";
+import { AlertTriangle, MessageSquareText, RotateCcw, Wand2 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
@@ -25,6 +25,8 @@ export function PlainLogEditor({
   const hasLogText = log.trim().length > 0;
   const nonEmptyLines = log.split(/\r?\n/).filter((line) => line.trim().length > 0);
   const speakerLineCount = nonEmptyLines.filter((line) => /^(?:\[[^\]]+\]\s*)?[^:：]{1,32}[:：]\s*.+$/.test(line.trim())).length;
+  const speakerLineRatio = nonEmptyLines.length > 0 ? Math.round((speakerLineCount / nonEmptyLines.length) * 100) : 0;
+  const hasNoSpeakerLines = hasLogText && speakerLineCount === 0;
 
   return (
     <>
@@ -34,14 +36,37 @@ export function PlainLogEditor({
         value={log}
         onChange={(event) => onChange(event.target.value)}
       />
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm text-muted-foreground">{log.length.toLocaleString()}文字</p>
-          <Badge variant="muted">{nonEmptyLines.length.toLocaleString()}行</Badge>
-          {speakerLineCount > 0 && <Badge variant="muted">{speakerLineCount.toLocaleString()}発話候補</Badge>}
-          <Badge variant="outline">ローカル自動保存</Badge>
+      <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm text-muted-foreground">{log.length.toLocaleString()}文字</p>
+            <Badge variant="muted">{nonEmptyLines.length.toLocaleString()}有効行</Badge>
+            <Badge
+              className={hasNoSpeakerLines ? "border-red-200 bg-red-50 text-red-700" : undefined}
+              variant={hasNoSpeakerLines ? "outline" : "muted"}
+            >
+              {speakerLineCount.toLocaleString()}発話候補
+              {speakerLineCount > 0 && ` / ${speakerLineRatio}%`}
+            </Badge>
+            {hasNoSpeakerLines && (
+              <Badge className="gap-1 border-red-200 bg-red-50 text-red-700" variant="outline">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                話者行なし
+              </Badge>
+            )}
+          </div>
+          <p className="max-w-[42rem] text-xs leading-5 text-muted-foreground">
+            {hasLogText
+              ? hasNoSpeakerLines
+                ? "「話者: セリフ」形式の行が見つかりません。話者付きログ化の前に区切りを確認してください。"
+                : "「話者: セリフ」形式の行を発話候補として数えています。必要に応じてこのまま抽出できます。"
+              : "ここにログを貼り付けます。例: GM: 扉の奥から足音が聞こえる"}
+          </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
+          <Badge className="h-9 px-3" variant="outline">
+            ローカル自動保存
+          </Badge>
           <Button disabled={isExtracting} onClick={onReset} variant="outline">
             <RotateCcw className="h-4 w-4" />
             デモ初期化
