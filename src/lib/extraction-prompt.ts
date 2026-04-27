@@ -6,11 +6,23 @@ type ExtractionPromptInput = {
   source: ExtractionSource;
 };
 
-function formatLine(line: ExtractionInputLine, index: number): string {
-  const speaker = line.speakerName ? ` speaker="${line.speakerName}"` : "";
-  const role = line.role ? ` role="${line.role}"` : "";
+function escapeXmlAttribute(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
 
-  return `<line index="${index + 1}"${speaker}${role}>${line.text}</line>`;
+function escapeXmlText(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function formatLine(line: ExtractionInputLine, index: number): string {
+  const speaker = line.speakerName ? ` speaker="${escapeXmlAttribute(line.speakerName)}"` : "";
+  const role = line.role ? ` role="${escapeXmlAttribute(line.role)}"` : "";
+
+  return `<line index="${index + 1}"${speaker}${role}>${escapeXmlText(line.text)}</line>`;
 }
 
 export function buildExtractionPrompt({ lines, source }: ExtractionPromptInput): string {
