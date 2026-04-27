@@ -60,6 +60,12 @@ export function SpeakerLogEditor({
 }: SpeakerLogEditorProps) {
   const sortedSegments = [...liveLog.segments].sort((first, second) => first.startTimeSec - second.startTimeSec);
   const hasSegmentText = liveLog.segments.some((segment) => segment.text.trim().length > 0);
+  const nonEmptySegmentCount = liveLog.segments.filter((segment) => segment.text.trim().length > 0).length;
+  const totalDurationSec = liveLog.segments.reduce(
+    (total, segment) => total + Math.max(0, segment.endTimeSec - segment.startTimeSec),
+    0,
+  );
+  const usedSpeakerCount = new Set(liveLog.segments.map((segment) => segment.speakerId)).size;
 
   return (
     <div className="grid gap-4">
@@ -70,7 +76,10 @@ export function SpeakerLogEditor({
               {liveLog.sourceType === "sample" ? "サンプル" : liveLog.sourceType === "imported" ? "取り込み" : "手動"}
             </Badge>
             <Badge variant="muted">{liveLog.segments.length}発話</Badge>
+            <Badge variant="muted">本文あり {nonEmptySegmentCount}</Badge>
+            <Badge variant="muted">合計 {formatTimestamp(totalDurationSec)}</Badge>
             <Badge variant="muted">{liveLog.speakers.length}話者</Badge>
+            <Badge variant="muted">使用中 {usedSpeakerCount}</Badge>
           </div>
           <p className="mt-2 text-sm font-medium">{liveLog.title}</p>
           <p className="text-xs text-muted-foreground">
@@ -264,7 +273,12 @@ export function SpeakerLogEditor({
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground">発話</label>
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="text-xs font-medium text-muted-foreground">発話</label>
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        {segment.text.trim().length}字
+                      </span>
+                    </div>
                     <Textarea
                       className="mt-1 min-h-[84px] resize-y text-sm leading-6"
                       disabled={isExtracting}
