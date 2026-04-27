@@ -29,16 +29,28 @@ export function ExtractionReviewCard({
     !item.title.trim() ? "タイトル" : "",
     !item.detail.trim() ? "本文" : "",
   ].filter(Boolean);
+  const detailLength = item.detail.trim().length;
+  const cardStateClass = isApproved
+    ? "border-primary/40 bg-primary/5"
+    : !canApprove
+      ? "border-destructive/30 bg-destructive/5"
+      : "";
 
   return (
-    <Card className={isApproved ? "border-primary/40 bg-primary/5" : ""}>
+    <Card className={cardStateClass}>
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="mb-2 flex flex-wrap gap-2">
               <Badge>{item.kind}</Badge>
               <Badge variant={item.visibility === "GMのみ" ? "secondary" : "outline"}>{item.visibility}</Badge>
+              <Badge variant="outline">本文 {detailLength}字</Badge>
               {isApproved && <Badge variant="muted">採用済み</Badge>}
+              {!canApprove && (
+                <Badge className="border-destructive/30 text-destructive" variant="outline">
+                  未入力あり
+                </Badge>
+              )}
             </div>
             <CardTitle>{item.title || "無題の抽出候補"}</CardTitle>
             <CardDescription className="mt-2 leading-6">
@@ -51,6 +63,7 @@ export function ExtractionReviewCard({
               disabled={isApproved || !canApprove}
               onClick={() => onApprove(item)}
               size="icon"
+              title={canApprove ? "この候補を採用" : `採用には${missingFields.join("・")}が必要です`}
               variant={isApproved ? "secondary" : "default"}
             >
               <Check className="h-4 w-4" />
@@ -60,6 +73,7 @@ export function ExtractionReviewCard({
               disabled={isApproved}
               onClick={() => onReject(item.id)}
               size="icon"
+              title="この候補を破棄"
               variant="outline"
             >
               <X className="h-4 w-4" />
