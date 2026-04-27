@@ -143,6 +143,25 @@ function getProviderErrorMessage(error: unknown, providerLabel: string, timeoutM
   return error instanceof Error ? error.message : `${providerLabel} API 呼び出しに失敗しました。`;
 }
 
+function normalizeValidationErrors(validationErrors: string[], failureReason?: string): string[] {
+  return [...validationErrors, failureReason]
+    .filter((error): error is string => typeof error === "string" && error.trim().length > 0)
+    .map((error) => error.trim())
+    .filter((error, index, errors) => errors.indexOf(error) === index);
+}
+
+function buildFallbackNote(note: string, context: ProviderContext, hasGeneratedItems: boolean): string {
+  const providerContext =
+    context.providerLabel === "ルールベース"
+      ? ""
+      : ` (${context.providerLabel} → ルールベース)`;
+  const baseNote = `${note}${providerContext}`;
+
+  return hasGeneratedItems
+    ? baseNote
+    : `${baseNote} ルールベース抽出でも候補は見つかりませんでした。`;
+}
+
 function buildRuleBasedFallback(
   request: ExtractionRequest,
   context: ProviderContext,
@@ -151,6 +170,7 @@ function buildRuleBasedFallback(
   failureReason?: string,
 ): ExtractionResult {
   const generatedItems = runRuleBasedExtraction(context.extractionLines);
+  const normalizedValidationErrors = normalizeValidationErrors(validationErrors, failureReason);
 
   return {
     items: generatedItems,
@@ -163,13 +183,10 @@ function buildRuleBasedFallback(
       fallbackUsed: request.settings.providerId !== "rule-based",
       failureReason,
       itemCount: generatedItems.length,
-      note:
-        generatedItems.length > 0
-          ? note
-          : `${note} ルールベース抽出でも候補は見つかりませんでした。`,
+      note: buildFallbackNote(note, context, generatedItems.length > 0),
       promptLength: context.prompt.length,
       promptVersion: "extraction-v1",
-      validationErrors,
+      validationErrors: normalizedValidationErrors,
     },
   };
 }
