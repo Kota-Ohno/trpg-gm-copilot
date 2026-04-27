@@ -47,9 +47,7 @@ export function ExtractionReviewCard({
               <Badge variant="outline">本文 {detailLength}字</Badge>
               {isApproved && <Badge variant="muted">採用済み</Badge>}
               {!canApprove && (
-                <Badge className="border-destructive/30 text-destructive" variant="outline">
-                  未入力あり
-                </Badge>
+                <Badge variant="destructive">未入力あり</Badge>
               )}
             </div>
             <CardTitle>{item.title || "無題の抽出候補"}</CardTitle>

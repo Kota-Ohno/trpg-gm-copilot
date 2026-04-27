@@ -42,14 +42,13 @@ export function PlainLogEditor({
             <p className="text-sm text-muted-foreground">{log.length.toLocaleString()}文字</p>
             <Badge variant="muted">{nonEmptyLines.length.toLocaleString()}有効行</Badge>
             <Badge
-              className={hasNoSpeakerLines ? "border-red-200 bg-red-50 text-red-700" : undefined}
-              variant={hasNoSpeakerLines ? "outline" : "muted"}
+              variant={hasNoSpeakerLines ? "destructive" : "muted"}
             >
               {speakerLineCount.toLocaleString()}発話候補
               {speakerLineCount > 0 && ` / ${speakerLineRatio}%`}
             </Badge>
             {hasNoSpeakerLines && (
-              <Badge className="gap-1 border-red-200 bg-red-50 text-red-700" variant="outline">
+              <Badge className="gap-1" variant="destructive">
                 <AlertTriangle className="h-3.5 w-3.5" />
                 話者行なし
               </Badge>
