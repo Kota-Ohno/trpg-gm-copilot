@@ -8,9 +8,11 @@ type ProviderDefinition = {
   status: "available" | "planned";
 };
 
+const defaultExtractionProviderId: ExtractionProviderId = "rule-based";
+
 export const extractionProviders: ProviderDefinition[] = [
   {
-    id: "rule-based",
+    id: defaultExtractionProviderId,
     label: "ルールベース",
     defaultModel: "local-rules-v1",
     defaultEndpoint: "",
@@ -32,10 +34,16 @@ export const extractionProviders: ProviderDefinition[] = [
   },
 ];
 
+const extractionProviderById = Object.fromEntries(
+  extractionProviders.map((provider) => [provider.id, provider]),
+) as Record<ExtractionProviderId, ProviderDefinition>;
+
+const defaultExtractionProvider = extractionProviderById[defaultExtractionProviderId];
+
 export const defaultExtractionProviderSettings: ExtractionProviderSettings = {
-  providerId: "rule-based",
-  model: "local-rules-v1",
-  endpoint: "",
+  providerId: defaultExtractionProvider.id,
+  model: defaultExtractionProvider.defaultModel,
+  endpoint: defaultExtractionProvider.defaultEndpoint,
 };
 
 export const defaultProviderSecretSettings: ProviderSecretSettings = {
@@ -43,5 +51,5 @@ export const defaultProviderSecretSettings: ProviderSecretSettings = {
 };
 
 export function getExtractionProvider(providerId: ExtractionProviderId): ProviderDefinition {
-  return extractionProviders.find((provider) => provider.id === providerId) ?? extractionProviders[0];
+  return extractionProviderById[providerId] ?? defaultExtractionProvider;
 }
