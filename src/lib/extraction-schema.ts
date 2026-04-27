@@ -2,6 +2,8 @@ import type { ExtractionItem } from "../types";
 
 const extractionKinds: ExtractionItem["kind"][] = ["出来事", "NPC", "手がかり", "GM秘密", "伏線"];
 const extractionVisibilities: ExtractionItem["visibility"][] = ["PL既知", "GMのみ", "未開示候補"];
+const maxExtractionItems = 12;
+const maxExtractionIdLength = 80;
 
 export const extractionResponseJsonSchema = {
   name: "trpg_log_extraction",
@@ -13,7 +15,7 @@ export const extractionResponseJsonSchema = {
     properties: {
       items: {
         type: "array",
-        maxItems: 12,
+        maxItems: maxExtractionItems,
         items: {
           type: "object",
           additionalProperties: false,
@@ -89,6 +91,42 @@ function extractJsonObject(text: string): string {
   return text.slice(firstBrace, lastBrace + 1);
 }
 
+function createFallbackId(index: number, seenIds: Set<string>): string {
+  const baseId = `llm-${index + 1}`;
+  let candidateId = baseId;
+  let suffix = 2;
+
+  while (seenIds.has(candidateId)) {
+    candidateId = `${baseId}-${suffix}`;
+    suffix += 1;
+  }
+
+  return candidateId;
+}
+
+function normalizeExtractionId(value: unknown, index: number, seenIds: Set<string>, errors: string[]): string {
+  if (typeof value !== "string") {
+    return createFallbackId(index, seenIds);
+  }
+
+  const id = value.trim();
+  if (!id) {
+    return createFallbackId(index, seenIds);
+  }
+
+  if (id.length > maxExtractionIdLength) {
+    errors.push(`items[${index}].id が長すぎるため自動IDに置き換えました。`);
+    return createFallbackId(index, seenIds);
+  }
+
+  if (seenIds.has(id)) {
+    errors.push(`items[${index}].id が重複しているため自動IDに置き換えました。`);
+    return createFallbackId(index, seenIds);
+  }
+
+  return id;
+}
+
 export function normalizeExtractionResponse(rawResponse: unknown): NormalizedExtractionResponse {
   const errors: string[] = [];
 
@@ -108,8 +146,13 @@ export function normalizeExtractionResponse(rawResponse: unknown): NormalizedExt
 
   const items: ExtractionItem[] = [];
   const seenKeys = new Set<string>();
+  const seenIds = new Set<string>();
 
-  rawResponse.items.slice(0, 12).forEach((rawItem, index) => {
+  if (rawResponse.items.length > maxExtractionItems) {
+    errors.push(`items配列が${maxExtractionItems}件を超えたため、超過分を無視しました。`);
+  }
+
+  rawResponse.items.slice(0, maxExtractionItems).forEach((rawItem, index) => {
     if (!isRecord(rawItem)) {
       errors.push(`items[${index}] がobjectではありません。`);
       return;
@@ -138,8 +181,11 @@ export function normalizeExtractionResponse(rawResponse: unknown): NormalizedExt
     }
 
     seenKeys.add(key);
+    const id = normalizeExtractionId(rawItem.id, index, seenIds, errors);
+    seenIds.add(id);
+
     items.push({
-      id: typeof rawItem.id === "string" && rawItem.id.trim() ? rawItem.id.trim() : `llm-${index + 1}`,
+      id,
       kind: rawItem.kind,
       title,
       detail,
