@@ -106,6 +106,14 @@ export type TranscriptSegment = {
   confidence?: number;
 };
 
+export type TranscriptionSegmentDraft = {
+  speakerName?: string;
+  startTimeSec?: number;
+  endTimeSec?: number;
+  text: string;
+  confidence?: number;
+};
+
 export type LiveLogSession = {
   id: string;
   title: string;

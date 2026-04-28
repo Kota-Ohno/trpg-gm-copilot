@@ -1,4 +1,11 @@
-import type { ExtractionItem, LiveLogSession, Speaker, SpeakerRole, TranscriptSegment } from "../types";
+import type {
+  ExtractionItem,
+  LiveLogSession,
+  Speaker,
+  SpeakerRole,
+  TranscriptionSegmentDraft,
+  TranscriptSegment,
+} from "../types";
 import { createId } from "./campaign";
 
 export type ExtractionSource = "plain" | "speaker";
@@ -229,6 +236,68 @@ export function runRuleBasedExtraction(lines: ExtractionInputLine[]): Extraction
   });
 
   return candidates.slice(0, 8);
+}
+
+export function transcriptionDraftsToLiveLog(
+  drafts: TranscriptionSegmentDraft[],
+  title: string,
+): LiveLogSession | null {
+  const speakersByName = new Map<string, Speaker>();
+  const segments: TranscriptSegment[] = [];
+
+  drafts.forEach((draft, index) => {
+    const text = draft.text.trim();
+    if (!text) {
+      return;
+    }
+
+    const speakerName = draft.speakerName?.trim() || "話者不明";
+    let speaker = speakersByName.get(speakerName);
+    if (!speaker) {
+      speaker = {
+        id: createId("speaker"),
+        name: speakerName,
+        role: inferSpeakerRole(speakerName),
+      };
+      speakersByName.set(speakerName, speaker);
+    }
+
+    const previousSegment = segments[segments.length - 1];
+    const fallbackStartTimeSec = previousSegment ? previousSegment.endTimeSec + 1 : index * 8;
+    const rawStartTimeSec =
+      typeof draft.startTimeSec === "number" && Number.isFinite(draft.startTimeSec)
+        ? draft.startTimeSec
+        : fallbackStartTimeSec;
+    const startTimeSec = Math.max(previousSegment ? previousSegment.startTimeSec + 1 : 0, Math.round(rawStartTimeSec));
+    const rawEndTimeSec =
+      typeof draft.endTimeSec === "number" && Number.isFinite(draft.endTimeSec)
+        ? draft.endTimeSec
+        : startTimeSec + 6;
+    const endTimeSec = Math.max(startTimeSec + 1, Math.round(rawEndTimeSec));
+
+    segments.push({
+      id: createId("segment"),
+      speakerId: speaker.id,
+      startTimeSec,
+      endTimeSec,
+      text,
+      ...(typeof draft.confidence === "number" && Number.isFinite(draft.confidence)
+        ? { confidence: Math.max(0, Math.min(1, draft.confidence)) }
+        : {}),
+    });
+  });
+
+  if (segments.length === 0) {
+    return null;
+  }
+
+  return {
+    id: createId("live-log"),
+    title,
+    sourceType: "imported",
+    speakers: Array.from(speakersByName.values()),
+    segments,
+  };
 }
 
 export function parsePlainLogToLiveLog(log: string, title: string): LiveLogSession | null {
