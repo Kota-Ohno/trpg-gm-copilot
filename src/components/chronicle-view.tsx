@@ -52,10 +52,16 @@ function countChronicleItems(chronicle: Chronicle): number {
 type ChronicleViewProps = {
   chronicle: Chronicle;
   onUpdateClueStatus?: (clueIndex: number, status: ClueStatus) => void;
+  onUpdateNpcAttitude?: (npcIndex: number, attitude: string) => void;
   onUpdateThreadNextMove?: (threadIndex: number, nextMove: string) => void;
 };
 
-export function ChronicleView({ chronicle, onUpdateClueStatus, onUpdateThreadNextMove }: ChronicleViewProps) {
+export function ChronicleView({
+  chronicle,
+  onUpdateClueStatus,
+  onUpdateNpcAttitude,
+  onUpdateThreadNextMove,
+}: ChronicleViewProps) {
   const [query, setQuery] = useState("");
   const [clueStatusFilter, setClueStatusFilter] = useState<ClueStatusFilter>("all");
   const normalizedQuery = query.trim().toLowerCase();
@@ -67,7 +73,7 @@ export function ChronicleView({ chronicle, onUpdateClueStatus, onUpdateThreadNex
 
     return {
       events: chronicle.events.filter((event) => includesQuery([event])),
-      npcs: chronicle.npcs.filter((npc) =>
+      npcs: chronicle.npcs.map((npc, index) => ({ npc, index })).filter(({ npc }) =>
         includesQuery([npc.name, npc.role, npc.publicKnowledge, npc.gmSecret, npc.attitude]),
       ),
       clues: chronicle.clues.map((clue, index) => ({ clue, index })).filter(({ clue }) => {
@@ -252,15 +258,27 @@ export function ChronicleView({ chronicle, onUpdateClueStatus, onUpdateThreadNex
           </CardHeader>
           <CardContent className="space-y-3">
             {filteredChronicle.npcs.length > 0 ? (
-              filteredChronicle.npcs.map((npc) => (
-                <div className="rounded-md border p-3" key={`${npc.name}-${npc.role}`}>
+              filteredChronicle.npcs.map(({ npc, index }) => (
+                <div className="rounded-md border p-3" key={`${npc.name}-${npc.role}-${index}`}>
                   <p className="font-medium">{npc.name}</p>
                   <p className="text-sm text-muted-foreground">{npc.role}</p>
                   <p className="mt-2 text-sm leading-6">{npc.publicKnowledge}</p>
                   <div className="mt-3 grid gap-2 text-sm">
-                    <p className="rounded-md bg-muted px-3 py-2">
-                      <span className="font-medium">態度:</span> {npc.attitude}
-                    </p>
+                    {onUpdateNpcAttitude ? (
+                      <label className="grid gap-1 rounded-md bg-muted px-3 py-2">
+                        <span className="font-medium">態度</span>
+                        <Input
+                          aria-label={`${npc.name}の態度`}
+                          value={npc.attitude}
+                          onBlur={(event) => onUpdateNpcAttitude(index, event.target.value.trim() || "態度未設定")}
+                          onChange={(event) => onUpdateNpcAttitude(index, event.target.value)}
+                        />
+                      </label>
+                    ) : (
+                      <p className="rounded-md bg-muted px-3 py-2">
+                        <span className="font-medium">態度:</span> {npc.attitude}
+                      </p>
+                    )}
                     <p className="rounded-md bg-secondary/40 px-3 py-2">
                       <span className="font-medium">GM秘密:</span> {npc.gmSecret}
                     </p>

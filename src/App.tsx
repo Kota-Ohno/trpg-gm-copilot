@@ -867,6 +867,18 @@ export function App() {
     }));
   };
 
+  const updateNpcAttitude = (npcIndex: number, attitude: string): void => {
+    setActiveCampaignState((current) => ({
+      ...current,
+      chronicle: {
+        ...current.chronicle,
+        npcs: current.chronicle.npcs.map((npc, index) =>
+          index === npcIndex ? { ...npc, attitude } : npc,
+        ),
+      },
+    }));
+  };
+
   const updateThreadNextMove = (threadIndex: number, nextMove: string): void => {
     setActiveCampaignState((current) => ({
       ...current,
@@ -1355,6 +1367,7 @@ export function App() {
               <ChronicleView
                 chronicle={chronicle}
                 onUpdateClueStatus={updateClueStatus}
+                onUpdateNpcAttitude={updateNpcAttitude}
                 onUpdateThreadNextMove={updateThreadNextMove}
               />
             )}
