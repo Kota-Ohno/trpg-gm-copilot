@@ -319,7 +319,7 @@ export function App() {
       setLogInputMode("plain");
       setActiveTab("log");
     } catch {
-      window.alert("JSONを読み込めませんでした。Chronicle GMのエクスポートファイルか確認してください。");
+      setStorageError("JSONを読み込めませんでした。Chronicle GMのエクスポートファイルか確認してください。");
     }
   };
 
