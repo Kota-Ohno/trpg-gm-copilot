@@ -127,7 +127,7 @@ function normalizeSessionDate(value: unknown): string {
     return dateMatch[1];
   }
 
-  return trimmedDate || getLocalDateString();
+  return getLocalDateString();
 }
 
 function normalizeNpc(value: unknown): Npc {
