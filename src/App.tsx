@@ -217,6 +217,7 @@ export function App() {
   const [campaignLibrary, setCampaignLibrary] = useState<CampaignLibraryState>(loadCampaignLibraryState);
   const [showApprovedReviewItems, setShowApprovedReviewItems] = useState(true);
   const [reviewKindFilter, setReviewKindFilter] = useState<ReviewKindFilter>("all");
+  const [campaignQuery, setCampaignQuery] = useState("");
   const [sessionQuery, setSessionQuery] = useState("");
   const [storageError, setStorageError] = useState<string | null>(null);
   const [providerSecrets, setProviderSecrets] = useState<ProviderSecretSettings>(loadProviderSecrets);
@@ -270,6 +271,12 @@ export function App() {
       伏線: 0,
     },
   );
+  const normalizedCampaignQuery = campaignQuery.trim().toLowerCase();
+  const visibleCampaigns = normalizedCampaignQuery
+    ? campaignLibrary.campaigns.filter((campaign) =>
+        campaign.campaignName.toLowerCase().includes(normalizedCampaignQuery),
+      )
+    : campaignLibrary.campaigns;
   const normalizedSessionQuery = sessionQuery.trim().toLowerCase();
   const visibleSessions = normalizedSessionQuery
     ? campaignState.sessions.filter((session) =>
@@ -341,6 +348,7 @@ export function App() {
         ? campaignId
         : current.activeCampaignId,
     }));
+    setCampaignQuery("");
     setSessionQuery("");
     setLogInputMode("plain");
     setActiveTab("log");
@@ -355,6 +363,7 @@ export function App() {
         activeCampaignId: nextCampaign.id,
       };
     });
+    setCampaignQuery("");
     setSessionQuery("");
     setLogInputMode("plain");
     setActiveTab("log");
@@ -390,6 +399,7 @@ export function App() {
               current.activeCampaignId === campaignId ? fallbackCampaign.id : current.activeCampaignId,
           };
         });
+        setCampaignQuery("");
         setSessionQuery("");
         setLogInputMode("plain");
         setActiveTab("log");
@@ -822,8 +832,19 @@ export function App() {
                 新規
               </Button>
             </div>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                aria-label="キャンペーンを検索"
+                className="pl-8"
+                disabled={isExtracting}
+                placeholder="キャンペーン名で検索"
+                value={campaignQuery}
+                onChange={(event) => setCampaignQuery(event.target.value)}
+              />
+            </div>
             <div className="space-y-1">
-              {campaignLibrary.campaigns.map((campaign) => (
+              {visibleCampaigns.map((campaign) => (
                 <div
                   className={
                     campaign.id === campaignState.id
@@ -855,6 +876,11 @@ export function App() {
                   </Button>
                 </div>
               ))}
+              {visibleCampaigns.length === 0 && (
+                <p className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground">
+                  条件に一致するキャンペーンはありません。
+                </p>
+              )}
             </div>
           </div>
 
