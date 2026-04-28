@@ -9,6 +9,7 @@ import {
   KeyRound,
   Lightbulb,
   Map as MapIcon,
+  MessageSquareText,
   Plus,
   Search,
   ShieldCheck,
@@ -48,7 +49,9 @@ import {
 } from "./lib/extraction";
 import {
   defaultProviderSecretSettings,
+  getTranscriptionProvider,
   normalizeProviderSecretSettings,
+  transcriptionProviders,
 } from "./lib/extraction-provider-settings";
 import { runExtractionProvider } from "./lib/extraction-providers";
 import type {
@@ -248,7 +251,9 @@ export function App() {
     chronicle,
     extractionProvider,
     quickResult,
+    transcriptionProvider,
   } = campaignState;
+  const selectedTranscriptionProvider = getTranscriptionProvider(transcriptionProvider.providerId);
 
   const approvedCount = approvedIds.length;
   const remainingCount = items.length - approvedCount;
@@ -1440,6 +1445,82 @@ export function App() {
               onChange={(nextSettings) => updateCampaignState({ extractionProvider: nextSettings })}
             />
           </div>
+
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquareText className="h-4 w-4" />
+                文字起こしProvider
+              </CardTitle>
+              <CardDescription className="mt-2">
+                音声入力を話者付きログへ流し込むための準備設定です。
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap gap-2 rounded-md border bg-muted/30 p-2">
+                <Badge variant={selectedTranscriptionProvider.status === "available" ? "default" : "secondary"}>
+                  {selectedTranscriptionProvider.status === "available" ? "利用可能" : "計画中"}
+                </Badge>
+                <Badge variant="outline">{selectedTranscriptionProvider.label}</Badge>
+                <Badge variant="muted">言語 {transcriptionProvider.language}</Badge>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground" htmlFor="transcription-provider-select">
+                  Provider
+                </label>
+                <select
+                  className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  disabled={isExtracting}
+                  id="transcription-provider-select"
+                  value={transcriptionProvider.providerId}
+                  onChange={(event) => {
+                    const provider = getTranscriptionProvider(event.target.value as typeof transcriptionProvider.providerId);
+                    updateCampaignState({
+                      transcriptionProvider: {
+                        providerId: provider.id,
+                        model: provider.defaultModel,
+                        endpoint: provider.defaultEndpoint,
+                        language: transcriptionProvider.language,
+                      },
+                    });
+                  }}
+                >
+                  {transcriptionProviders.map((provider) => (
+                    <option key={provider.id} value={provider.id}>
+                      {provider.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground" htmlFor="transcription-language">
+                  言語
+                </label>
+                <Input
+                  className="mt-1"
+                  disabled={isExtracting}
+                  id="transcription-language"
+                  value={transcriptionProvider.language}
+                  onBlur={(event) =>
+                    updateCampaignState({
+                      transcriptionProvider: {
+                        ...transcriptionProvider,
+                        language: event.target.value.trim() || "ja",
+                      },
+                    })
+                  }
+                  onChange={(event) =>
+                    updateCampaignState({
+                      transcriptionProvider: {
+                        ...transcriptionProvider,
+                        language: event.target.value,
+                      },
+                    })
+                  }
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           <Card className="mt-4">
             <CardHeader>
