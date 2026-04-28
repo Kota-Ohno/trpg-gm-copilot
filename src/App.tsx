@@ -59,6 +59,7 @@ import type {
   LiveLogSession,
   ProviderSecretSettings,
   SessionState,
+  ClueStatus,
   SpeakerRole,
   TranscriptSegment,
   WorkspaceTab,
@@ -854,6 +855,18 @@ export function App() {
     }));
   };
 
+  const updateClueStatus = (clueIndex: number, status: ClueStatus): void => {
+    setActiveCampaignState((current) => ({
+      ...current,
+      chronicle: {
+        ...current.chronicle,
+        clues: current.chronicle.clues.map((clue, index) =>
+          index === clueIndex ? { ...clue, status } : clue,
+        ),
+      },
+    }));
+  };
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="grid min-h-screen grid-cols-[260px_1fr_320px] max-xl:grid-cols-[220px_1fr] max-lg:grid-cols-1">
@@ -1326,7 +1339,7 @@ export function App() {
               </div>
             )}
 
-            {activeTab === "chronicle" && <ChronicleView chronicle={chronicle} />}
+            {activeTab === "chronicle" && <ChronicleView chronicle={chronicle} onUpdateClueStatus={updateClueStatus} />}
 
             {activeTab === "prep" && (
               <div className="grid gap-4">

@@ -49,7 +49,12 @@ function countChronicleItems(chronicle: Chronicle): number {
   );
 }
 
-export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
+type ChronicleViewProps = {
+  chronicle: Chronicle;
+  onUpdateClueStatus?: (clueIndex: number, status: ClueStatus) => void;
+};
+
+export function ChronicleView({ chronicle, onUpdateClueStatus }: ChronicleViewProps) {
   const [query, setQuery] = useState("");
   const [clueStatusFilter, setClueStatusFilter] = useState<ClueStatusFilter>("all");
   const normalizedQuery = query.trim().toLowerCase();
@@ -64,7 +69,7 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
       npcs: chronicle.npcs.filter((npc) =>
         includesQuery([npc.name, npc.role, npc.publicKnowledge, npc.gmSecret, npc.attitude]),
       ),
-      clues: chronicle.clues.filter((clue) => {
+      clues: chronicle.clues.map((clue, index) => ({ clue, index })).filter(({ clue }) => {
         if (clueStatusFilter !== "all" && clue.status !== clueStatusFilter) {
           return false;
         }
@@ -76,7 +81,12 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
     };
   }, [chronicle, clueStatusFilter, normalizedQuery]);
   const totalCount = countChronicleItems(chronicle);
-  const filteredCount = countChronicleItems(filteredChronicle);
+  const filteredCount =
+    filteredChronicle.events.length +
+    filteredChronicle.clues.length +
+    filteredChronicle.npcs.length +
+    filteredChronicle.locations.length +
+    filteredChronicle.threads.length;
 
   return (
     <div className="grid gap-4">
@@ -150,11 +160,29 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
         </CardHeader>
         <CardContent className="grid gap-3">
           {filteredChronicle.clues.length > 0 ? (
-            filteredChronicle.clues.map((clue) => (
-              <div className="rounded-md border p-3" key={`${clue.title}-${clue.detail}`}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-medium">{clue.title}</p>
-                  <Badge variant={clue.status === "hidden" ? "secondary" : "outline"}>{statusLabels[clue.status]}</Badge>
+            filteredChronicle.clues.map(({ clue, index }) => (
+              <div className="rounded-md border p-3" key={`${clue.title}-${clue.detail}-${index}`}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium">{clue.title}</p>
+                    <Badge variant={clue.status === "hidden" ? "secondary" : "outline"}>
+                      {statusLabels[clue.status]}
+                    </Badge>
+                  </div>
+                  {onUpdateClueStatus && (
+                    <select
+                      aria-label={`${clue.title}の公開状態`}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      value={clue.status}
+                      onChange={(event) => onUpdateClueStatus(index, event.target.value as ClueStatus)}
+                    >
+                      {clueStatusOptions.filter((option) => option.value !== "all").map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">{clue.detail}</p>
               </div>
