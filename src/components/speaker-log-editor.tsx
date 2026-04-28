@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ChevronLeft, ChevronRight, FileText, MessageSquareText, Plus, RotateCcw, Trash2, UserRound, Wand2 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -59,6 +60,7 @@ export function SpeakerLogEditor({
   onUpdateSpeakerName,
   onUpdateSpeakerRole,
 }: SpeakerLogEditorProps) {
+  const [showLowConfidenceOnly, setShowLowConfidenceOnly] = useState(false);
   const sortedSegments = [...liveLog.segments].sort((first, second) => first.startTimeSec - second.startTimeSec);
   const hasSegmentText = liveLog.segments.some((segment) => segment.text.trim().length > 0);
   const nonEmptySegmentCount = liveLog.segments.filter((segment) => segment.text.trim().length > 0).length;
@@ -73,6 +75,12 @@ export function SpeakerLogEditor({
   const lowConfidenceCount = liveLog.segments.filter(
     (segment) => typeof segment.confidence === "number" && Number.isFinite(segment.confidence) && segment.confidence < 0.85,
   ).length;
+  const visibleSegments = showLowConfidenceOnly
+    ? sortedSegments.filter(
+        (segment) =>
+          typeof segment.confidence === "number" && Number.isFinite(segment.confidence) && segment.confidence < 0.85,
+      )
+    : sortedSegments;
 
   return (
     <div className="grid gap-4">
@@ -183,11 +191,25 @@ export function SpeakerLogEditor({
           <div className="flex items-center gap-2">
             <MessageSquareText className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-sm font-semibold">発話ログ</h2>
+            {showLowConfidenceOnly && <Badge variant="destructive">要確認のみ</Badge>}
           </div>
-          <Button disabled={isExtracting} onClick={onAddSegment} size="sm" variant="outline">
-            <Plus className="h-4 w-4" />
-            発話を追加
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {lowConfidenceCount > 0 && (
+              <Button
+                aria-pressed={showLowConfidenceOnly}
+                disabled={isExtracting}
+                onClick={() => setShowLowConfidenceOnly((current) => !current)}
+                size="sm"
+                variant={showLowConfidenceOnly ? "default" : "outline"}
+              >
+                要確認 {lowConfidenceCount}
+              </Button>
+            )}
+            <Button disabled={isExtracting} onClick={onAddSegment} size="sm" variant="outline">
+              <Plus className="h-4 w-4" />
+              発話を追加
+            </Button>
+          </div>
         </div>
 
         {sortedSegments.length === 0 ? (
@@ -200,7 +222,15 @@ export function SpeakerLogEditor({
           </div>
         ) : (
           <div className="grid gap-3">
-            {sortedSegments.map((segment) => {
+            {visibleSegments.length === 0 && (
+              <div className="rounded-md border border-dashed bg-background p-6 text-center">
+                <p className="text-sm font-medium">要確認の発話はありません</p>
+                <Button className="mt-3" onClick={() => setShowLowConfidenceOnly(false)} size="sm" variant="outline">
+                  すべて表示
+                </Button>
+              </div>
+            )}
+            {visibleSegments.map((segment) => {
               const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
               const isSegmentTextInvalid = !isExtracting && segment.text.trim().length === 0;
               const confidencePercent =
