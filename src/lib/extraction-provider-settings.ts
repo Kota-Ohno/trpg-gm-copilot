@@ -64,7 +64,7 @@ export function normalizeProviderSecretSettings(value: unknown): ProviderSecretS
   return {
     openAiApiKey:
       typeof maybeSecrets.openAiApiKey === "string"
-        ? maybeSecrets.openAiApiKey
+        ? maybeSecrets.openAiApiKey.trim()
         : defaultProviderSecretSettings.openAiApiKey,
   };
 }

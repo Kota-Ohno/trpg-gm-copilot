@@ -269,7 +269,10 @@ export function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(PROVIDER_SECRETS_STORAGE_KEY, JSON.stringify(providerSecrets));
+      window.localStorage.setItem(
+        PROVIDER_SECRETS_STORAGE_KEY,
+        JSON.stringify(normalizeProviderSecretSettings(providerSecrets)),
+      );
     } catch {
       setStorageError("Provider secrets をブラウザに保存できませんでした。");
     }
