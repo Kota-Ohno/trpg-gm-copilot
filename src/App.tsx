@@ -35,9 +35,11 @@ import {
   createExportFileName,
   createInitialCampaignState,
   createId,
+  createNewCampaignState,
   createNewSession,
   generatePrepNote,
   getLocalDateString,
+  normalizeCampaignLibraryState,
   normalizeCampaignState,
 } from "./lib/campaign";
 import {
@@ -51,6 +53,7 @@ import {
 import { runExtractionProvider } from "./lib/extraction-providers";
 import type {
   CampaignState,
+  CampaignLibraryState,
   ExtractionRun,
   ExtractionItem,
   LiveLogSession,
@@ -61,7 +64,8 @@ import type {
   WorkspaceTab,
 } from "./types";
 
-const STORAGE_KEY = "chronicle-gm.campaign-state.v1";
+const LEGACY_STORAGE_KEY = "chronicle-gm.campaign-state.v1";
+const CAMPAIGN_LIBRARY_STORAGE_KEY = "chronicle-gm.campaign-library.v1";
 const PROVIDER_SECRETS_STORAGE_KEY = "chronicle-gm.provider-secrets.v1";
 const campaignNameInputId = "campaign-name";
 const campaignImportInputId = "campaign-json-import";
@@ -127,20 +131,29 @@ const extractionSourceLabels: Record<ExtractionRun["sourceType"], string> = {
   fallback: "フォールバック",
 };
 
-function loadCampaignState(): CampaignState {
+function loadCampaignLibraryState(): CampaignLibraryState {
   if (typeof window === "undefined") {
-    return createInitialCampaignState();
+    return normalizeCampaignLibraryState(createInitialCampaignState());
   }
 
-  const savedState = window.localStorage.getItem(STORAGE_KEY);
+  const savedLibraryState = window.localStorage.getItem(CAMPAIGN_LIBRARY_STORAGE_KEY);
+  if (savedLibraryState) {
+    try {
+      return normalizeCampaignLibraryState(JSON.parse(savedLibraryState));
+    } catch {
+      return normalizeCampaignLibraryState(createInitialCampaignState());
+    }
+  }
+
+  const savedState = window.localStorage.getItem(LEGACY_STORAGE_KEY);
   if (!savedState) {
-    return createInitialCampaignState();
+    return normalizeCampaignLibraryState(createInitialCampaignState());
   }
 
   try {
-    return normalizeCampaignState(JSON.parse(savedState));
+    return normalizeCampaignLibraryState(JSON.parse(savedState));
   } catch {
-    return createInitialCampaignState();
+    return normalizeCampaignLibraryState(createInitialCampaignState());
   }
 }
 
@@ -172,7 +185,7 @@ function loadProviderSecrets(): ProviderSecretSettings {
     }
   }
 
-  const savedState = window.localStorage.getItem(STORAGE_KEY);
+  const savedState = window.localStorage.getItem(LEGACY_STORAGE_KEY);
   if (!savedState) {
     return defaultProviderSecretSettings;
   }
@@ -201,13 +214,16 @@ export function App() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("log");
   const [isExtracting, setIsExtracting] = useState(false);
   const [logInputMode, setLogInputMode] = useState<LogInputMode>("plain");
-  const [campaignState, setCampaignState] = useState<CampaignState>(loadCampaignState);
+  const [campaignLibrary, setCampaignLibrary] = useState<CampaignLibraryState>(loadCampaignLibraryState);
   const [showApprovedReviewItems, setShowApprovedReviewItems] = useState(true);
   const [reviewKindFilter, setReviewKindFilter] = useState<ReviewKindFilter>("all");
   const [storageError, setStorageError] = useState<string | null>(null);
   const [providerSecrets, setProviderSecrets] = useState<ProviderSecretSettings>(loadProviderSecrets);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
 
+  const campaignState =
+    campaignLibrary.campaigns.find((campaign) => campaign.id === campaignLibrary.activeCampaignId) ??
+    campaignLibrary.campaigns[0];
   const currentSession =
     campaignState.sessions.find((session) => session.id === campaignState.activeSessionId) ?? campaignState.sessions[0];
   const {
@@ -271,12 +287,12 @@ export function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(campaignState));
+      window.localStorage.setItem(CAMPAIGN_LIBRARY_STORAGE_KEY, JSON.stringify(campaignLibrary));
       setStorageError(null);
     } catch {
       setStorageError("キャンペーン状態をブラウザに保存できませんでした。書き出しで退避してください。");
     }
-  }, [campaignState]);
+  }, [campaignLibrary]);
 
   useEffect(() => {
     try {
@@ -289,8 +305,86 @@ export function App() {
     }
   }, [providerSecrets]);
 
+  const setActiveCampaignState = (updater: (current: CampaignState) => CampaignState): void => {
+    setCampaignLibrary((currentLibrary) => {
+      const activeCampaign = currentLibrary.campaigns.find(
+        (campaign) => campaign.id === currentLibrary.activeCampaignId,
+      );
+      if (!activeCampaign) {
+        return currentLibrary;
+      }
+
+      return {
+        ...currentLibrary,
+        campaigns: currentLibrary.campaigns.map((campaign) =>
+          campaign.id === activeCampaign.id ? updater(campaign) : campaign,
+        ),
+      };
+    });
+  };
+
   const updateCampaignState = (updates: Partial<CampaignState>): void => {
-    setCampaignState((current) => ({ ...current, ...updates }));
+    setActiveCampaignState((current) => ({ ...current, ...updates }));
+  };
+
+  const switchCampaign = (campaignId: string): void => {
+    setCampaignLibrary((current) => ({
+      ...current,
+      activeCampaignId: current.campaigns.some((campaign) => campaign.id === campaignId)
+        ? campaignId
+        : current.activeCampaignId,
+    }));
+    setLogInputMode("plain");
+    setActiveTab("log");
+  };
+
+  const addNewCampaign = (): void => {
+    setCampaignLibrary((current) => {
+      const nextCampaign = createNewCampaignState(current.campaigns.length + 1);
+
+      return {
+        campaigns: [...current.campaigns, nextCampaign],
+        activeCampaignId: nextCampaign.id,
+      };
+    });
+    setLogInputMode("plain");
+    setActiveTab("log");
+  };
+
+  const deleteCampaign = (campaignId: string): void => {
+    const targetCampaign = campaignLibrary.campaigns.find((campaign) => campaign.id === campaignId);
+    if (!targetCampaign || campaignLibrary.campaigns.length <= 1) {
+      return;
+    }
+
+    setConfirmation({
+      title: `${targetCampaign.campaignName}を削除しますか`,
+      message: "キャンペーン内のセッション、記憶、抽出候補は元に戻せません。",
+      confirmLabel: "削除する",
+      onConfirm: () => {
+        setCampaignLibrary((current) => {
+          if (current.campaigns.length <= 1) {
+            return current;
+          }
+
+          const targetIndex = current.campaigns.findIndex((campaign) => campaign.id === campaignId);
+          if (targetIndex === -1) {
+            return current;
+          }
+
+          const nextCampaigns = current.campaigns.filter((campaign) => campaign.id !== campaignId);
+          const fallbackCampaign = nextCampaigns[Math.max(0, targetIndex - 1)] ?? nextCampaigns[0];
+
+          return {
+            campaigns: nextCampaigns,
+            activeCampaignId:
+              current.activeCampaignId === campaignId ? fallbackCampaign.id : current.activeCampaignId,
+          };
+        });
+        setLogInputMode("plain");
+        setActiveTab("log");
+      },
+    });
   };
 
   const exportCampaignState = (): void => {
@@ -318,7 +412,10 @@ export function App() {
         message: "現在のキャンペーン状態をインポート内容で置き換えます。",
         confirmLabel: "置き換える",
         onConfirm: () => {
-          setCampaignState(importedState);
+          setActiveCampaignState((current) => ({
+            ...importedState,
+            id: current.id,
+          }));
           if (importedLegacyApiKey) {
             setProviderSecrets((current) => ({ ...current, openAiApiKey: importedLegacyApiKey }));
           }
@@ -333,7 +430,7 @@ export function App() {
   };
 
   const updateActiveSession = (updater: (currentSession: SessionState) => SessionState): void => {
-    setCampaignState((current) => ({
+    setActiveCampaignState((current) => ({
       ...current,
       sessions: current.sessions.map((session) =>
         session.id === current.activeSessionId ? updater(session) : session,
@@ -349,7 +446,7 @@ export function App() {
   };
 
   const updateSessionById = (sessionId: string, updates: Partial<SessionState>): void => {
-    setCampaignState((current) => ({
+    setActiveCampaignState((current) => ({
       ...current,
       sessions: current.sessions.map((session) =>
         session.id === sessionId ? { ...session, ...updates } : session,
@@ -365,7 +462,7 @@ export function App() {
   };
 
   const switchSession = (sessionId: string): void => {
-    setCampaignState((current) => ({
+    setActiveCampaignState((current) => ({
       ...current,
       activeSessionId: sessionId,
     }));
@@ -373,7 +470,7 @@ export function App() {
   };
 
   const addNewSession = (): void => {
-    setCampaignState((current) => {
+    setActiveCampaignState((current) => {
       const nextSession = createNewSession(current.sessions.length + 1);
 
       return {
@@ -397,7 +494,7 @@ export function App() {
       message: "ログと抽出候補は元に戻せません。",
       confirmLabel: "削除する",
       onConfirm: () => {
-        setCampaignState((current) => {
+        setActiveCampaignState((current) => {
           if (current.sessions.length <= 1) {
             return current;
           }
@@ -428,8 +525,11 @@ export function App() {
       message: "現在のキャンペーン状態は初期状態に戻ります。",
       confirmLabel: "初期化する",
       onConfirm: () => {
-        window.localStorage.removeItem(STORAGE_KEY);
-        setCampaignState(createInitialCampaignState());
+        window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+        setActiveCampaignState((current) => ({
+          ...createInitialCampaignState(),
+          id: current.id,
+        }));
         setActiveTab("log");
       },
     });
@@ -456,7 +556,7 @@ export function App() {
         extractionRun: extractionResult.run,
         approvedIds: [],
       });
-      setCampaignState((current) =>
+      setActiveCampaignState((current) =>
         current.activeSessionId === targetSessionId || !current.sessions.some((session) => session.id === targetSessionId)
           ? current
           : { ...current, activeSessionId: targetSessionId },
@@ -626,7 +726,7 @@ export function App() {
     if (approvedIds.includes(item.id) || !item.title.trim() || !item.detail.trim()) {
       return;
     }
-    setCampaignState((current) => ({
+    setActiveCampaignState((current) => ({
       ...current,
       sessions: current.sessions.map((session) =>
         session.id === current.activeSessionId
@@ -641,7 +741,7 @@ export function App() {
   };
 
   const approveRemainingItems = (): void => {
-    setCampaignState((current) => {
+    setActiveCampaignState((current) => {
       const session = current.sessions.find((candidate) => candidate.id === current.activeSessionId);
       if (!session) {
         return current;
@@ -702,8 +802,52 @@ export function App() {
           </div>
 
           <div className="mt-6 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-medium text-muted-foreground">キャンペーン一覧</p>
+              <Button disabled={isExtracting} onClick={addNewCampaign} size="sm" variant="outline">
+                <Plus className="h-3.5 w-3.5" />
+                新規
+              </Button>
+            </div>
+            <div className="space-y-1">
+              {campaignLibrary.campaigns.map((campaign) => (
+                <div
+                  className={
+                    campaign.id === campaignState.id
+                      ? "flex items-center gap-1 rounded-md bg-primary px-2 py-2 text-sm text-primary-foreground"
+                      : "flex items-center gap-1 rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  }
+                  key={campaign.id}
+                >
+                  <button className="min-w-0 flex-1 text-left" onClick={() => switchCampaign(campaign.id)} type="button">
+                    <span className="block truncate font-medium">{campaign.campaignName}</span>
+                    <span
+                      className={
+                        campaign.id === campaignState.id
+                          ? "block text-xs opacity-80"
+                          : "block text-xs text-muted-foreground"
+                      }
+                    >
+                      {campaign.sessions.length}セッション / {campaign.chronicle.events.length + campaign.chronicle.clues.length}記憶
+                    </span>
+                  </button>
+                  <Button
+                    aria-label={`${campaign.campaignName}を削除`}
+                    disabled={isExtracting || campaignLibrary.campaigns.length <= 1}
+                    onClick={() => deleteCampaign(campaign.id)}
+                    size="icon"
+                    variant="ghost"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-2">
             <label className="text-xs font-medium text-muted-foreground" htmlFor={campaignNameInputId}>
-              キャンペーン
+              キャンペーン名
             </label>
             <Input
               disabled={isExtracting}
