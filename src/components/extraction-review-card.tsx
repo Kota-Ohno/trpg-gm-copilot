@@ -37,6 +37,10 @@ export function ExtractionReviewCard({
     : !canApprove
       ? "border-destructive/30 bg-destructive/5"
       : "";
+  const kindSelectId = `extraction-kind-${item.id}`;
+  const visibilitySelectId = `extraction-visibility-${item.id}`;
+  const titleInputId = `extraction-title-${item.id}`;
+  const detailInputId = `extraction-detail-${item.id}`;
 
   return (
     <Card className={cardStateClass}>
@@ -84,10 +88,13 @@ export function ExtractionReviewCard({
       <CardContent className="grid gap-3">
         <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
           <div>
-            <label className="text-xs font-medium text-muted-foreground">種別</label>
+            <label className="text-xs font-medium text-muted-foreground" htmlFor={kindSelectId}>
+              種別
+            </label>
             <select
               className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isApproved}
+              id={kindSelectId}
               value={item.kind}
               onChange={(event) => onUpdate(item.id, { kind: event.target.value as ExtractionItem["kind"] })}
             >
@@ -99,10 +106,13 @@ export function ExtractionReviewCard({
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">公開範囲</label>
+            <label className="text-xs font-medium text-muted-foreground" htmlFor={visibilitySelectId}>
+              公開範囲
+            </label>
             <select
               className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isApproved}
+              id={visibilitySelectId}
               value={item.visibility}
               onChange={(event) =>
                 onUpdate(item.id, { visibility: event.target.value as ExtractionItem["visibility"] })
@@ -118,11 +128,14 @@ export function ExtractionReviewCard({
         </div>
 
         <div>
-          <label className="text-xs font-medium text-muted-foreground">タイトル</label>
+          <label className="text-xs font-medium text-muted-foreground" htmlFor={titleInputId}>
+            タイトル
+          </label>
           <Input
             aria-invalid={isTitleInvalid}
             className="mt-1"
             disabled={isApproved}
+            id={titleInputId}
             value={item.title}
             onBlur={(event) => onUpdate(item.id, { title: event.target.value.trim() })}
             onChange={(event) => onUpdate(item.id, { title: event.target.value })}
@@ -130,11 +143,14 @@ export function ExtractionReviewCard({
         </div>
 
         <div>
-          <label className="text-xs font-medium text-muted-foreground">本文</label>
+          <label className="text-xs font-medium text-muted-foreground" htmlFor={detailInputId}>
+            本文
+          </label>
           <Textarea
             aria-invalid={isDetailInvalid}
             className="mt-1 min-h-[116px] resize-y text-sm leading-6 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isApproved}
+            id={detailInputId}
             value={item.detail}
             onBlur={(event) => onUpdate(item.id, { detail: event.target.value.trim() })}
             onChange={(event) => onUpdate(item.id, { detail: event.target.value })}
