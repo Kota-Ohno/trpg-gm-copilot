@@ -70,6 +70,9 @@ export function SpeakerLogEditor({
     0,
   );
   const usedSpeakerCount = new Set(liveLog.segments.map((segment) => segment.speakerId)).size;
+  const lowConfidenceCount = liveLog.segments.filter(
+    (segment) => typeof segment.confidence === "number" && Number.isFinite(segment.confidence) && segment.confidence < 0.85,
+  ).length;
 
   return (
     <div className="grid gap-4">
@@ -85,6 +88,7 @@ export function SpeakerLogEditor({
             <Badge variant="muted">合計 {formatTimestamp(totalDurationSec)}</Badge>
             <Badge variant="muted">{liveLog.speakers.length}話者</Badge>
             <Badge variant="muted">使用中 {usedSpeakerCount}</Badge>
+            {lowConfidenceCount > 0 && <Badge variant="destructive">要確認 {lowConfidenceCount}</Badge>}
           </div>
           <p className="mt-2 text-sm font-medium">{liveLog.title}</p>
           <p className="text-xs text-muted-foreground">
