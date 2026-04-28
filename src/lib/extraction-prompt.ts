@@ -27,6 +27,7 @@ function formatLine(line: ExtractionInputLine, index: number): string {
 
 export function buildExtractionPrompt({ lines, source }: ExtractionPromptInput): string {
   const transcript = lines.map(formatLine).join("\n");
+  const sourceLabel = source === "speaker" ? "話者付きログ" : "通常ログ";
 
   return [
     "あなたはTRPGの人間GMを支援するログ整理アシスタントです。",
@@ -58,7 +59,7 @@ export function buildExtractionPrompt({ lines, source }: ExtractionPromptInput):
     "- schema:",
     JSON.stringify(extractionResponseJsonSchema.schema, null, 2),
     "",
-    `入力種別: ${source === "speaker" ? "話者付きログ" : "通常ログ"}`,
+    `<input_summary source="${escapeXmlAttribute(sourceLabel)}" line_count="${lines.length}" />`,
     "<transcript>",
     transcript,
     "</transcript>",
