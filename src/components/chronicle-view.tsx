@@ -84,7 +84,9 @@ export function ChronicleView({
         return includesQuery([clue.title, clue.detail, statusLabels[clue.status]]);
       }),
       locations: chronicle.locations.filter((location) => includesQuery([location.name, location.detail])),
-      threads: chronicle.threads.filter((thread) => includesQuery([thread.title, thread.detail, thread.nextMove])),
+      threads: chronicle.threads.map((thread, index) => ({ thread, index })).filter(({ thread }) =>
+        includesQuery([thread.title, thread.detail, thread.nextMove]),
+      ),
     };
   }, [chronicle, clueStatusFilter, normalizedQuery]);
   const totalCount = countChronicleItems(chronicle);
@@ -114,8 +116,8 @@ export function ChronicleView({
         detail: clue.detail,
         label: statusLabels[clue.status],
       })),
-    ...chronicle.threads.map((thread) => ({
-      id: `thread:${thread.title}:${thread.detail}:${thread.nextMove}`,
+    ...chronicle.threads.map((thread, index) => ({
+      id: `thread:${index}:${thread.title}:${thread.detail}:${thread.nextMove}`,
       title: thread.title,
       detail: thread.nextMove,
       label: "伏線",
@@ -315,32 +317,23 @@ export function ChronicleView({
           </CardHeader>
           <CardContent className="space-y-3">
             {filteredChronicle.threads.length > 0 ? (
-              filteredChronicle.threads.map((thread) => {
-                const threadIndex = chronicle.threads.findIndex(
-                  (candidate) =>
-                    candidate.title === thread.title &&
-                    candidate.detail === thread.detail &&
-                    candidate.nextMove === thread.nextMove,
-                );
-
-                return (
-                <div className="rounded-md border p-3" key={`${thread.title}-${thread.detail}-${thread.nextMove}`}>
+              filteredChronicle.threads.map(({ thread, index }) => (
+                <div className="rounded-md border p-3" key={`${thread.title}-${thread.detail}-${index}`}>
                   <p className="font-medium">{thread.title}</p>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">{thread.detail}</p>
-                  {onUpdateThreadNextMove && threadIndex >= 0 ? (
+                  {onUpdateThreadNextMove ? (
                     <Input
                       aria-label={`${thread.title}の次の一手`}
                       className="mt-2"
                       value={thread.nextMove}
-                      onBlur={(event) => onUpdateThreadNextMove(threadIndex, event.target.value.trim() || "次の一手未設定")}
-                      onChange={(event) => onUpdateThreadNextMove(threadIndex, event.target.value)}
+                      onBlur={(event) => onUpdateThreadNextMove(index, event.target.value.trim() || "次の一手未設定")}
+                      onChange={(event) => onUpdateThreadNextMove(index, event.target.value)}
                     />
                   ) : (
                     <p className="mt-2 text-sm leading-6">{thread.nextMove}</p>
                   )}
                 </div>
-                );
-              })
+              ))
             ) : (
               <EmptyCategory label="伏線" />
             )}
