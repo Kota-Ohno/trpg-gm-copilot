@@ -224,7 +224,9 @@ function normalizeExtractionRun(rawRun: unknown, itemCount: number): ExtractionR
     executedProviderId: executedProvider.id,
     executedProviderLabel: executedProvider.label,
     fallbackUsed: typeof run.fallbackUsed === "boolean" ? run.fallbackUsed : run.sourceType === "fallback",
+    failureReason: typeof run.failureReason === "string" && run.failureReason.trim() ? run.failureReason.trim() : undefined,
     itemCount,
+    note: typeof run.note === "string" && run.note.trim() ? run.note.trim() : undefined,
     promptLength: readNumber(run.promptLength, 0),
     validationErrors,
   };
