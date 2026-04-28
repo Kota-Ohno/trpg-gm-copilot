@@ -217,6 +217,7 @@ export function App() {
   const [campaignLibrary, setCampaignLibrary] = useState<CampaignLibraryState>(loadCampaignLibraryState);
   const [showApprovedReviewItems, setShowApprovedReviewItems] = useState(true);
   const [reviewKindFilter, setReviewKindFilter] = useState<ReviewKindFilter>("all");
+  const [sessionQuery, setSessionQuery] = useState("");
   const [storageError, setStorageError] = useState<string | null>(null);
   const [providerSecrets, setProviderSecrets] = useState<ProviderSecretSettings>(loadProviderSecrets);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
@@ -269,6 +270,12 @@ export function App() {
       伏線: 0,
     },
   );
+  const normalizedSessionQuery = sessionQuery.trim().toLowerCase();
+  const visibleSessions = normalizedSessionQuery
+    ? campaignState.sessions.filter((session) =>
+        [session.title, session.date].some((value) => value.toLowerCase().includes(normalizedSessionQuery)),
+      )
+    : campaignState.sessions;
   const canExtractLog =
     logInputMode === "plain"
       ? log.trim().length > 0
@@ -334,6 +341,7 @@ export function App() {
         ? campaignId
         : current.activeCampaignId,
     }));
+    setSessionQuery("");
     setLogInputMode("plain");
     setActiveTab("log");
   };
@@ -347,6 +355,7 @@ export function App() {
         activeCampaignId: nextCampaign.id,
       };
     });
+    setSessionQuery("");
     setLogInputMode("plain");
     setActiveTab("log");
   };
@@ -381,6 +390,7 @@ export function App() {
               current.activeCampaignId === campaignId ? fallbackCampaign.id : current.activeCampaignId,
           };
         });
+        setSessionQuery("");
         setLogInputMode("plain");
         setActiveTab("log");
       },
@@ -420,6 +430,7 @@ export function App() {
             setProviderSecrets((current) => ({ ...current, openAiApiKey: importedLegacyApiKey }));
           }
           setStorageError(null);
+          setSessionQuery("");
           setLogInputMode("plain");
           setActiveTab("log");
         },
@@ -479,6 +490,7 @@ export function App() {
         activeSessionId: nextSession.id,
       };
     });
+    setSessionQuery("");
     setLogInputMode("plain");
     setActiveTab("log");
   };
@@ -513,6 +525,7 @@ export function App() {
             activeSessionId: current.activeSessionId === sessionId ? fallbackSession.id : current.activeSessionId,
           };
         });
+        setSessionQuery("");
         setLogInputMode("plain");
         setActiveTab("log");
       },
@@ -912,8 +925,19 @@ export function App() {
                 追加
               </Button>
             </div>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                aria-label="セッションを検索"
+                className="pl-8"
+                disabled={isExtracting}
+                placeholder="タイトル・日付で検索"
+                value={sessionQuery}
+                onChange={(event) => setSessionQuery(event.target.value)}
+              />
+            </div>
             <div className="space-y-1">
-              {campaignState.sessions.map((session) => (
+              {visibleSessions.map((session) => (
                 <div
                   className={
                     session.id === campaignState.activeSessionId
@@ -945,6 +969,11 @@ export function App() {
                   </Button>
                 </div>
               ))}
+              {visibleSessions.length === 0 && (
+                <p className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground">
+                  条件に一致するセッションはありません。
+                </p>
+              )}
             </div>
           </div>
 
