@@ -210,6 +210,13 @@ function sanitizeCampaignStateForExport(campaignState: CampaignState): CampaignS
   };
 }
 
+function sanitizeCampaignLibraryStateForExport(campaignLibrary: CampaignLibraryState): CampaignLibraryState {
+  return {
+    ...campaignLibrary,
+    campaigns: campaignLibrary.campaigns.map(sanitizeCampaignStateForExport),
+  };
+}
+
 export function App() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("log");
   const [isExtracting, setIsExtracting] = useState(false);
@@ -421,10 +428,47 @@ export function App() {
     setStorageError(null);
   };
 
+  const exportCampaignLibrary = (): void => {
+    const blob = new Blob([JSON.stringify(sanitizeCampaignLibraryStateForExport(campaignLibrary), null, 2)], {
+      type: "application/json",
+    });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = objectUrl;
+    link.download = createExportFileName("campaign-library");
+    link.click();
+    URL.revokeObjectURL(objectUrl);
+    setStorageError(null);
+  };
+
   const importCampaignState = async (file: File): Promise<void> => {
     try {
       const fileText = await file.text();
       const parsedState = JSON.parse(fileText);
+      const isLibraryImport =
+        typeof parsedState === "object" &&
+        parsedState !== null &&
+        Array.isArray((parsedState as { campaigns?: unknown }).campaigns);
+
+      if (isLibraryImport) {
+        const importedLibrary = normalizeCampaignLibraryState(parsedState);
+        setConfirmation({
+          title: "キャンペーンライブラリを置き換えますか",
+          message: "現在の全キャンペーンをインポート内容で置き換えます。",
+          confirmLabel: "全体を置き換える",
+          onConfirm: () => {
+            setCampaignLibrary(importedLibrary);
+            setStorageError(null);
+            setCampaignQuery("");
+            setSessionQuery("");
+            setLogInputMode("plain");
+            setActiveTab("log");
+          },
+        });
+        return;
+      }
+
       const importedState = normalizeCampaignState(parsedState);
       const importedLegacyApiKey = readLegacyProviderApiKey(parsedState);
       setConfirmation({
@@ -898,7 +942,11 @@ export function App() {
             <div className="grid grid-cols-2 gap-2">
               <Button onClick={exportCampaignState} size="sm" variant="outline">
                 <Download className="h-3.5 w-3.5" />
-                JSON書き出し
+                現在を書き出し
+              </Button>
+              <Button onClick={exportCampaignLibrary} size="sm" variant="outline">
+                <Download className="h-3.5 w-3.5" />
+                全体を書き出し
               </Button>
               <label
                 className={
