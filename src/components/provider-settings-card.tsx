@@ -32,6 +32,7 @@ export function ProviderSettingsCard({
   const selectedProvider = getExtractionProvider(settings.providerId);
   const needsApiKey = settings.providerId === "openai";
   const hasApiKey = secrets.openAiApiKey.trim().length > 0;
+  const isApiKeyMissing = needsApiKey && !hasApiKey;
   const isModelDefault = settings.model.trim() === selectedProvider.defaultModel;
   const isEndpointDefault = settings.endpoint.trim() === selectedProvider.defaultEndpoint;
   const providerHelpText =
@@ -123,7 +124,7 @@ export function ProviderSettingsCard({
           <Badge variant={isEndpointDefault ? "secondary" : "outline"}>
             Endpoint: {isEndpointDefault ? "既定値" : "変更済み"}
           </Badge>
-          <Badge variant={!needsApiKey || hasApiKey ? "secondary" : "outline"}>
+          <Badge variant={isApiKeyMissing ? "destructive" : "secondary"}>
             API key: {!needsApiKey ? "不要" : hasApiKey ? "設定済み" : "未設定"}
           </Badge>
         </div>
@@ -192,12 +193,13 @@ export function ProviderSettingsCard({
                 <KeyRound className="h-3 w-3" />
                 API key
               </span>
-              <Badge variant={hasApiKey ? "secondary" : "outline"}>
+              <Badge variant={isApiKeyMissing ? "destructive" : "secondary"}>
                 {hasApiKey ? "設定済み" : "未設定"}
               </Badge>
             </label>
             <div className="mt-1 flex gap-2">
               <Input
+                aria-invalid={isApiKeyMissing}
                 disabled={isLocked}
                 onBlur={(event) => onChangeSecrets({ ...secrets, openAiApiKey: event.target.value.trim() })}
                 onChange={(event) => onChangeSecrets({ ...secrets, openAiApiKey: event.target.value })}
