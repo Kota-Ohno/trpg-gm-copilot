@@ -118,6 +118,34 @@ const quickPrompts = [
   },
 ];
 
+const sampleTranscriptionDraftJson = JSON.stringify(
+  [
+    {
+      speakerName: "GM",
+      startTimeSec: 0,
+      endTimeSec: 6,
+      text: "扉の奥から足音が聞こえる。ここから先は慎重に進んでください。",
+      confidence: 0.94,
+    },
+    {
+      speakerName: "アキラ",
+      startTimeSec: 8,
+      endTimeSec: 13,
+      text: "聞き耳を立てます。足音は何人分ですか？",
+      confidence: 0.88,
+    },
+    {
+      speakerName: "GM",
+      startTimeSec: 15,
+      endTimeSec: 22,
+      text: "少なくとも二人分です。片方は金属を引きずるような音を立てています。",
+      confidence: 0.76,
+    },
+  ],
+  null,
+  2,
+);
+
 const logInputOptions: Array<{ value: LogInputMode; label: string }> = [
   { value: "plain", label: "通常ログ" },
   { value: "speaker", label: "話者付きログ" },
@@ -1283,6 +1311,17 @@ export function App() {
                       </p>
                     )}
                     <div className="flex flex-wrap gap-2">
+                      <Button
+                        onClick={() => {
+                          setTranscriptionDraftJson(sampleTranscriptionDraftJson);
+                          setTranscriptionImportError(null);
+                        }}
+                        size="sm"
+                        variant="ghost"
+                      >
+                        <FileText className="h-4 w-4" />
+                        サンプルを入れる
+                      </Button>
                       <Button
                         disabled={!transcriptionDraftJson.trim() || isExtracting}
                         onClick={importTranscriptionDraftJson}
