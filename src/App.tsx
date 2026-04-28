@@ -224,6 +224,31 @@ function sanitizeCampaignLibraryStateForExport(campaignLibrary: CampaignLibraryS
   };
 }
 
+function normalizeTranscriptionDrafts(value: unknown): TranscriptionSegmentDraft[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return [];
+    }
+
+    const draft = item as Partial<Record<keyof TranscriptionSegmentDraft, unknown>>;
+    if (typeof draft.text !== "string") {
+      return [];
+    }
+
+    return [{
+      ...(typeof draft.speakerName === "string" ? { speakerName: draft.speakerName } : {}),
+      ...(typeof draft.startTimeSec === "number" ? { startTimeSec: draft.startTimeSec } : {}),
+      ...(typeof draft.endTimeSec === "number" ? { endTimeSec: draft.endTimeSec } : {}),
+      text: draft.text,
+      ...(typeof draft.confidence === "number" ? { confidence: draft.confidence } : {}),
+    }];
+  });
+}
+
 export function App() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("log");
   const [isExtracting, setIsExtracting] = useState(false);
@@ -667,13 +692,19 @@ export function App() {
   const importTranscriptionDraftJson = (): void => {
     try {
       const parsedDrafts = JSON.parse(transcriptionDraftJson) as unknown;
-      if (!Array.isArray(parsedDrafts)) {
+      const normalizedDrafts = normalizeTranscriptionDrafts(parsedDrafts);
+      if (!normalizedDrafts) {
         setTranscriptionImportError("文字起こしドラフトは配列JSONで入力してください。");
         return;
       }
 
+      if (normalizedDrafts.length === 0) {
+        setTranscriptionImportError("textを持つ発話ドラフトがありません。");
+        return;
+      }
+
       const liveLogFromDrafts = transcriptionDraftsToLiveLog(
-        parsedDrafts as TranscriptionSegmentDraft[],
+        normalizedDrafts,
         `${currentSession.title} 文字起こし`,
       );
       if (!liveLogFromDrafts) {
