@@ -43,6 +43,7 @@ export function Tabs<T extends string>({ ariaLabel, value, options, onChange }: 
           }}
           onClick={() => onChange(option.value)}
           role="tab"
+          tabIndex={option.value === value ? 0 : -1}
           type="button"
         >
           {option.label}
