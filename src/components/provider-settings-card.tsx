@@ -235,8 +235,8 @@ export function ProviderSettingsCard({
           )}
           {connectionResult && (
             <Badge
-              className={connectionResult.ok ? "gap-1" : "gap-1 border-transparent bg-destructive text-destructive-foreground"}
-              variant={connectionResult.ok ? "default" : "outline"}
+              className="gap-1"
+              variant={connectionResult.ok ? "default" : "destructive"}
             >
               {connectionResult.ok ? (
                 <CheckCircle2 className="h-3 w-3" />
