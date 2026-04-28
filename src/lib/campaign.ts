@@ -205,6 +205,17 @@ function normalizeExtractionRun(rawRun: unknown, itemCount: number): ExtractionR
   const runProvider = getExtractionProvider((run.providerId ?? "rule-based") as ExtractionProviderId);
   const executedProvider = getExtractionProvider((run.executedProviderId ?? run.providerId ?? "rule-based") as ExtractionProviderId);
 
+  const validationErrors = Array.isArray(run.validationErrors)
+    ? Array.from(
+        new Set(
+          run.validationErrors
+            .filter((error): error is string => typeof error === "string")
+            .map((error) => error.trim())
+            .filter(Boolean),
+        ),
+      )
+    : [];
+
   return {
     ...run,
     sourceType: normalizeExtractionSourceType(run.sourceType),
@@ -215,9 +226,7 @@ function normalizeExtractionRun(rawRun: unknown, itemCount: number): ExtractionR
     fallbackUsed: typeof run.fallbackUsed === "boolean" ? run.fallbackUsed : run.sourceType === "fallback",
     itemCount,
     promptLength: readNumber(run.promptLength, 0),
-    validationErrors: Array.isArray(run.validationErrors)
-      ? run.validationErrors.filter((error): error is string => typeof error === "string")
-      : [],
+    validationErrors,
   };
 }
 
