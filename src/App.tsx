@@ -961,10 +961,12 @@ export function App() {
                       </div>
 
                       {extractionRun.failureReason && (
-                        <p className="text-xs text-destructive">失敗理由: {extractionRun.failureReason}</p>
+                        <p className="text-xs text-destructive" role="alert">
+                          失敗理由: {extractionRun.failureReason}
+                        </p>
                       )}
                       {extractionRun.validationErrors && extractionRun.validationErrors.length > 0 && (
-                        <details className="text-xs text-destructive">
+                        <details className="text-xs text-destructive" role="alert">
                           <summary className="cursor-pointer">検証メモを表示</summary>
                           <ul className="mt-2 grid gap-1">
                             {extractionRun.validationErrors.map((error, index) => (
