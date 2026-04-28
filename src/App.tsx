@@ -863,7 +863,7 @@ export function App() {
                 </div>
               </div>
             </div>
-            <Tabs value={activeTab} options={tabOptions} onChange={setActiveTab} />
+            <Tabs ariaLabel="ワークスペース" value={activeTab} options={tabOptions} onChange={setActiveTab} />
           </header>
 
           <div className="mt-5">
@@ -881,7 +881,7 @@ export function App() {
                           初期MVPでは貼り付け入力に絞ります。ココフォリアやDiscordログの取り込みは後から足せます。
                         </CardDescription>
                       </div>
-                      <Tabs value={logInputMode} options={logInputOptions} onChange={setLogInputMode} />
+                      <Tabs ariaLabel="ログ入力方式" value={logInputMode} options={logInputOptions} onChange={setLogInputMode} />
                     </div>
                   </CardHeader>
                   <CardContent>

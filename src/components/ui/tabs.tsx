@@ -6,14 +6,15 @@ type TabOption<T extends string> = {
 };
 
 type TabsProps<T extends string> = {
+  ariaLabel: string;
   value: T;
   options: Array<TabOption<T>>;
   onChange: (value: T) => void;
 };
 
-export function Tabs<T extends string>({ value, options, onChange }: TabsProps<T>) {
+export function Tabs<T extends string>({ ariaLabel, value, options, onChange }: TabsProps<T>) {
   return (
-    <div className="inline-flex rounded-md bg-muted p-1" role="tablist">
+    <div aria-label={ariaLabel} className="inline-flex rounded-md bg-muted p-1" role="tablist">
       {options.map((option) => (
         <button
           key={option.value}
