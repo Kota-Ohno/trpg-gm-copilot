@@ -468,9 +468,10 @@ export async function testExtractionProviderConnection({
       }
 
       const responseText = extractOpenAiText(responseBody);
+      const isConnectionOk = parseConnectionTestResponse(responseText);
       return {
-        ok: parseConnectionTestResponse(responseText),
-        message: parseConnectionTestResponse(responseText)
+        ok: isConnectionOk,
+        message: isConnectionOk
           ? `OpenAI Provider に接続できました。model: ${model}`
           : `OpenAI の応答をJSONとして確認できませんでした。model: ${model}`,
       };
@@ -507,9 +508,10 @@ export async function testExtractionProviderConnection({
       }
 
       const responseText = typeof responseBody.response === "string" ? responseBody.response : "";
+      const isConnectionOk = parseConnectionTestResponse(responseText);
       return {
-        ok: parseConnectionTestResponse(responseText),
-        message: parseConnectionTestResponse(responseText)
+        ok: isConnectionOk,
+        message: isConnectionOk
           ? `Ollama Provider に接続できました。model: ${model}`
           : `Ollama の応答をJSONとして確認できませんでした。model: ${model}`,
       };
