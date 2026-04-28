@@ -52,9 +52,10 @@ function countChronicleItems(chronicle: Chronicle): number {
 type ChronicleViewProps = {
   chronicle: Chronicle;
   onUpdateClueStatus?: (clueIndex: number, status: ClueStatus) => void;
+  onUpdateThreadNextMove?: (threadIndex: number, nextMove: string) => void;
 };
 
-export function ChronicleView({ chronicle, onUpdateClueStatus }: ChronicleViewProps) {
+export function ChronicleView({ chronicle, onUpdateClueStatus, onUpdateThreadNextMove }: ChronicleViewProps) {
   const [query, setQuery] = useState("");
   const [clueStatusFilter, setClueStatusFilter] = useState<ClueStatusFilter>("all");
   const normalizedQuery = query.trim().toLowerCase();
@@ -296,13 +297,32 @@ export function ChronicleView({ chronicle, onUpdateClueStatus }: ChronicleViewPr
           </CardHeader>
           <CardContent className="space-y-3">
             {filteredChronicle.threads.length > 0 ? (
-              filteredChronicle.threads.map((thread) => (
+              filteredChronicle.threads.map((thread) => {
+                const threadIndex = chronicle.threads.findIndex(
+                  (candidate) =>
+                    candidate.title === thread.title &&
+                    candidate.detail === thread.detail &&
+                    candidate.nextMove === thread.nextMove,
+                );
+
+                return (
                 <div className="rounded-md border p-3" key={`${thread.title}-${thread.detail}-${thread.nextMove}`}>
                   <p className="font-medium">{thread.title}</p>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">{thread.detail}</p>
-                  <p className="mt-2 text-sm leading-6">{thread.nextMove}</p>
+                  {onUpdateThreadNextMove && threadIndex >= 0 ? (
+                    <Input
+                      aria-label={`${thread.title}の次の一手`}
+                      className="mt-2"
+                      value={thread.nextMove}
+                      onBlur={(event) => onUpdateThreadNextMove(threadIndex, event.target.value.trim() || "次の一手未設定")}
+                      onChange={(event) => onUpdateThreadNextMove(threadIndex, event.target.value)}
+                    />
+                  ) : (
+                    <p className="mt-2 text-sm leading-6">{thread.nextMove}</p>
+                  )}
                 </div>
-              ))
+                );
+              })
             ) : (
               <EmptyCategory label="伏線" />
             )}

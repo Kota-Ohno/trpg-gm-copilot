@@ -867,6 +867,18 @@ export function App() {
     }));
   };
 
+  const updateThreadNextMove = (threadIndex: number, nextMove: string): void => {
+    setActiveCampaignState((current) => ({
+      ...current,
+      chronicle: {
+        ...current.chronicle,
+        threads: current.chronicle.threads.map((thread, index) =>
+          index === threadIndex ? { ...thread, nextMove } : thread,
+        ),
+      },
+    }));
+  };
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="grid min-h-screen grid-cols-[260px_1fr_320px] max-xl:grid-cols-[220px_1fr] max-lg:grid-cols-1">
@@ -1339,7 +1351,13 @@ export function App() {
               </div>
             )}
 
-            {activeTab === "chronicle" && <ChronicleView chronicle={chronicle} onUpdateClueStatus={updateClueStatus} />}
+            {activeTab === "chronicle" && (
+              <ChronicleView
+                chronicle={chronicle}
+                onUpdateClueStatus={updateClueStatus}
+                onUpdateThreadNextMove={updateThreadNextMove}
+              />
+            )}
 
             {activeTab === "prep" && (
               <div className="grid gap-4">
