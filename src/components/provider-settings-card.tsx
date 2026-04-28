@@ -47,6 +47,7 @@ export function ProviderSettingsCard({
     settings.model,
     settings.providerId,
   ].join("\n");
+  const canTestConnection = !isLocked && !isTestingConnection && !isApiKeyMissing;
 
   useEffect(() => {
     latestTestKeyRef.current = connectionTestKey;
@@ -225,7 +226,7 @@ export function ProviderSettingsCard({
         </p>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button disabled={isLocked || isTestingConnection} onClick={testConnection} size="sm" variant="outline">
+          <Button disabled={!canTestConnection} onClick={testConnection} size="sm" variant="outline">
             <Unplug className="h-4 w-4" />
             {isTestingConnection ? "確認中" : "接続テスト"}
           </Button>
