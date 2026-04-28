@@ -70,6 +70,12 @@ const sessionDateInputId = "active-session-date";
 
 type LogInputMode = "plain" | "speaker";
 type ReviewKindFilter = "all" | ExtractionItem["kind"];
+type ConfirmationRequest = {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+};
 
 const tabOptions: Array<{ value: WorkspaceTab; label: string }> = [
   { value: "log", label: "ログ" },
@@ -200,6 +206,7 @@ export function App() {
   const [reviewKindFilter, setReviewKindFilter] = useState<ReviewKindFilter>("all");
   const [storageError, setStorageError] = useState<string | null>(null);
   const [providerSecrets, setProviderSecrets] = useState<ProviderSecretSettings>(loadProviderSecrets);
+  const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
 
   const currentSession =
     campaignState.sessions.find((session) => session.id === campaignState.activeSessionId) ?? campaignState.sessions[0];
@@ -306,18 +313,20 @@ export function App() {
       const parsedState = JSON.parse(fileText);
       const importedState = normalizeCampaignState(parsedState);
       const importedLegacyApiKey = readLegacyProviderApiKey(parsedState);
-      const confirmed = window.confirm("現在のキャンペーン状態をインポート内容で置き換えます。続行しますか？");
-      if (!confirmed) {
-        return;
-      }
-
-      setCampaignState(importedState);
-      if (importedLegacyApiKey) {
-        setProviderSecrets((current) => ({ ...current, openAiApiKey: importedLegacyApiKey }));
-      }
-      setStorageError(null);
-      setLogInputMode("plain");
-      setActiveTab("log");
+      setConfirmation({
+        title: "キャンペーンを置き換えますか",
+        message: "現在のキャンペーン状態をインポート内容で置き換えます。",
+        confirmLabel: "置き換える",
+        onConfirm: () => {
+          setCampaignState(importedState);
+          if (importedLegacyApiKey) {
+            setProviderSecrets((current) => ({ ...current, openAiApiKey: importedLegacyApiKey }));
+          }
+          setStorageError(null);
+          setLogInputMode("plain");
+          setActiveTab("log");
+        },
+      });
     } catch {
       setStorageError("JSONを読み込めませんでした。Chronicle GMのエクスポートファイルか確認してください。");
     }
@@ -383,43 +392,47 @@ export function App() {
       return;
     }
 
-    const confirmed = window.confirm(`${targetSession.title}を削除します。ログと抽出候補は元に戻せません。`);
-    if (!confirmed) {
-      return;
-    }
+    setConfirmation({
+      title: `${targetSession.title}を削除しますか`,
+      message: "ログと抽出候補は元に戻せません。",
+      confirmLabel: "削除する",
+      onConfirm: () => {
+        setCampaignState((current) => {
+          if (current.sessions.length <= 1) {
+            return current;
+          }
 
-    setCampaignState((current) => {
-      if (current.sessions.length <= 1) {
-        return current;
-      }
+          const targetIndex = current.sessions.findIndex((session) => session.id === sessionId);
+          if (targetIndex === -1) {
+            return current;
+          }
 
-      const targetIndex = current.sessions.findIndex((session) => session.id === sessionId);
-      if (targetIndex === -1) {
-        return current;
-      }
+          const nextSessions = current.sessions.filter((session) => session.id !== sessionId);
+          const fallbackSession = nextSessions[Math.max(0, targetIndex - 1)] ?? nextSessions[0];
 
-      const nextSessions = current.sessions.filter((session) => session.id !== sessionId);
-      const fallbackSession = nextSessions[Math.max(0, targetIndex - 1)] ?? nextSessions[0];
-
-      return {
-        ...current,
-        sessions: nextSessions,
-        activeSessionId: current.activeSessionId === sessionId ? fallbackSession.id : current.activeSessionId,
-      };
+          return {
+            ...current,
+            sessions: nextSessions,
+            activeSessionId: current.activeSessionId === sessionId ? fallbackSession.id : current.activeSessionId,
+          };
+        });
+        setLogInputMode("plain");
+        setActiveTab("log");
+      },
     });
-    setLogInputMode("plain");
-    setActiveTab("log");
   };
 
   const resetCampaignState = (): void => {
-    const confirmed = window.confirm("デモ初期化を実行します。現在のキャンペーン状態は初期状態に戻ります。続行しますか？");
-    if (!confirmed) {
-      return;
-    }
-
-    window.localStorage.removeItem(STORAGE_KEY);
-    setCampaignState(createInitialCampaignState());
-    setActiveTab("log");
+    setConfirmation({
+      title: "デモ初期化を実行しますか",
+      message: "現在のキャンペーン状態は初期状態に戻ります。",
+      confirmLabel: "初期化する",
+      onConfirm: () => {
+        window.localStorage.removeItem(STORAGE_KEY);
+        setCampaignState(createInitialCampaignState());
+        setActiveTab("log");
+      },
+    });
   };
 
   const runExtractionPreview = async (): Promise<void> => {
@@ -1151,7 +1164,55 @@ export function App() {
           </Card>
         </aside>
       </div>
+      {confirmation && (
+        <ConfirmationDialog
+          request={confirmation}
+          onCancel={() => setConfirmation(null)}
+          onConfirm={() => {
+            confirmation.onConfirm();
+            setConfirmation(null);
+          }}
+        />
+      )}
     </main>
+  );
+}
+
+function ConfirmationDialog({
+  onCancel,
+  onConfirm,
+  request,
+}: {
+  onCancel: () => void;
+  onConfirm: () => void;
+  request: ConfirmationRequest;
+}) {
+  const titleId = "confirmation-dialog-title";
+  const descriptionId = "confirmation-dialog-description";
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 px-4 backdrop-blur-sm" role="presentation">
+      <div
+        aria-describedby={descriptionId}
+        aria-labelledby={titleId}
+        aria-modal="true"
+        className="w-full max-w-sm rounded-md border bg-card p-4 shadow-lg"
+        role="dialog"
+      >
+        <div className="space-y-2">
+          <h2 className="text-base font-semibold" id={titleId}>{request.title}</h2>
+          <p className="text-sm leading-6 text-muted-foreground" id={descriptionId}>{request.message}</p>
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button onClick={onCancel} variant="outline">
+            キャンセル
+          </Button>
+          <Button onClick={onConfirm} variant="destructive">
+            {request.confirmLabel}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 
