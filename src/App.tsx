@@ -44,7 +44,10 @@ import {
   liveLogToPlainText,
   parsePlainLogToLiveLog,
 } from "./lib/extraction";
-import { defaultProviderSecretSettings } from "./lib/extraction-provider-settings";
+import {
+  defaultProviderSecretSettings,
+  normalizeProviderSecretSettings,
+} from "./lib/extraction-provider-settings";
 import { runExtractionProvider } from "./lib/extraction-providers";
 import type {
   CampaignState,
@@ -153,10 +156,7 @@ function loadProviderSecrets(): ProviderSecretSettings {
   const savedSecrets = window.localStorage.getItem(PROVIDER_SECRETS_STORAGE_KEY);
   if (savedSecrets) {
     try {
-      return {
-        ...defaultProviderSecretSettings,
-        ...JSON.parse(savedSecrets),
-      };
+      return normalizeProviderSecretSettings(JSON.parse(savedSecrets));
     } catch {
       return defaultProviderSecretSettings;
     }
@@ -168,10 +168,9 @@ function loadProviderSecrets(): ProviderSecretSettings {
   }
 
   try {
-    return {
-      ...defaultProviderSecretSettings,
+    return normalizeProviderSecretSettings({
       openAiApiKey: readLegacyProviderApiKey(JSON.parse(savedState)),
-    };
+    });
   } catch {
     return defaultProviderSecretSettings;
   }

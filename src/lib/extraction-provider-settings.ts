@@ -53,3 +53,18 @@ export const defaultProviderSecretSettings: ProviderSecretSettings = {
 export function getExtractionProvider(providerId: ExtractionProviderId): ProviderDefinition {
   return extractionProviderById[providerId] ?? defaultExtractionProvider;
 }
+
+export function normalizeProviderSecretSettings(value: unknown): ProviderSecretSettings {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return defaultProviderSecretSettings;
+  }
+
+  const maybeSecrets = value as Partial<Record<keyof ProviderSecretSettings, unknown>>;
+
+  return {
+    openAiApiKey:
+      typeof maybeSecrets.openAiApiKey === "string"
+        ? maybeSecrets.openAiApiKey
+        : defaultProviderSecretSettings.openAiApiKey,
+  };
+}
