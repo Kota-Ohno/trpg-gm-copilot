@@ -1,5 +1,6 @@
 import { initialChronicle, sampleLiveLog, sampleLog } from "../data/sample";
 import type {
+  CampaignLibraryState,
   CampaignState,
   Chronicle,
   Clue,
@@ -63,6 +64,7 @@ function getLocalDateTimeString(date = new Date()): string {
 }
 
 export const initialCampaignState: CampaignState = {
+  id: "campaign-haigaura",
   campaignName: "灰ヶ浦異聞",
   extractionProvider: defaultExtractionProviderSettings,
   sessions: [
@@ -84,6 +86,27 @@ export const initialCampaignState: CampaignState = {
 
 export function createInitialCampaignState(): CampaignState {
   return cloneJson(initialCampaignState);
+}
+
+export function createNewCampaignState(index: number): CampaignState {
+  const campaign = createInitialCampaignState();
+  const session = createNewSession(1);
+
+  return {
+    ...campaign,
+    id: createId("campaign"),
+    campaignName: `新しいキャンペーン ${index}`,
+    sessions: [session],
+    activeSessionId: session.id,
+    chronicle: {
+      events: [],
+      npcs: [],
+      clues: [],
+      locations: [],
+      threads: [],
+    },
+    quickResult: "",
+  };
 }
 
 const initialSession = initialCampaignState.sessions[0];
@@ -287,10 +310,12 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
   const seenSessionIds = new Set<string>();
   const normalizedSessions = sessions.map((session) => normalizeSessionState(session, defaultSession, seenSessionIds));
   const activeSessionId = readString(parsedState.activeSessionId, normalizedSessions[0].id);
+  const campaignId = readString(parsedState.id, createId("campaign"));
 
   return {
     ...initialCampaignState,
     ...parsedState,
+    id: campaignId,
     campaignName: parsedState.campaignName?.trim() || "無題キャンペーン",
     chronicle: normalizeChronicle(parsedState.chronicle),
     quickResult: readString(parsedState.quickResult, initialCampaignState.quickResult),
@@ -299,6 +324,39 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
     activeSessionId: normalizedSessions.some((session) => session.id === activeSessionId)
       ? activeSessionId
       : normalizedSessions[0].id,
+  };
+}
+
+export function normalizeCampaignLibraryState(rawState: unknown): CampaignLibraryState {
+  if (!isRecord(rawState)) {
+    const campaign = createInitialCampaignState();
+    return {
+      campaigns: [campaign],
+      activeCampaignId: campaign.id,
+    };
+  }
+
+  const rawCampaigns = Array.isArray(rawState.campaigns) && rawState.campaigns.length > 0
+    ? rawState.campaigns
+    : [rawState];
+  const seenCampaignIds = new Set<string>();
+  const campaigns = rawCampaigns.map((rawCampaign) => {
+    const campaign = normalizeCampaignState(rawCampaign);
+    const campaignId = !seenCampaignIds.has(campaign.id) ? campaign.id : createId("campaign");
+    seenCampaignIds.add(campaignId);
+
+    return {
+      ...campaign,
+      id: campaignId,
+    };
+  });
+  const requestedActiveCampaignId = readString(rawState.activeCampaignId, campaigns[0].id);
+
+  return {
+    campaigns,
+    activeCampaignId: campaigns.some((campaign) => campaign.id === requestedActiveCampaignId)
+      ? requestedActiveCampaignId
+      : campaigns[0].id,
   };
 }
 

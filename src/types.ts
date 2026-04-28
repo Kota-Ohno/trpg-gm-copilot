@@ -118,10 +118,16 @@ export type SessionState = {
 };
 
 export type CampaignState = {
+  id: string;
   campaignName: string;
   extractionProvider: ExtractionProviderSettings;
   sessions: SessionState[];
   activeSessionId: string;
   chronicle: Chronicle;
   quickResult: string;
+};
+
+export type CampaignLibraryState = {
+  campaigns: CampaignState[];
+  activeCampaignId: string;
 };
