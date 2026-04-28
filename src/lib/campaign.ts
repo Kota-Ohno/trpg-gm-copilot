@@ -228,6 +228,7 @@ function normalizeExtractionRun(rawRun: unknown, itemCount: number): ExtractionR
     itemCount,
     note: typeof run.note === "string" && run.note.trim() ? run.note.trim() : undefined,
     promptLength: readNumber(run.promptLength, 0),
+    promptVersion: typeof run.promptVersion === "string" && run.promptVersion.trim() ? run.promptVersion.trim() : undefined,
     validationErrors,
   };
 }
