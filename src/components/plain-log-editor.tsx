@@ -31,6 +31,7 @@ export function PlainLogEditor({
   return (
     <>
       <Textarea
+        aria-invalid={hasNoSpeakerLines}
         className="min-h-[420px] resize-y font-mono text-sm leading-6"
         disabled={isExtracting}
         value={log}
