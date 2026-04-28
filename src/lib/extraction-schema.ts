@@ -76,15 +76,10 @@ function sanitizeText(value: unknown, maxLength: number): string | null {
   return trimmedValue.slice(0, maxLength);
 }
 
-function extractJsonObject(text: string): string {
-  const fencedMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fencedMatch) {
-    return fencedMatch[1].trim();
-  }
-
+function extractBalancedJsonObject(text: string): string | null {
   const firstBrace = text.indexOf("{");
   if (firstBrace === -1) {
-    return text;
+    return null;
   }
 
   let depth = 0;
@@ -117,7 +112,17 @@ function extractJsonObject(text: string): string {
     }
   }
 
-  return text.slice(firstBrace);
+  return null;
+}
+
+function extractJsonObject(text: string): string {
+  const fencedMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fencedMatch) {
+    const fencedText = fencedMatch[1].trim();
+    return extractBalancedJsonObject(fencedText) ?? fencedText;
+  }
+
+  return extractBalancedJsonObject(text) ?? text;
 }
 
 function createFallbackId(index: number, seenIds: Set<string>): string {
