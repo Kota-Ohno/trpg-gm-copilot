@@ -236,7 +236,13 @@ export function ProviderSettingsCard({
         </p>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button disabled={!canTestConnection} onClick={testConnection} size="sm" variant="outline">
+          <Button
+            aria-busy={isTestingConnection}
+            disabled={!canTestConnection}
+            onClick={testConnection}
+            size="sm"
+            variant="outline"
+          >
             <Unplug className="h-4 w-4" />
             {isTestingConnection ? "確認中" : "接続テスト"}
           </Button>
@@ -261,11 +267,13 @@ export function ProviderSettingsCard({
           )}
         </div>
 
-        {connectionResult && (
-          <p className={connectionResult.ok ? "text-xs text-muted-foreground" : "text-xs text-destructive"}>
-            {connectionResult.message}
-          </p>
-        )}
+        <p
+          aria-live="polite"
+          className={connectionResult?.ok === false ? "text-xs text-destructive" : "text-xs text-muted-foreground"}
+          role="status"
+        >
+          {isTestingConnection ? "Provider 接続を確認しています。" : connectionResult?.message}
+        </p>
       </CardContent>
     </Card>
   );
