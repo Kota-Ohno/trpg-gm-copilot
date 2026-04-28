@@ -232,7 +232,7 @@ function normalizeSessionState(
   const rawApprovedIds = Array.isArray(session.approvedIds)
     ? session.approvedIds.filter((id): id is string => typeof id === "string")
     : defaultSession.approvedIds;
-  const approvedIds = rawApprovedIds.map((id) => id.trim()).filter(Boolean);
+  const approvedIds = Array.from(new Set(rawApprovedIds.map((id) => id.trim()).filter(Boolean)));
   const extractionItems = normalizeExtractionItems(rawExtractionItems);
   const extractionItemIds = new Set(extractionItems.map((item) => item.id));
   const rawSessionId = readString(session.id, createId("session"));
