@@ -505,11 +505,15 @@ export function generatePrepNote(chronicle: Chronicle, sessions: SessionState[],
     ...approvedItems.filter((item) => item.kind === "出来事").map((item) => item.detail),
     ...chronicle.events.slice(-3),
   ]).slice(0, 3);
+  const unrevealedClueHooks = chronicle.clues
+    .filter((clue) => clue.status !== "known")
+    .slice(-3)
+    .map((clue) => `${clue.title}: 次に開示するなら ${clue.detail}`);
   const clueHooks = chronicle.clues.slice(-3).map((clue) => `${clue.title}: ${clue.detail}`);
   const threadHooks = chronicle.threads.slice(-3).map((thread) => `${thread.title}: ${thread.nextMove}`);
   const locationHooks = chronicle.locations.slice(-2).map((location) => `${location.name}: ${location.detail}`);
   const npcHooks = chronicle.npcs.slice(-2).map((npc) => `${npc.name}: ${npc.publicKnowledge}`);
-  const hooks = uniqueItems([...threadHooks, ...clueHooks, ...locationHooks, ...npcHooks]).slice(0, 4);
+  const hooks = uniqueItems([...unrevealedClueHooks, ...threadHooks, ...clueHooks, ...locationHooks, ...npcHooks]).slice(0, 4);
   const openQuestions = uniqueItems([
     ...chronicle.threads.map((thread) => `${thread.title}: ${thread.detail}`),
     ...chronicle.clues
