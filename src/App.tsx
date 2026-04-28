@@ -735,7 +735,10 @@ export function App() {
               <Badge variant="outline">APIキーは書き出し対象外</Badge>
             </div>
             {storageError ? (
-              <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              <div
+                className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                role="alert"
+              >
                 <p className="font-medium">保存状態を確認してください</p>
                 <p className="mt-1 leading-relaxed">{storageError}</p>
               </div>
