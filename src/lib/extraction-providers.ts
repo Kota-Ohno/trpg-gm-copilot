@@ -66,6 +66,12 @@ type OllamaResponseBody = {
   error?: string;
 };
 
+type JsonResponseBody<T> = T & {
+  error?: string | {
+    message?: string;
+  };
+};
+
 const connectionTestJsonSchema = {
   type: "object",
   additionalProperties: false,
@@ -118,7 +124,7 @@ async function fetchJsonWithTimeout<T>(
   url: string,
   init: RequestInit,
   timeoutMs: number,
-): Promise<{ body: T; response: Response }> {
+): Promise<{ body: JsonResponseBody<T>; response: Response }> {
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
@@ -127,12 +133,33 @@ async function fetchJsonWithTimeout<T>(
       ...init,
       signal: controller.signal,
     });
-    const body = (await response.json()) as T;
+    const responseText = await response.text();
+    let body: JsonResponseBody<T>;
+    try {
+      body = (responseText ? JSON.parse(responseText) : {}) as JsonResponseBody<T>;
+    } catch {
+      if (response.ok) {
+        throw new Error("Provider がJSONではない応答を返しました。");
+      }
+      body = { error: responseText.trim() || `HTTP ${response.status}` } as JsonResponseBody<T>;
+    }
 
     return { body, response };
   } finally {
     window.clearTimeout(timeoutId);
   }
+}
+
+function getResponseErrorMessage(responseBody: JsonResponseBody<unknown>, response: Response): string {
+  if (typeof responseBody.error === "string" && responseBody.error.trim()) {
+    return responseBody.error.trim();
+  }
+
+  if (responseBody.error && typeof responseBody.error === "object" && responseBody.error.message?.trim()) {
+    return responseBody.error.message.trim();
+  }
+
+  return `HTTP ${response.status}`;
 }
 
 function getProviderErrorMessage(error: unknown, providerLabel: string, timeoutMs: number): string {
@@ -251,12 +278,13 @@ async function runOpenAiExtraction(request: ExtractionRequest, context: Provider
       }),
     }, EXTRACTION_TIMEOUT_MS);
     if (!response.ok) {
+      const message = getResponseErrorMessage(responseBody, response);
       return buildRuleBasedFallback(
         request,
         context,
         `OpenAI API エラーのため、ルールベース抽出にフォールバックしました。`,
-        [responseBody.error?.message ?? `HTTP ${response.status}`],
-        responseBody.error?.message ?? `HTTP ${response.status}`,
+        [message],
+        message,
       );
     }
 
@@ -310,12 +338,13 @@ async function runOllamaExtraction(request: ExtractionRequest, context: Provider
       }),
     }, EXTRACTION_TIMEOUT_MS);
     if (!response.ok) {
+      const message = getResponseErrorMessage(responseBody, response);
       return buildRuleBasedFallback(
         request,
         context,
         "Ollama API エラーのため、ルールベース抽出にフォールバックしました。",
-        [responseBody.error ?? `HTTP ${response.status}`],
-        responseBody.error ?? `HTTP ${response.status}`,
+        [message],
+        message,
       );
     }
 
@@ -434,7 +463,7 @@ export async function testExtractionProviderConnection({
       if (!response.ok) {
         return {
           ok: false,
-          message: responseBody.error?.message ?? `OpenAI API エラー: HTTP ${response.status}`,
+          message: getResponseErrorMessage(responseBody, response),
         };
       }
 
@@ -473,7 +502,7 @@ export async function testExtractionProviderConnection({
       if (!response.ok) {
         return {
           ok: false,
-          message: responseBody.error ?? `Ollama API エラー: HTTP ${response.status}`,
+          message: getResponseErrorMessage(responseBody, response),
         };
       }
 
