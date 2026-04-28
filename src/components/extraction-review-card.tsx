@@ -41,6 +41,7 @@ export function ExtractionReviewCard({
   const visibilitySelectId = `extraction-visibility-${item.id}`;
   const titleInputId = `extraction-title-${item.id}`;
   const detailInputId = `extraction-detail-${item.id}`;
+  const validationMessageId = `extraction-validation-${item.id}`;
 
   return (
     <Card className={cardStateClass}>
@@ -132,6 +133,7 @@ export function ExtractionReviewCard({
             タイトル
           </label>
           <Input
+            aria-describedby={isTitleInvalid ? validationMessageId : undefined}
             aria-invalid={isTitleInvalid}
             className="mt-1"
             disabled={isApproved}
@@ -147,6 +149,7 @@ export function ExtractionReviewCard({
             本文
           </label>
           <Textarea
+            aria-describedby={isDetailInvalid ? validationMessageId : undefined}
             aria-invalid={isDetailInvalid}
             className="mt-1 min-h-[116px] resize-y text-sm leading-6 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isApproved}
@@ -158,7 +161,10 @@ export function ExtractionReviewCard({
         </div>
 
         {!canApprove && (
-          <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          <p
+            className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+            id={validationMessageId}
+          >
             採用するには {missingFields.join("・")} を入力してください。
           </p>
         )}
