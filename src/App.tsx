@@ -63,6 +63,10 @@ import type {
 
 const STORAGE_KEY = "chronicle-gm.campaign-state.v1";
 const PROVIDER_SECRETS_STORAGE_KEY = "chronicle-gm.provider-secrets.v1";
+const campaignNameInputId = "campaign-name";
+const campaignImportInputId = "campaign-json-import";
+const sessionTitleInputId = "active-session-title";
+const sessionDateInputId = "active-session-date";
 
 type LogInputMode = "plain" | "speaker";
 type ReviewKindFilter = "all" | ExtractionItem["kind"];
@@ -685,9 +689,12 @@ export function App() {
           </div>
 
           <div className="mt-6 space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">キャンペーン</label>
+            <label className="text-xs font-medium text-muted-foreground" htmlFor={campaignNameInputId}>
+              キャンペーン
+            </label>
             <Input
               disabled={isExtracting}
+              id={campaignNameInputId}
               value={campaignName}
               onBlur={(event) => updateCampaignState({ campaignName: event.target.value.trim() || "無題キャンペーン" })}
               onChange={(event) => updateCampaignState({ campaignName: event.target.value })}
@@ -703,6 +710,7 @@ export function App() {
                     ? "inline-flex h-8 cursor-not-allowed items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-xs font-medium opacity-50"
                     : "inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
                 }
+                htmlFor={campaignImportInputId}
               >
                 <Upload className="h-3.5 w-3.5" />
                 JSON読み込み
@@ -710,6 +718,7 @@ export function App() {
                   accept="application/json,.json"
                   className="sr-only"
                   disabled={isExtracting}
+                  id={campaignImportInputId}
                   type="file"
                   onChange={(event) => {
                     const file = event.target.files?.[0];
@@ -824,20 +833,26 @@ export function App() {
               </p>
               <div className="mt-3 flex flex-wrap items-end gap-2">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground">今回のセッション</label>
+                  <label className="text-xs font-medium text-muted-foreground" htmlFor={sessionTitleInputId}>
+                    今回のセッション
+                  </label>
                   <Input
                     className="mt-1 w-44"
                     disabled={isExtracting}
+                    id={sessionTitleInputId}
                     value={currentSession.title}
                     onBlur={(event) => updateCurrentSession({ title: event.target.value.trim() || "無題セッション" })}
                     onChange={(event) => updateCurrentSession({ title: event.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground">日付</label>
+                  <label className="text-xs font-medium text-muted-foreground" htmlFor={sessionDateInputId}>
+                    日付
+                  </label>
                   <Input
                     className="mt-1 w-40"
                     disabled={isExtracting}
+                    id={sessionDateInputId}
                     type="date"
                     value={currentSession.date}
                     onBlur={(event) =>
