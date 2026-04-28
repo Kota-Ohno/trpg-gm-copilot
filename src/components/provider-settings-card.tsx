@@ -48,6 +48,10 @@ export function ProviderSettingsCard({
     settings.providerId,
   ].join("\n");
   const canTestConnection = !isLocked && !isTestingConnection && !isApiKeyMissing;
+  const providerSelectId = "extraction-provider-select";
+  const modelInputId = "extraction-provider-model";
+  const endpointInputId = "extraction-provider-endpoint";
+  const apiKeyInputId = "extraction-provider-api-key";
 
   useEffect(() => {
     latestTestKeyRef.current = connectionTestKey;
@@ -131,10 +135,13 @@ export function ProviderSettingsCard({
         </div>
 
         <div>
-          <label className="text-xs font-medium text-muted-foreground">Provider</label>
+          <label className="text-xs font-medium text-muted-foreground" htmlFor={providerSelectId}>
+            Provider
+          </label>
           <select
             className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             disabled={isLocked}
+            id={providerSelectId}
             onChange={(event) => selectProvider(event.target.value as ExtractionProviderId)}
             value={settings.providerId}
           >
@@ -148,7 +155,7 @@ export function ProviderSettingsCard({
 
         <div>
           <div className="flex items-center justify-between gap-2">
-            <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground" htmlFor={modelInputId}>
               Model
               <Badge variant={isModelDefault ? "secondary" : "outline"}>
                 {isModelDefault ? "既定値" : "変更済み"}
@@ -161,6 +168,7 @@ export function ProviderSettingsCard({
           </div>
           <Input
             disabled={isLocked}
+            id={modelInputId}
             onBlur={(event) => updateSettings({ model: event.target.value.trim() })}
             onChange={(event) => updateSettings({ model: event.target.value })}
             value={settings.model}
@@ -168,7 +176,7 @@ export function ProviderSettingsCard({
         </div>
 
         <div>
-          <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+          <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground" htmlFor={endpointInputId}>
             <span className="flex items-center gap-1">
               <Server className="h-3 w-3" />
               Endpoint
@@ -180,6 +188,7 @@ export function ProviderSettingsCard({
           <Input
             className="mt-1"
             disabled={isLocked}
+            id={endpointInputId}
             onBlur={(event) => updateSettings({ endpoint: event.target.value.trim() })}
             onChange={(event) => updateSettings({ endpoint: event.target.value })}
             placeholder="Provider endpoint"
@@ -189,7 +198,7 @@ export function ProviderSettingsCard({
 
         {needsApiKey && (
           <div>
-            <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground" htmlFor={apiKeyInputId}>
               <span className="flex items-center gap-1">
                 <KeyRound className="h-3 w-3" />
                 API key
@@ -202,6 +211,7 @@ export function ProviderSettingsCard({
               <Input
                 aria-invalid={isApiKeyMissing}
                 disabled={isLocked}
+                id={apiKeyInputId}
                 onBlur={(event) => onChangeSecrets({ ...secrets, openAiApiKey: event.target.value.trim() })}
                 onChange={(event) => onChangeSecrets({ ...secrets, openAiApiKey: event.target.value })}
                 placeholder="ユーザーAPIキー"
