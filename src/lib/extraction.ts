@@ -52,15 +52,23 @@ function parseTimestampSeconds(rawTimestamp: string | undefined): number | null 
   const normalizedTimestamp = rawTimestamp
     .trim()
     .replace(/[０-９]/g, (digit) => String.fromCharCode(digit.charCodeAt(0) - 0xfee0))
-    .replace(/：/g, ":");
-  const parts = normalizedTimestamp.split(":").map((part) => Number(part.trim()));
-  if (parts.length < 2 || parts.length > 3 || parts.some((part) => !Number.isFinite(part) || part < 0)) {
+    .replace(/：/g, ":")
+    .replace(/\s+/g, "");
+  if (!/^\d+(?::\d+){1,2}$/.test(normalizedTimestamp)) {
+    return null;
+  }
+
+  const parts = normalizedTimestamp.split(":").map((part) => Number(part));
+  if (parts.length < 2 || parts.length > 3) {
     return null;
   }
 
   const [hours, minutes, seconds] = parts.length === 3 ? parts : [0, parts[0], parts[1]];
+  if (minutes >= 60 || seconds >= 60) {
+    return null;
+  }
 
-  return Math.round((hours * 60 + minutes) * 60 + seconds);
+  return (hours * 60 + minutes) * 60 + seconds;
 }
 
 function liveLogToExtractionLines(liveLog: LiveLogSession): ExtractionInputLine[] {
