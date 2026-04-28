@@ -173,7 +173,7 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
           <CardContent className="space-y-3">
             {filteredChronicle.npcs.length > 0 ? (
               filteredChronicle.npcs.map((npc) => (
-                <div className="rounded-md border p-3" key={npc.name}>
+                <div className="rounded-md border p-3" key={`${npc.name}-${npc.role}`}>
                   <p className="font-medium">{npc.name}</p>
                   <p className="text-sm text-muted-foreground">{npc.role}</p>
                   <p className="mt-2 text-sm leading-6">{npc.publicKnowledge}</p>
@@ -200,7 +200,7 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
           <CardContent className="space-y-3">
             {filteredChronicle.locations.length > 0 ? (
               filteredChronicle.locations.map((location) => (
-                <div className="rounded-md border p-3" key={location.name}>
+                <div className="rounded-md border p-3" key={`${location.name}-${location.detail}`}>
                   <p className="font-medium">{location.name}</p>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">{location.detail}</p>
                 </div>
@@ -218,7 +218,7 @@ export function ChronicleView({ chronicle }: { chronicle: Chronicle }) {
           <CardContent className="space-y-3">
             {filteredChronicle.threads.length > 0 ? (
               filteredChronicle.threads.map((thread) => (
-                <div className="rounded-md border p-3" key={thread.title}>
+                <div className="rounded-md border p-3" key={`${thread.title}-${thread.detail}-${thread.nextMove}`}>
                   <p className="font-medium">{thread.title}</p>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">{thread.detail}</p>
                   <p className="mt-2 text-sm leading-6">{thread.nextMove}</p>
