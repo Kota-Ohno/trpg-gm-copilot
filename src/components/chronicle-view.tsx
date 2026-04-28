@@ -87,6 +87,17 @@ export function ChronicleView({ chronicle, onUpdateClueStatus }: ChronicleViewPr
     filteredChronicle.npcs.length +
     filteredChronicle.locations.length +
     filteredChronicle.threads.length;
+  const clueStatusCounts = chronicle.clues.reduce<Record<ClueStatus, number>>(
+    (counts, clue) => ({
+      ...counts,
+      [clue.status]: counts[clue.status] + 1,
+    }),
+    {
+      known: 0,
+      partial: 0,
+      hidden: 0,
+    },
+  );
 
   return (
     <div className="grid gap-4">
@@ -106,6 +117,9 @@ export function ChronicleView({ chronicle, onUpdateClueStatus }: ChronicleViewPr
             )}
             <Badge variant="outline">出来事 {chronicle.events.length}</Badge>
             <Badge variant="outline">手がかり {chronicle.clues.length}</Badge>
+            <Badge variant="outline">PL既知 {clueStatusCounts.known}</Badge>
+            <Badge variant="outline">一部既知 {clueStatusCounts.partial}</Badge>
+            <Badge variant="outline">GM秘密 {clueStatusCounts.hidden}</Badge>
             <Badge variant="outline">NPC {chronicle.npcs.length}</Badge>
             <Badge variant="outline">場所 {chronicle.locations.length}</Badge>
             <Badge variant="outline">伏線 {chronicle.threads.length}</Badge>
