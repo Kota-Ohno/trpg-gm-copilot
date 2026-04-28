@@ -210,14 +210,16 @@ export function SpeakerLogEditor({
                   className="grid grid-cols-[120px_160px_1fr_40px] gap-3 rounded-md border bg-background p-3 max-lg:grid-cols-1"
                   key={segment.id}
                 >
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">時刻</label>
+                  <fieldset>
+                    <legend className="text-xs font-medium text-muted-foreground">時刻</legend>
                     <div className="mt-1 grid grid-cols-2 gap-2">
                       <Input
                         aria-label="開始秒"
                         disabled={isExtracting}
                         id={segmentStartInputId}
+                        inputMode="numeric"
                         min={0}
+                        step={1}
                         type="number"
                         value={segment.startTimeSec}
                         onChange={(event) =>
@@ -228,7 +230,9 @@ export function SpeakerLogEditor({
                         aria-label="終了秒"
                         disabled={isExtracting}
                         id={segmentEndInputId}
+                        inputMode="numeric"
                         min={0}
+                        step={1}
                         type="number"
                         value={segment.endTimeSec}
                         onChange={(event) =>
@@ -270,7 +274,7 @@ export function SpeakerLogEditor({
                         <ChevronRight className="h-4 w-4" />
                       </Button>
                     </div>
-                  </div>
+                  </fieldset>
 
                   <div>
                     <label className="text-xs font-medium text-muted-foreground" htmlFor={segmentSpeakerSelectId}>
