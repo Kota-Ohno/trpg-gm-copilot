@@ -321,6 +321,10 @@ function uniqueItems(items: string[]): string[] {
   return Array.from(new Set(items.filter((item) => item.trim().length > 0)));
 }
 
+function normalizeMemoryKey(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
+}
+
 function getApprovedItems(session: SessionState): ExtractionItem[] {
   return session.extractionItems.filter((item) => session.approvedIds.includes(item.id));
 }
@@ -462,8 +466,15 @@ export function generatePrepNote(chronicle: Chronicle, sessions: SessionState[],
 }
 
 export function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chronicle {
+  const titleKey = normalizeMemoryKey(item.title);
+  const detailKey = normalizeMemoryKey(item.detail);
+
   if (item.kind === "NPC") {
-    if (chronicle.npcs.some((npc) => npc.name === item.title && npc.publicKnowledge === item.detail)) {
+    if (
+      chronicle.npcs.some(
+        (npc) => normalizeMemoryKey(npc.name) === titleKey && normalizeMemoryKey(npc.publicKnowledge) === detailKey,
+      )
+    ) {
       return chronicle;
     }
 
@@ -483,7 +494,11 @@ export function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chr
   }
 
   if (item.kind === "手がかり" || item.kind === "GM秘密") {
-    if (chronicle.clues.some((clue) => clue.title === item.title && clue.detail === item.detail)) {
+    if (
+      chronicle.clues.some(
+        (clue) => normalizeMemoryKey(clue.title) === titleKey && normalizeMemoryKey(clue.detail) === detailKey,
+      )
+    ) {
       return chronicle;
     }
 
@@ -501,7 +516,11 @@ export function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chr
   }
 
   if (item.kind === "伏線") {
-    if (chronicle.threads.some((thread) => thread.title === item.title && thread.detail === item.detail)) {
+    if (
+      chronicle.threads.some(
+        (thread) => normalizeMemoryKey(thread.title) === titleKey && normalizeMemoryKey(thread.detail) === detailKey,
+      )
+    ) {
       return chronicle;
     }
 
@@ -519,7 +538,7 @@ export function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chr
   }
 
   const event = `${item.title}: ${item.detail}`;
-  if (chronicle.events.includes(event)) {
+  if (chronicle.events.some((currentEvent) => normalizeMemoryKey(currentEvent) === normalizeMemoryKey(event))) {
     return chronicle;
   }
 
