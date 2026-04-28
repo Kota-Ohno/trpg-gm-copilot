@@ -223,7 +223,7 @@ export function SpeakerLogEditor({
                         type="number"
                         value={segment.startTimeSec}
                         onChange={(event) =>
-                          onUpdateSegment(segment.id, { startTimeSec: Number(event.target.value) || 0 })
+                          onUpdateSegment(segment.id, { startTimeSec: event.currentTarget.valueAsNumber })
                         }
                       />
                       <Input
@@ -236,7 +236,7 @@ export function SpeakerLogEditor({
                         type="number"
                         value={segment.endTimeSec}
                         onChange={(event) =>
-                          onUpdateSegment(segment.id, { endTimeSec: Number(event.target.value) || 0 })
+                          onUpdateSegment(segment.id, { endTimeSec: event.currentTarget.valueAsNumber })
                         }
                       />
                     </div>
