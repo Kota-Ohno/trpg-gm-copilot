@@ -1,7 +1,13 @@
-import type { ExtractionProviderId, ExtractionProviderSettings, ProviderSecretSettings } from "../types";
+import type {
+  ExtractionProviderId,
+  ExtractionProviderSettings,
+  ProviderSecretSettings,
+  TranscriptionProviderId,
+  TranscriptionProviderSettings,
+} from "../types";
 
-type ProviderDefinition = {
-  id: ExtractionProviderId;
+type ProviderDefinition<TProviderId extends string> = {
+  id: TProviderId;
   label: string;
   defaultModel: string;
   defaultEndpoint: string;
@@ -9,8 +15,9 @@ type ProviderDefinition = {
 };
 
 const defaultExtractionProviderId: ExtractionProviderId = "rule-based";
+const defaultTranscriptionProviderId: TranscriptionProviderId = "manual";
 
-export const extractionProviders: ProviderDefinition[] = [
+export const extractionProviders: Array<ProviderDefinition<ExtractionProviderId>> = [
   {
     id: defaultExtractionProviderId,
     label: "ルールベース",
@@ -36,9 +43,39 @@ export const extractionProviders: ProviderDefinition[] = [
 
 const extractionProviderById = Object.fromEntries(
   extractionProviders.map((provider) => [provider.id, provider]),
-) as Record<ExtractionProviderId, ProviderDefinition>;
+) as Record<ExtractionProviderId, ProviderDefinition<ExtractionProviderId>>;
 
 const defaultExtractionProvider = extractionProviderById[defaultExtractionProviderId];
+
+export const transcriptionProviders: Array<ProviderDefinition<TranscriptionProviderId>> = [
+  {
+    id: defaultTranscriptionProviderId,
+    label: "手動入力",
+    defaultModel: "manual-transcript",
+    defaultEndpoint: "",
+    status: "available",
+  },
+  {
+    id: "openai",
+    label: "OpenAI",
+    defaultModel: "gpt-4o-mini-transcribe",
+    defaultEndpoint: "https://api.openai.com/v1",
+    status: "planned",
+  },
+  {
+    id: "web-speech",
+    label: "Web Speech",
+    defaultModel: "browser-speech-recognition",
+    defaultEndpoint: "",
+    status: "planned",
+  },
+];
+
+const transcriptionProviderById = Object.fromEntries(
+  transcriptionProviders.map((provider) => [provider.id, provider]),
+) as Record<TranscriptionProviderId, ProviderDefinition<TranscriptionProviderId>>;
+
+const defaultTranscriptionProvider = transcriptionProviderById[defaultTranscriptionProviderId];
 
 export const defaultExtractionProviderSettings: ExtractionProviderSettings = {
   providerId: defaultExtractionProvider.id,
@@ -46,12 +83,25 @@ export const defaultExtractionProviderSettings: ExtractionProviderSettings = {
   endpoint: defaultExtractionProvider.defaultEndpoint,
 };
 
+export const defaultTranscriptionProviderSettings: TranscriptionProviderSettings = {
+  providerId: defaultTranscriptionProvider.id,
+  model: defaultTranscriptionProvider.defaultModel,
+  endpoint: defaultTranscriptionProvider.defaultEndpoint,
+  language: "ja",
+};
+
 export const defaultProviderSecretSettings: ProviderSecretSettings = {
   openAiApiKey: "",
 };
 
-export function getExtractionProvider(providerId: ExtractionProviderId): ProviderDefinition {
+export function getExtractionProvider(providerId: ExtractionProviderId): ProviderDefinition<ExtractionProviderId> {
   return extractionProviderById[providerId] ?? defaultExtractionProvider;
+}
+
+export function getTranscriptionProvider(
+  providerId: TranscriptionProviderId,
+): ProviderDefinition<TranscriptionProviderId> {
+  return transcriptionProviderById[providerId] ?? defaultTranscriptionProvider;
 }
 
 export function normalizeProviderSecretSettings(value: unknown): ProviderSecretSettings {

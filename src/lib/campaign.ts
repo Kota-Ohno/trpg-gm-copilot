@@ -16,10 +16,17 @@ import type {
   SpeakerRole,
   SessionState,
   Thread,
+  TranscriptionProviderId,
+  TranscriptionProviderSettings,
   TranscriptSegment,
   TranscriptSourceType,
 } from "../types";
-import { defaultExtractionProviderSettings, getExtractionProvider } from "./extraction-provider-settings";
+import {
+  defaultExtractionProviderSettings,
+  defaultTranscriptionProviderSettings,
+  getExtractionProvider,
+  getTranscriptionProvider,
+} from "./extraction-provider-settings";
 
 export const blankLiveLog: LiveLogSession = {
   id: "live-log-empty",
@@ -67,6 +74,7 @@ export const initialCampaignState: CampaignState = {
   id: "campaign-haigaura",
   campaignName: "灰ヶ浦異聞",
   extractionProvider: defaultExtractionProviderSettings,
+  transcriptionProvider: defaultTranscriptionProviderSettings,
   sessions: [
     {
       id: "session-haigaura-01",
@@ -219,6 +227,19 @@ function normalizeExtractionProviderSettings(rawSettings: unknown): ExtractionPr
   };
 }
 
+function normalizeTranscriptionProviderSettings(rawSettings: unknown): TranscriptionProviderSettings {
+  const settings = readRecord<TranscriptionProviderSettings>(rawSettings);
+  const providerId = (settings.providerId ?? defaultTranscriptionProviderSettings.providerId) as TranscriptionProviderId;
+  const provider = getTranscriptionProvider(providerId);
+
+  return {
+    providerId: provider.id,
+    model: readString(settings.model, provider.defaultModel),
+    endpoint: typeof settings.endpoint === "string" ? settings.endpoint.trim() : provider.defaultEndpoint,
+    language: readString(settings.language, defaultTranscriptionProviderSettings.language),
+  };
+}
+
 function normalizeExtractionRun(rawRun: unknown, itemCount: number): ExtractionRun | null {
   if (!isRecord(rawRun)) {
     return null;
@@ -320,6 +341,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
     chronicle: normalizeChronicle(parsedState.chronicle),
     quickResult: readString(parsedState.quickResult, initialCampaignState.quickResult),
     extractionProvider: normalizeExtractionProviderSettings(parsedState.extractionProvider),
+    transcriptionProvider: normalizeTranscriptionProviderSettings(parsedState.transcriptionProvider),
     sessions: normalizedSessions,
     activeSessionId: normalizedSessions.some((session) => session.id === activeSessionId)
       ? activeSessionId

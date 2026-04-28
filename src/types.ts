@@ -53,11 +53,19 @@ export type WorkspaceTab = "log" | "review" | "chronicle" | "prep";
 export type ExtractionSourceType = "plain" | "speaker" | "fallback";
 
 export type ExtractionProviderId = "rule-based" | "openai" | "ollama";
+export type TranscriptionProviderId = "manual" | "openai" | "web-speech";
 
 export type ExtractionProviderSettings = {
   providerId: ExtractionProviderId;
   model: string;
   endpoint: string;
+};
+
+export type TranscriptionProviderSettings = {
+  providerId: TranscriptionProviderId;
+  model: string;
+  endpoint: string;
+  language: string;
 };
 
 export type ProviderSecretSettings = {
@@ -121,6 +129,7 @@ export type CampaignState = {
   id: string;
   campaignName: string;
   extractionProvider: ExtractionProviderSettings;
+  transcriptionProvider: TranscriptionProviderSettings;
   sessions: SessionState[];
   activeSessionId: string;
   chronicle: Chronicle;
