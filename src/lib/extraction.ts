@@ -238,6 +238,31 @@ export function runRuleBasedExtraction(lines: ExtractionInputLine[]): Extraction
   return candidates.slice(0, 8);
 }
 
+export function normalizeTranscriptionDrafts(value: unknown): TranscriptionSegmentDraft[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return [];
+    }
+
+    const draft = item as Partial<Record<keyof TranscriptionSegmentDraft, unknown>>;
+    if (typeof draft.text !== "string") {
+      return [];
+    }
+
+    return [{
+      ...(typeof draft.speakerName === "string" ? { speakerName: draft.speakerName } : {}),
+      ...(typeof draft.startTimeSec === "number" ? { startTimeSec: draft.startTimeSec } : {}),
+      ...(typeof draft.endTimeSec === "number" ? { endTimeSec: draft.endTimeSec } : {}),
+      text: draft.text,
+      ...(typeof draft.confidence === "number" ? { confidence: draft.confidence } : {}),
+    }];
+  });
+}
+
 export function transcriptionDraftsToLiveLog(
   drafts: TranscriptionSegmentDraft[],
   title: string,
