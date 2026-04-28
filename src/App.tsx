@@ -524,8 +524,14 @@ export function App() {
         }
 
         const nextSegment = { ...segment, ...updates };
-        const startTimeSec = Math.max(0, nextSegment.startTimeSec);
-        const endTimeSec = Math.max(startTimeSec, nextSegment.endTimeSec);
+        const normalizedStartTimeSec = Number.isFinite(nextSegment.startTimeSec)
+          ? nextSegment.startTimeSec
+          : segment.startTimeSec;
+        const normalizedEndTimeSec = Number.isFinite(nextSegment.endTimeSec)
+          ? nextSegment.endTimeSec
+          : segment.endTimeSec;
+        const startTimeSec = Math.max(0, Math.round(normalizedStartTimeSec));
+        const endTimeSec = Math.max(startTimeSec, Math.round(normalizedEndTimeSec));
 
         return {
           ...nextSegment,
