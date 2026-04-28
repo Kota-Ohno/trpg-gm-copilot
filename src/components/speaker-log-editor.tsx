@@ -62,6 +62,9 @@ export function SpeakerLogEditor({
   const sortedSegments = [...liveLog.segments].sort((first, second) => first.startTimeSec - second.startTimeSec);
   const hasSegmentText = liveLog.segments.some((segment) => segment.text.trim().length > 0);
   const nonEmptySegmentCount = liveLog.segments.filter((segment) => segment.text.trim().length > 0).length;
+  const emptySegmentCount = isExtracting
+    ? 0
+    : liveLog.segments.filter((segment) => segment.text.trim().length === 0).length;
   const totalDurationSec = liveLog.segments.reduce(
     (total, segment) => total + Math.max(0, segment.endTimeSec - segment.startTimeSec),
     0,
@@ -78,6 +81,7 @@ export function SpeakerLogEditor({
             </Badge>
             <Badge variant="muted">{liveLog.segments.length}発話</Badge>
             <Badge variant="muted">本文あり {nonEmptySegmentCount}</Badge>
+            {emptySegmentCount > 0 && <Badge variant="muted">未入力 {emptySegmentCount}</Badge>}
             <Badge variant="muted">合計 {formatTimestamp(totalDurationSec)}</Badge>
             <Badge variant="muted">{liveLog.speakers.length}話者</Badge>
             <Badge variant="muted">使用中 {usedSpeakerCount}</Badge>
@@ -186,6 +190,8 @@ export function SpeakerLogEditor({
           <div className="grid gap-3">
             {sortedSegments.map((segment) => {
               const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
+              const isSegmentTextInvalid = !isExtracting && segment.text.trim().length === 0;
+              const segmentTextHintId = `segment-text-hint-${segment.id}`;
 
               return (
                 <div
@@ -281,11 +287,18 @@ export function SpeakerLogEditor({
                       </span>
                     </div>
                     <Textarea
+                      aria-describedby={isSegmentTextInvalid ? segmentTextHintId : undefined}
+                      aria-invalid={isSegmentTextInvalid}
                       className="mt-1 min-h-[84px] resize-y text-sm leading-6"
                       disabled={isExtracting}
                       value={segment.text}
                       onChange={(event) => onUpdateSegment(segment.id, { text: event.target.value })}
                     />
+                    {isSegmentTextInvalid && (
+                      <p className="mt-1 text-xs text-muted-foreground" id={segmentTextHintId}>
+                        発話本文が未入力です
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex flex-col items-end gap-2">
