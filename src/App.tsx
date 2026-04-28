@@ -29,6 +29,7 @@ import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
 import { Tabs } from "./components/ui/tabs";
+import { Textarea } from "./components/ui/textarea";
 import { sampleLiveLog } from "./data/sample";
 import {
   applyExtraction,
@@ -46,6 +47,7 @@ import {
 import {
   liveLogToPlainText,
   parsePlainLogToLiveLog,
+  transcriptionDraftsToLiveLog,
 } from "./lib/extraction";
 import {
   defaultProviderSecretSettings,
@@ -64,6 +66,7 @@ import type {
   SessionState,
   ClueStatus,
   SpeakerRole,
+  TranscriptionSegmentDraft,
   TranscriptSegment,
   WorkspaceTab,
 } from "./types";
@@ -230,6 +233,8 @@ export function App() {
   const [reviewKindFilter, setReviewKindFilter] = useState<ReviewKindFilter>("all");
   const [campaignQuery, setCampaignQuery] = useState("");
   const [sessionQuery, setSessionQuery] = useState("");
+  const [transcriptionDraftJson, setTranscriptionDraftJson] = useState("");
+  const [transcriptionImportError, setTranscriptionImportError] = useState<string | null>(null);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [providerSecrets, setProviderSecrets] = useState<ProviderSecretSettings>(loadProviderSecrets);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
@@ -657,6 +662,32 @@ export function App() {
 
   const restoreSampleLiveLog = (): void => {
     updateCurrentSession({ liveLog: cloneJson(sampleLiveLog) });
+  };
+
+  const importTranscriptionDraftJson = (): void => {
+    try {
+      const parsedDrafts = JSON.parse(transcriptionDraftJson) as unknown;
+      if (!Array.isArray(parsedDrafts)) {
+        setTranscriptionImportError("文字起こしドラフトは配列JSONで入力してください。");
+        return;
+      }
+
+      const liveLogFromDrafts = transcriptionDraftsToLiveLog(
+        parsedDrafts as TranscriptionSegmentDraft[],
+        `${currentSession.title} 文字起こし`,
+      );
+      if (!liveLogFromDrafts) {
+        setTranscriptionImportError("取り込める発話本文がありません。");
+        return;
+      }
+
+      updateCurrentSession({ liveLog: liveLogFromDrafts });
+      setTranscriptionDraftJson("");
+      setTranscriptionImportError(null);
+      setLogInputMode("speaker");
+    } catch {
+      setTranscriptionImportError("JSONとして読み込めません。");
+    }
   };
 
   const updateSpeakerName = (speakerId: string, name: string): void => {
@@ -1220,6 +1251,43 @@ export function App() {
                         onUpdateSpeakerRole={updateSpeakerRole}
                       />
                     )}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageSquareText className="h-4 w-4" />
+                      文字起こしドラフト取り込み
+                    </CardTitle>
+                    <CardDescription className="mt-2">
+                      Provider実装前の検証用に、発話配列JSONを話者付きログへ変換します。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Textarea
+                      aria-label="文字起こしドラフトJSON"
+                      className="min-h-[120px] font-mono text-xs"
+                      placeholder='[{"speakerName":"GM","startTimeSec":0,"endTimeSec":6,"text":"扉の奥から足音が聞こえる","confidence":0.92}]'
+                      value={transcriptionDraftJson}
+                      onChange={(event) => setTranscriptionDraftJson(event.target.value)}
+                    />
+                    {transcriptionImportError && (
+                      <p className="text-xs text-destructive" role="alert">
+                        {transcriptionImportError}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        disabled={!transcriptionDraftJson.trim() || isExtracting}
+                        onClick={importTranscriptionDraftJson}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Upload className="h-4 w-4" />
+                        話者付きログへ取り込み
+                      </Button>
+                      <Badge variant="muted">draft-v1</Badge>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
