@@ -177,6 +177,7 @@ export function normalizeExtractionResponse(rawResponse: unknown): NormalizedExt
 
     const key = `${rawItem.kind}:${title}:${detail}:${rawItem.visibility}`;
     if (seenKeys.has(key)) {
+      errors.push(`items[${index}] は重複する抽出項目のため無視しました。`);
       return;
     }
 
