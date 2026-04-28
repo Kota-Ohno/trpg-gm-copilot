@@ -24,7 +24,7 @@ export function Tabs<T extends string>({ ariaLabel, value, options, onChange }: 
 
   return (
     <div aria-label={ariaLabel} className="inline-flex rounded-md bg-muted p-1" role="tablist">
-      {options.map((option) => (
+      {options.map((option, index) => (
         <button
           key={option.value}
           aria-selected={option.value === value}
@@ -36,9 +36,15 @@ export function Tabs<T extends string>({ ariaLabel, value, options, onChange }: 
             if (event.key === "ArrowRight") {
               event.preventDefault();
               moveSelection(1);
+              event.currentTarget.parentElement
+                ?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+                [index + 1 >= options.length ? 0 : index + 1]?.focus();
             } else if (event.key === "ArrowLeft") {
               event.preventDefault();
               moveSelection(-1);
+              event.currentTarget.parentElement
+                ?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+                [index - 1 < 0 ? options.length - 1 : index - 1]?.focus();
             }
           }}
           onClick={() => onChange(option.value)}
