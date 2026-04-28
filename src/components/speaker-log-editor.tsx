@@ -125,11 +125,15 @@ export function SpeakerLogEditor({
         <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-1">
           {liveLog.speakers.map((speaker) => {
             const isSpeakerUsed = liveLog.segments.some((segment) => segment.speakerId === speaker.id);
+            const speakerNameInputId = `speaker-name-${speaker.id}`;
+            const speakerRoleSelectId = `speaker-role-${speaker.id}`;
 
             return (
               <div className="rounded-md border bg-background p-3" key={speaker.id}>
                 <div className="flex items-center justify-between gap-2">
-                  <label className="text-xs font-medium text-muted-foreground">名前</label>
+                  <label className="text-xs font-medium text-muted-foreground" htmlFor={speakerNameInputId}>
+                    名前
+                  </label>
                   <Button
                     aria-label="話者を削除"
                     disabled={isExtracting || isSpeakerUsed || liveLog.speakers.length <= 1}
@@ -143,14 +147,18 @@ export function SpeakerLogEditor({
                 <Input
                   className="mt-1"
                   disabled={isExtracting}
+                  id={speakerNameInputId}
                   value={speaker.name}
                   onBlur={(event) => onNormalizeSpeakerName(speaker.id, event.target.value)}
                   onChange={(event) => onUpdateSpeakerName(speaker.id, event.target.value)}
                 />
-                <label className="mt-3 block text-xs font-medium text-muted-foreground">ロール</label>
+                <label className="mt-3 block text-xs font-medium text-muted-foreground" htmlFor={speakerRoleSelectId}>
+                  ロール
+                </label>
                 <select
                   className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   disabled={isExtracting}
+                  id={speakerRoleSelectId}
                   value={speaker.role}
                   onChange={(event) => onUpdateSpeakerRole(speaker.id, event.target.value as SpeakerRole)}
                 >
@@ -192,6 +200,10 @@ export function SpeakerLogEditor({
               const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
               const isSegmentTextInvalid = !isExtracting && segment.text.trim().length === 0;
               const segmentTextHintId = `segment-text-hint-${segment.id}`;
+              const segmentStartInputId = `segment-start-${segment.id}`;
+              const segmentEndInputId = `segment-end-${segment.id}`;
+              const segmentSpeakerSelectId = `segment-speaker-${segment.id}`;
+              const segmentTextInputId = `segment-text-${segment.id}`;
 
               return (
                 <div
@@ -204,6 +216,7 @@ export function SpeakerLogEditor({
                       <Input
                         aria-label="開始秒"
                         disabled={isExtracting}
+                        id={segmentStartInputId}
                         min={0}
                         type="number"
                         value={segment.startTimeSec}
@@ -214,6 +227,7 @@ export function SpeakerLogEditor({
                       <Input
                         aria-label="終了秒"
                         disabled={isExtracting}
+                        id={segmentEndInputId}
                         min={0}
                         type="number"
                         value={segment.endTimeSec}
@@ -259,10 +273,13 @@ export function SpeakerLogEditor({
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground">話者</label>
+                    <label className="text-xs font-medium text-muted-foreground" htmlFor={segmentSpeakerSelectId}>
+                      話者
+                    </label>
                     <select
                       className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       disabled={isExtracting}
+                      id={segmentSpeakerSelectId}
                       value={segment.speakerId}
                       onChange={(event) => onUpdateSegment(segment.id, { speakerId: event.target.value })}
                     >
@@ -281,7 +298,9 @@ export function SpeakerLogEditor({
 
                   <div>
                     <div className="flex items-center justify-between gap-2">
-                      <label className="text-xs font-medium text-muted-foreground">発話</label>
+                      <label className="text-xs font-medium text-muted-foreground" htmlFor={segmentTextInputId}>
+                        発話
+                      </label>
                       <span className="text-xs tabular-nums text-muted-foreground">
                         {segment.text.trim().length}字
                       </span>
@@ -291,6 +310,7 @@ export function SpeakerLogEditor({
                       aria-invalid={isSegmentTextInvalid}
                       className="mt-1 min-h-[84px] resize-y text-sm leading-6"
                       disabled={isExtracting}
+                      id={segmentTextInputId}
                       value={segment.text}
                       onChange={(event) => onUpdateSegment(segment.id, { text: event.target.value })}
                     />
