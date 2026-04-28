@@ -463,6 +463,10 @@ export function generatePrepNote(chronicle: Chronicle, sessions: SessionState[],
 
 export function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chronicle {
   if (item.kind === "NPC") {
+    if (chronicle.npcs.some((npc) => npc.name === item.title && npc.publicKnowledge === item.detail)) {
+      return chronicle;
+    }
+
     return {
       ...chronicle,
       npcs: [
@@ -479,6 +483,10 @@ export function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chr
   }
 
   if (item.kind === "手がかり" || item.kind === "GM秘密") {
+    if (chronicle.clues.some((clue) => clue.title === item.title && clue.detail === item.detail)) {
+      return chronicle;
+    }
+
     return {
       ...chronicle,
       clues: [
@@ -493,6 +501,10 @@ export function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chr
   }
 
   if (item.kind === "伏線") {
+    if (chronicle.threads.some((thread) => thread.title === item.title && thread.detail === item.detail)) {
+      return chronicle;
+    }
+
     return {
       ...chronicle,
       threads: [
@@ -506,8 +518,13 @@ export function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chr
     };
   }
 
+  const event = `${item.title}: ${item.detail}`;
+  if (chronicle.events.includes(event)) {
+    return chronicle;
+  }
+
   return {
     ...chronicle,
-    events: [...chronicle.events, `${item.title}: ${item.detail}`],
+    events: [...chronicle.events, event],
   };
 }
