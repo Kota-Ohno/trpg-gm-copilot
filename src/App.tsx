@@ -927,7 +927,7 @@ export function App() {
                             prompt {extractionRun.promptLength.toLocaleString()}文字
                           </Badge>
                           {extractionRun.validationErrors && extractionRun.validationErrors.length > 0 && (
-                            <Badge variant="secondary">
+                            <Badge variant="destructive">
                               検証エラー {extractionRun.validationErrors.length}件
                             </Badge>
                           )}
@@ -1147,7 +1147,7 @@ function EmptyState({ extractionRun, onStart }: { extractionRun: ExtractionRun |
             <Badge variant="muted">{extractionRun.sourceType === "fallback" ? "フォールバック由来" : "0件"}</Badge>
             {extractionRun.fallbackUsed && <Badge variant="secondary">フォールバック済み</Badge>}
             {hasValidationErrors && (
-              <Badge variant="secondary">検証エラー {extractionRun.validationErrors?.length}件</Badge>
+              <Badge variant="destructive">検証エラー {extractionRun.validationErrors?.length}件</Badge>
             )}
           </div>
         )}
