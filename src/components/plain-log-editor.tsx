@@ -27,10 +27,12 @@ export function PlainLogEditor({
   const speakerLineCount = nonEmptyLines.filter((line) => /^(?:\[[^\]]+\]\s*)?[^:：]{1,32}[:：]\s*.+$/.test(line.trim())).length;
   const speakerLineRatio = nonEmptyLines.length > 0 ? Math.round((speakerLineCount / nonEmptyLines.length) * 100) : 0;
   const hasNoSpeakerLines = hasLogText && speakerLineCount === 0;
+  const logStatusId = "plain-log-editor-status";
 
   return (
     <>
       <Textarea
+        aria-describedby={logStatusId}
         aria-invalid={hasNoSpeakerLines}
         className="min-h-[420px] resize-y font-mono text-sm leading-6"
         disabled={isExtracting}
@@ -55,7 +57,7 @@ export function PlainLogEditor({
               </Badge>
             )}
           </div>
-          <p className="max-w-[42rem] text-xs leading-5 text-muted-foreground">
+          <p className="max-w-[42rem] text-xs leading-5 text-muted-foreground" id={logStatusId}>
             {hasLogText
               ? hasNoSpeakerLines
                 ? "「話者: セリフ」形式の行が見つかりません。話者付きログ化の前に区切りを確認してください。"
