@@ -97,7 +97,14 @@ function readRecord<T>(value: unknown): Partial<T> {
 }
 
 function normalizeStringArray(value: unknown, fallback: string[]): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : fallback;
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
 }
 
 function readString(value: unknown, fallback: string): string {
