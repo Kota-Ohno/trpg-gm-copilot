@@ -199,6 +199,10 @@ export function SpeakerLogEditor({
             {sortedSegments.map((segment) => {
               const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
               const isSegmentTextInvalid = !isExtracting && segment.text.trim().length === 0;
+              const confidencePercent =
+                typeof segment.confidence === "number" && Number.isFinite(segment.confidence)
+                  ? Math.round(Math.max(0, Math.min(1, segment.confidence)) * 100)
+                  : null;
               const segmentTextHintId = `segment-text-hint-${segment.id}`;
               const segmentStartInputId = `segment-start-${segment.id}`;
               const segmentEndInputId = `segment-end-${segment.id}`;
@@ -296,6 +300,11 @@ export function SpeakerLogEditor({
                     {speaker && (
                       <Badge className="mt-2" variant={speaker.role === "GM" ? "secondary" : "outline"}>
                         {speakerRoleLabels[speaker.role]}
+                      </Badge>
+                    )}
+                    {confidencePercent !== null && (
+                      <Badge className="mt-2" variant={confidencePercent < 85 ? "destructive" : "muted"}>
+                        信頼度 {confidencePercent}%
                       </Badge>
                     )}
                   </div>
