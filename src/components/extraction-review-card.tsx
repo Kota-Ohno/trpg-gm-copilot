@@ -25,6 +25,8 @@ export function ExtractionReviewCard({
   onUpdate,
 }: ExtractionReviewCardProps) {
   const canApprove = item.title.trim().length > 0 && item.detail.trim().length > 0;
+  const isTitleInvalid = !isApproved && !item.title.trim();
+  const isDetailInvalid = !isApproved && !item.detail.trim();
   const missingFields = [
     !item.title.trim() ? "タイトル" : "",
     !item.detail.trim() ? "本文" : "",
@@ -118,6 +120,7 @@ export function ExtractionReviewCard({
         <div>
           <label className="text-xs font-medium text-muted-foreground">タイトル</label>
           <Input
+            aria-invalid={isTitleInvalid}
             className="mt-1"
             disabled={isApproved}
             value={item.title}
@@ -129,6 +132,7 @@ export function ExtractionReviewCard({
         <div>
           <label className="text-xs font-medium text-muted-foreground">本文</label>
           <Textarea
+            aria-invalid={isDetailInvalid}
             className="mt-1 min-h-[116px] resize-y text-sm leading-6 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isApproved}
             value={item.detail}
