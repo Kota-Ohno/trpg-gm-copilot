@@ -83,12 +83,41 @@ function extractJsonObject(text: string): string {
   }
 
   const firstBrace = text.indexOf("{");
-  const lastBrace = text.lastIndexOf("}");
-  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+  if (firstBrace === -1) {
     return text;
   }
 
-  return text.slice(firstBrace, lastBrace + 1);
+  let depth = 0;
+  let isInString = false;
+  let isEscaped = false;
+
+  for (let index = firstBrace; index < text.length; index += 1) {
+    const character = text[index];
+
+    if (isInString) {
+      if (isEscaped) {
+        isEscaped = false;
+      } else if (character === "\\") {
+        isEscaped = true;
+      } else if (character === "\"") {
+        isInString = false;
+      }
+      continue;
+    }
+
+    if (character === "\"") {
+      isInString = true;
+    } else if (character === "{") {
+      depth += 1;
+    } else if (character === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return text.slice(firstBrace, index + 1);
+      }
+    }
+  }
+
+  return text.slice(firstBrace);
 }
 
 function createFallbackId(index: number, seenIds: Set<string>): string {
