@@ -98,6 +98,22 @@ export function ChronicleView({ chronicle, onUpdateClueStatus }: ChronicleViewPr
       hidden: 0,
     },
   );
+  const nextRevealCandidates = [
+    ...chronicle.clues
+      .filter((clue) => clue.status !== "known")
+      .map((clue) => ({
+        id: `clue:${clue.title}:${clue.detail}`,
+        title: clue.title,
+        detail: clue.detail,
+        label: statusLabels[clue.status],
+      })),
+    ...chronicle.threads.map((thread) => ({
+      id: `thread:${thread.title}:${thread.detail}:${thread.nextMove}`,
+      title: thread.title,
+      detail: thread.nextMove,
+      label: "伏線",
+    })),
+  ].slice(0, 6);
 
   return (
     <div className="grid gap-4">
@@ -148,6 +164,27 @@ export function ChronicleView({ chronicle, onUpdateClueStatus }: ChronicleViewPr
               解除
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <SectionTitle count={nextRevealCandidates.length} label="次に出す候補" total={nextRevealCandidates.length} />
+        </CardHeader>
+        <CardContent className="grid gap-2">
+          {nextRevealCandidates.length > 0 ? (
+            nextRevealCandidates.map((candidate) => (
+              <div className="rounded-md border p-3" key={candidate.id}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium">{candidate.title}</p>
+                  <Badge variant="secondary">{candidate.label}</Badge>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{candidate.detail}</p>
+              </div>
+            ))
+          ) : (
+            <EmptyCategory label="次に出す候補" />
+          )}
         </CardContent>
       </Card>
 
