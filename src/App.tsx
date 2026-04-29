@@ -1226,6 +1226,10 @@ export function App() {
               {visibleCampaigns.map((campaign) => (
                 (() => {
                   const memoryCount = countChronicleItems(campaign.chronicle);
+                  const lowConfidenceCount = campaign.sessions.reduce(
+                    (total, session) => total + summarizeLiveLog(session.liveLog).lowConfidenceCount,
+                    0,
+                  );
 
                   return (
                     <div
@@ -1246,6 +1250,7 @@ export function App() {
                           }
                         >
                           {campaign.sessions.length}セッション / {memoryCount}記憶
+                          {lowConfidenceCount > 0 ? ` / 要確認${lowConfidenceCount}` : ""}
                         </span>
                       </button>
                       <Button
