@@ -26,6 +26,12 @@ Tests:
 npm run test
 ```
 
+Full local check:
+
+```sh
+npm run check
+```
+
 Production build:
 
 ```sh
