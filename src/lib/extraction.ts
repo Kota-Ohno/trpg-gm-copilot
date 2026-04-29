@@ -131,7 +131,9 @@ export function splitTranscriptSegment(liveLog: LiveLogSession, segmentId: strin
   }
 
   const text = targetSegment.text.trim();
-  const splitIndex = text.length > 1 ? Math.ceil(text.length / 2) : text.length;
+  const midpointIndex = text.length > 1 ? Math.ceil(text.length / 2) : text.length;
+  const preferredSplitIndex = findPreferredTextSplitIndex(text, midpointIndex);
+  const splitIndex = preferredSplitIndex ?? midpointIndex;
   const firstText = text.slice(0, splitIndex).trim();
   const secondText = text.slice(splitIndex).trim();
   const durationSec = Math.max(2, targetSegment.endTimeSec - targetSegment.startTimeSec);
@@ -159,6 +161,24 @@ export function splitTranscriptSegment(liveLog: LiveLogSession, segmentId: strin
       ...liveLog.segments.slice(targetIndex + 1),
     ],
   };
+}
+
+function findPreferredTextSplitIndex(text: string, midpointIndex: number): number | null {
+  const splitCharacters = ["\n", "。", "！", "？", "、", ",", " "];
+  const candidates = splitCharacters.flatMap((character) => {
+    const before = text.lastIndexOf(character, midpointIndex);
+    const after = text.indexOf(character, midpointIndex);
+
+    return [before >= 1 ? before + character.length : null, after >= 1 ? after + character.length : null];
+  }).filter((index): index is number => index !== null && index > 0 && index < text.length);
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  return candidates.sort(
+    (first, second) => Math.abs(first - midpointIndex) - Math.abs(second - midpointIndex),
+  )[0];
 }
 
 function formatTimestamp(seconds: number): string {

@@ -250,7 +250,7 @@ describe("splitTranscriptSegment", () => {
     const split = splitTranscriptSegment({
       ...summaryLiveLog,
       segments: [
-        { id: "target", speakerId: "speaker-gm", startTimeSec: 10, endTimeSec: 20, text: "扉の奥を見る" },
+        { id: "target", speakerId: "speaker-gm", startTimeSec: 10, endTimeSec: 20, text: "扉を見る。奥へ進む" },
       ],
     }, "target");
 
@@ -260,14 +260,14 @@ describe("splitTranscriptSegment", () => {
       speakerId: "speaker-gm",
       startTimeSec: 10,
       endTimeSec: 15,
-      text: "扉の奥",
+      text: "扉を見る。",
     });
     expect(split.segments[1]?.id).not.toBe("target");
     expect(split.segments[1]).toMatchObject({
       speakerId: "speaker-gm",
       startTimeSec: 16,
       endTimeSec: 20,
-      text: "を見る",
+      text: "奥へ進む",
     });
   });
 });
