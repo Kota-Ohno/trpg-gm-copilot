@@ -313,6 +313,10 @@ export function App() {
       )
     );
   });
+  const hasReviewFilter = reviewKindFilter !== "all" || !showApprovedReviewItems || normalizedReviewQuery.length > 0;
+  const approvableVisibleReviewCount = reviewItems.filter(
+    (item) => !approvedIds.includes(item.id) && item.title.trim() && item.detail.trim(),
+  ).length;
   const reviewKindCounts = reviewKindOptions.reduce<Record<ReviewKindFilter, number>>(
     (counts, option) => ({
       ...counts,
@@ -917,7 +921,7 @@ export function App() {
     }));
   };
 
-  const approveRemainingItems = (): void => {
+  const approveRemainingItems = (targetItemIds?: Set<string>): void => {
     setActiveCampaignState((current) => {
       const session = current.sessions.find((candidate) => candidate.id === current.activeSessionId);
       if (!session) {
@@ -927,6 +931,10 @@ export function App() {
       const nextApprovedIds = [...session.approvedIds];
       let nextChronicle = current.chronicle;
       session.extractionItems.forEach((item) => {
+        if (targetItemIds && !targetItemIds.has(item.id)) {
+          return;
+        }
+
         if (nextApprovedIds.includes(item.id) || !item.title.trim() || !item.detail.trim()) {
           return;
         }
@@ -1478,7 +1486,7 @@ export function App() {
                           {approvableRemainingCount !== remainingCount && (
                             <Badge variant="outline">{approvableRemainingCount}件採用可能</Badge>
                           )}
-                          {(reviewKindFilter !== "all" || !showApprovedReviewItems || normalizedReviewQuery) && (
+                          {hasReviewFilter && (
                             <Badge variant="outline">{reviewItems.length}件を表示中</Badge>
                           )}
                           {normalizedReviewQuery && <Badge variant="secondary">検索: {reviewQuery.trim()}</Badge>}
@@ -1509,9 +1517,17 @@ export function App() {
                           >
                             {showApprovedReviewItems ? "採用済みを隠す" : "採用済みも表示"}
                           </Button>
-                          <Button disabled={approvableRemainingCount === 0} onClick={approveRemainingItems} size="sm">
+                          <Button
+                            disabled={(hasReviewFilter ? approvableVisibleReviewCount : approvableRemainingCount) === 0}
+                            onClick={() =>
+                              approveRemainingItems(
+                                hasReviewFilter ? new Set(reviewItems.map((item) => item.id)) : undefined,
+                              )
+                            }
+                            size="sm"
+                          >
                             <ShieldCheck className="h-4 w-4" />
-                            残りをまとめて採用
+                            {hasReviewFilter ? "表示中をまとめて採用" : "残りをまとめて採用"}
                           </Button>
                         </div>
                       </CardContent>
