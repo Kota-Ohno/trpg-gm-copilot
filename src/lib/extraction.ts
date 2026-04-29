@@ -29,6 +29,7 @@ export type LiveLogSummary = {
 
 export type TranscriptionDraftPreview =
   | { status: "empty" }
+  | { status: "empty-segments" }
   | { status: "invalid-json" }
   | { status: "invalid-shape" }
   | { status: "valid"; segmentCount: number; lowConfidenceCount: number };
@@ -321,6 +322,9 @@ export function previewTranscriptionDraftPayload(payload: string): Transcription
     const normalizedDrafts = normalizeTranscriptionDrafts(parsedDrafts);
     if (!normalizedDrafts) {
       return { status: "invalid-shape" };
+    }
+    if (normalizedDrafts.length === 0) {
+      return { status: "empty-segments" };
     }
 
     return {

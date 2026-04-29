@@ -78,6 +78,7 @@ describe("previewTranscriptionDraftPayload", () => {
     expect(previewTranscriptionDraftPayload(" ")).toEqual({ status: "empty" });
     expect(previewTranscriptionDraftPayload("{")).toEqual({ status: "invalid-json" });
     expect(previewTranscriptionDraftPayload("{}")).toEqual({ status: "invalid-shape" });
+    expect(previewTranscriptionDraftPayload(JSON.stringify([{ text: " " }]))).toEqual({ status: "empty-segments" });
     expect(previewTranscriptionDraftPayload(JSON.stringify({
       segments: [
         { speakerName: "GM", text: "安全", confidence: 0.95 },

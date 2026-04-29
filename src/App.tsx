@@ -1378,7 +1378,11 @@ export function App() {
                           </>
                         ) : (
                           <Badge variant="destructive">
-                            {transcriptionDraftPreview.status === "invalid-json" ? "JSONエラー" : "形式エラー"}
+                            {transcriptionDraftPreview.status === "invalid-json"
+                              ? "JSONエラー"
+                              : transcriptionDraftPreview.status === "empty-segments"
+                                ? "有効発話0件"
+                                : "形式エラー"}
                           </Badge>
                         )}
                       </div>
