@@ -4,7 +4,7 @@ Chronicle GM is a local-first TRPG campaign assistant for human GMs. It helps tu
 
 ## Current Features
 
-- Plain log and speaker-segment log editors.
+- Plain log and speaker-segment log editors with segment duplication, merge, timing normalization, and review filters.
 - Multiple local campaigns with search, switching, creation, duplication, deletion, and whole-library JSON backup.
 - Rule-based extraction plus OpenAI/Ollama provider settings.
 - GM review flow for extracted events, NPCs, clues, secrets, and threads, including candidate search and filtered bulk approval.
