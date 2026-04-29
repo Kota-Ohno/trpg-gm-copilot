@@ -365,7 +365,15 @@ export function App() {
   const normalizedCampaignQuery = campaignQuery.trim().toLowerCase();
   const visibleCampaigns = normalizedCampaignQuery
     ? campaignLibrary.campaigns.filter((campaign) =>
-        campaign.campaignName.toLowerCase().includes(normalizedCampaignQuery),
+        [
+          campaign.campaignName,
+          ...campaign.sessions.map((session) => session.title),
+          ...campaign.chronicle.events,
+          ...campaign.chronicle.clues.flatMap((clue) => [clue.title, clue.detail]),
+          ...campaign.chronicle.npcs.flatMap((npc) => [npc.name, npc.role, npc.publicKnowledge, npc.gmSecret]),
+          ...campaign.chronicle.locations.flatMap((location) => [location.name, location.detail]),
+          ...campaign.chronicle.threads.flatMap((thread) => [thread.title, thread.detail, thread.nextMove]),
+        ].some((value) => value.toLowerCase().includes(normalizedCampaignQuery)),
       )
     : campaignLibrary.campaigns;
   const normalizedSessionQuery = sessionQuery.trim().toLowerCase();
