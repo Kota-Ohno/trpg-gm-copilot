@@ -321,6 +321,9 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
   } & Partial<SessionState>;
   const migratedSession = legacyState.currentSession ?? {
     ...defaultSession,
+    id: legacyState.id ?? defaultSession.id,
+    title: legacyState.title ?? defaultSession.title,
+    date: legacyState.date ?? defaultSession.date,
     log: legacyState.log ?? defaultSession.log,
     liveLog: legacyState.liveLog ?? defaultSession.liveLog,
     extractionItems: legacyState.extractionItems ?? defaultSession.extractionItems,
