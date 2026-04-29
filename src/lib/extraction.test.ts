@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  liveLogToPlainText,
   liveLogToTranscriptionDrafts,
   normalizeTranscriptionDrafts,
   parsePlainLogToLiveLog,
@@ -136,6 +137,15 @@ describe("liveLogToTranscriptionDrafts", () => {
         confidence: 0.88,
       },
     ]);
+  });
+});
+
+describe("liveLogToPlainText", () => {
+  it("exports sorted non-empty speaker lines", () => {
+    expect(liveLogToPlainText(summaryLiveLog)).toBe([
+      "[00:00] GM: 足音が聞こえる",
+      "[00:08] アキラ: 調べます",
+    ].join("\n"));
   });
 });
 
