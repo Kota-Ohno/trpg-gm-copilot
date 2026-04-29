@@ -655,10 +655,32 @@ export function App() {
         approvedIds: [],
         extractionRun: null,
       };
+      const speakerIdMap = new Map(
+        duplicatedSession.liveLog.speakers.map((speaker) => [speaker.id, createId("speaker")]),
+      );
+      const fallbackSpeakerId = duplicatedSession.liveLog.speakers[0]?.id;
 
       return {
         ...current,
-        sessions: [...current.sessions, duplicatedSession],
+        sessions: [
+          ...current.sessions,
+          {
+            ...duplicatedSession,
+            liveLog: {
+              ...duplicatedSession.liveLog,
+              id: createId("live-log"),
+              speakers: duplicatedSession.liveLog.speakers.map((speaker) => ({
+                ...speaker,
+                id: speakerIdMap.get(speaker.id) ?? createId("speaker"),
+              })),
+              segments: duplicatedSession.liveLog.segments.map((segment) => ({
+                ...segment,
+                id: createId("segment"),
+                speakerId: speakerIdMap.get(segment.speakerId) ?? speakerIdMap.get(fallbackSpeakerId ?? "") ?? segment.speakerId,
+              })),
+            },
+          },
+        ],
         activeSessionId: duplicatedSession.id,
       };
     });
