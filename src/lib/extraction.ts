@@ -295,11 +295,17 @@ export function normalizeTranscriptionDrafts(value: unknown): TranscriptionSegme
       return [];
     }
 
+    const text = draft.text.trim();
+    if (!text) {
+      return [];
+    }
+    const speakerName = typeof draft.speakerName === "string" ? draft.speakerName.trim() : "";
+
     return [{
-      ...(typeof draft.speakerName === "string" ? { speakerName: draft.speakerName } : {}),
+      ...(speakerName ? { speakerName } : {}),
       ...(typeof draft.startTimeSec === "number" ? { startTimeSec: draft.startTimeSec } : {}),
       ...(typeof draft.endTimeSec === "number" ? { endTimeSec: draft.endTimeSec } : {}),
-      text: draft.text,
+      text,
       ...(typeof draft.confidence === "number" ? { confidence: draft.confidence } : {}),
     }];
   });

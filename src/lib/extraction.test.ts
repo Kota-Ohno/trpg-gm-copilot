@@ -51,9 +51,10 @@ describe("normalizeTranscriptionDrafts", () => {
   it("keeps only valid segment draft fields", () => {
     expect(normalizeTranscriptionDrafts([
       null,
-      { speakerName: "GM", startTimeSec: 0, endTimeSec: 6, text: "開始", confidence: 0.9, extra: "ignored" },
+      { speakerName: " GM ", startTimeSec: 0, endTimeSec: 6, text: " 開始 ", confidence: 0.9, extra: "ignored" },
       { speakerName: 12, text: "名前なし", confidence: "high" },
       { speakerName: "PL" },
+      { speakerName: "PL", text: "   " },
     ])).toEqual([
       { speakerName: "GM", startTimeSec: 0, endTimeSec: 6, text: "開始", confidence: 0.9 },
       { text: "名前なし" },
