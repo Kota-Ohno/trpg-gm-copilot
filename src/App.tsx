@@ -337,6 +337,7 @@ export function App() {
   const approvableVisibleReviewCount = reviewItems.filter(
     (item) => !approvedIds.includes(item.id) && item.title.trim() && item.detail.trim(),
   ).length;
+  const rejectableVisibleReviewCount = reviewItems.filter((item) => !approvedIds.includes(item.id)).length;
   const reviewKindCounts = reviewKindOptions.reduce<Record<ReviewKindFilter, number>>(
     (counts, option) => ({
       ...counts,
@@ -1050,6 +1051,25 @@ export function App() {
     }));
   };
 
+  const rejectVisibleItems = (): void => {
+    const targetIds = new Set(reviewItems.filter((item) => !approvedIds.includes(item.id)).map((item) => item.id));
+    if (targetIds.size === 0) {
+      return;
+    }
+
+    setConfirmation({
+      title: "表示中の候補を破棄しますか",
+      message: `${targetIds.size}件の未採用候補を抽出候補から削除します。採用済みの候補は残します。`,
+      confirmLabel: "破棄する",
+      onConfirm: () => {
+        updateActiveSession((session) => ({
+          ...session,
+          extractionItems: session.extractionItems.filter((item) => !targetIds.has(item.id)),
+        }));
+      },
+    });
+  };
+
   const updateExtractionItem = (itemId: string, updates: Partial<ExtractionItem>): void => {
     updateActiveSession((session) => ({
       ...session,
@@ -1700,6 +1720,15 @@ export function App() {
                           >
                             <ShieldCheck className="h-4 w-4" />
                             {hasReviewFilter ? "表示中をまとめて採用" : "残りをまとめて採用"}
+                          </Button>
+                          <Button
+                            disabled={rejectableVisibleReviewCount === 0}
+                            onClick={rejectVisibleItems}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            表示中を破棄
                           </Button>
                         </div>
                       </CardContent>
