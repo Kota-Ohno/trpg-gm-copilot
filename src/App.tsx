@@ -832,6 +832,34 @@ export function App() {
     setActiveTab("log");
   };
 
+  const appendQuickResultToSpeakerLog = (): void => {
+    const text = quickResult.trim();
+    if (!text) {
+      return;
+    }
+
+    updateLiveLog((current) => {
+      const gmSpeaker = current.speakers.find((speaker) => speaker.role === "GM") ?? current.speakers[0];
+      const lastEndTimeSec = current.segments.reduce((max, segment) => Math.max(max, segment.endTimeSec), 0);
+
+      return {
+        ...current,
+        segments: [
+          ...current.segments,
+          {
+            id: createId("segment"),
+            speakerId: gmSpeaker.id,
+            startTimeSec: lastEndTimeSec + 1,
+            endTimeSec: lastEndTimeSec + 7,
+            text,
+          },
+        ],
+      };
+    });
+    setLogInputMode("speaker");
+    setActiveTab("log");
+  };
+
   const applyImportedTranscriptionDraftLog = (liveLogFromDrafts: LiveLogSession): void => {
     updateCurrentSession({ liveLog: liveLogFromDrafts });
     setTranscriptionDraftJson("");
@@ -1939,10 +1967,21 @@ export function App() {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm leading-6">{quickResult}</p>
-              <Button disabled={!quickResult.trim() || isExtracting} onClick={appendQuickResultToLog} size="sm" variant="outline">
-                <Plus className="h-4 w-4" />
-                通常ログへ追記
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button disabled={!quickResult.trim() || isExtracting} onClick={appendQuickResultToLog} size="sm" variant="outline">
+                  <Plus className="h-4 w-4" />
+                  通常ログへ追記
+                </Button>
+                <Button
+                  disabled={!quickResult.trim() || isExtracting}
+                  onClick={appendQuickResultToSpeakerLog}
+                  size="sm"
+                  variant="outline"
+                >
+                  <MessageSquareText className="h-4 w-4" />
+                  話者ログへ追記
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
