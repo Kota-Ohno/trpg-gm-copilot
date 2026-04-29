@@ -3,6 +3,7 @@ import {
   BookOpen,
   Clock3,
   Compass,
+  Copy,
   Download,
   FileText,
   Upload,
@@ -640,6 +641,32 @@ export function App() {
     setActiveTab("log");
   };
 
+  const duplicateSession = (sessionId: string): void => {
+    setActiveCampaignState((current) => {
+      const sourceSession = current.sessions.find((session) => session.id === sessionId);
+      if (!sourceSession) {
+        return current;
+      }
+
+      const duplicatedSession: SessionState = {
+        ...cloneJson(sourceSession),
+        id: createId("session"),
+        title: `${sourceSession.title} コピー`,
+        approvedIds: [],
+        extractionRun: null,
+      };
+
+      return {
+        ...current,
+        sessions: [...current.sessions, duplicatedSession],
+        activeSessionId: duplicatedSession.id,
+      };
+    });
+    setSessionQuery("");
+    setLogInputMode("speaker");
+    setActiveTab("log");
+  };
+
   const deleteSession = (sessionId: string): void => {
     const targetSession = campaignState.sessions.find((session) => session.id === sessionId);
     if (!targetSession || campaignState.sessions.length <= 1) {
@@ -1226,6 +1253,15 @@ export function App() {
                           {liveLogSummary.lowConfidenceCount > 0 ? ` / 要確認${liveLogSummary.lowConfidenceCount}` : ""}
                         </span>
                       </button>
+                      <Button
+                        aria-label={`${session.title}を複製`}
+                        disabled={isExtracting}
+                        onClick={() => duplicateSession(session.id)}
+                        size="icon"
+                        variant="ghost"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       <Button
                         aria-label={`${session.title}を削除`}
                         disabled={isExtracting || campaignState.sessions.length <= 1}
