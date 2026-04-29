@@ -20,6 +20,12 @@ npm install
 npm run dev
 ```
 
+Tests:
+
+```sh
+npm run test
+```
+
 Production build:
 
 ```sh
