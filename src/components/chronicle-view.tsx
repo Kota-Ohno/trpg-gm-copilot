@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import type { Chronicle, ClueStatus } from "../types";
+import { countChronicleItems } from "../lib/campaign";
 
 const statusLabels = {
   known: "PL既知",
@@ -36,16 +37,6 @@ function SectionTitle({ count, label, total }: { count: number; label: string; t
       <span>{label}</span>
       <Badge variant="outline">{countLabel}件</Badge>
     </CardTitle>
-  );
-}
-
-function countChronicleItems(chronicle: Chronicle): number {
-  return (
-    chronicle.events.length +
-    chronicle.clues.length +
-    chronicle.npcs.length +
-    chronicle.locations.length +
-    chronicle.threads.length
   );
 }
 

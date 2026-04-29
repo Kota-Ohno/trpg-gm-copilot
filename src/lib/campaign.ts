@@ -62,6 +62,16 @@ export function getLocalDateString(date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
+export function countChronicleItems(chronicle: Chronicle): number {
+  return (
+    chronicle.events.length +
+    chronicle.clues.length +
+    chronicle.npcs.length +
+    chronicle.locations.length +
+    chronicle.threads.length
+  );
+}
+
 function getLocalDateTimeString(date = new Date()): string {
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");

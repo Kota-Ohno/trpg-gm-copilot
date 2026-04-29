@@ -35,6 +35,7 @@ import { sampleLiveLog } from "./data/sample";
 import {
   applyExtraction,
   cloneJson,
+  countChronicleItems,
   createExportFileName,
   createInitialCampaignState,
   createId,
@@ -1120,12 +1121,7 @@ export function App() {
             <div className="space-y-1">
               {visibleCampaigns.map((campaign) => (
                 (() => {
-                  const memoryCount =
-                    campaign.chronicle.events.length +
-                    campaign.chronicle.clues.length +
-                    campaign.chronicle.npcs.length +
-                    campaign.chronicle.locations.length +
-                    campaign.chronicle.threads.length;
+                  const memoryCount = countChronicleItems(campaign.chronicle);
 
                   return (
                     <div

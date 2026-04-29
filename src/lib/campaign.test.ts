@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { duplicateCampaignState, duplicateSessionState, normalizeCampaignLibraryState, normalizeCampaignState } from "./campaign";
+import {
+  countChronicleItems,
+  duplicateCampaignState,
+  duplicateSessionState,
+  normalizeCampaignLibraryState,
+  normalizeCampaignState,
+} from "./campaign";
 
 describe("normalizeCampaignState", () => {
   it("migrates a legacy single-session state into the session list", () => {
@@ -97,6 +103,18 @@ describe("normalizeCampaignState", () => {
     expect(segment.text).toBe("");
     expect(segment.confidence).toBe(1);
     expect(lowConfidenceSegment.confidence).toBe(0);
+  });
+});
+
+describe("countChronicleItems", () => {
+  it("counts every campaign memory category", () => {
+    expect(countChronicleItems({
+      events: ["a"],
+      npcs: [{ name: "n", role: "r", publicKnowledge: "p", gmSecret: "g", attitude: "a" }],
+      clues: [{ title: "c", detail: "d", status: "known" }],
+      locations: [{ name: "l", detail: "d" }],
+      threads: [{ title: "t", detail: "d", nextMove: "n" }],
+    })).toBe(5);
   });
 });
 
