@@ -3,6 +3,7 @@ import {
   countChronicleItems,
   duplicateCampaignState,
   duplicateSessionState,
+  createExportFileName,
   getCampaignSearchText,
   getSessionSearchText,
   normalizeCampaignLibraryState,
@@ -117,6 +118,14 @@ describe("countChronicleItems", () => {
       locations: [{ name: "l", detail: "d" }],
       threads: [{ title: "t", detail: "d", nextMove: "n" }],
     })).toBe(5);
+  });
+});
+
+describe("createExportFileName", () => {
+  it("keeps safe Japanese campaign names and removes unsafe punctuation", () => {
+    const fileName = createExportFileName(" 灰ヶ浦/第1夜? ");
+
+    expect(fileName).toMatch(/^chronicle-gm-灰ヶ浦-第1夜-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.json$/);
   });
 });
 
