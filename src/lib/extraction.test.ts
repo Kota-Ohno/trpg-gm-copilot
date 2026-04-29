@@ -9,6 +9,7 @@ import {
   parsePlainLogToLiveLog,
   previewTranscriptionDraftPayload,
   runRuleBasedExtraction,
+  splitTranscriptSegment,
   summarizeLiveLog,
   transcriptionDraftsToLiveLog,
 } from "./extraction";
@@ -241,6 +242,33 @@ describe("normalizeTranscriptSegmentTiming", () => {
       { id: "late", startTimeSec: 5, endTimeSec: 8 },
       { id: "overlap", startTimeSec: 9, endTimeSec: 10 },
     ]);
+  });
+});
+
+describe("splitTranscriptSegment", () => {
+  it("splits one segment into two adjacent segments", () => {
+    const split = splitTranscriptSegment({
+      ...summaryLiveLog,
+      segments: [
+        { id: "target", speakerId: "speaker-gm", startTimeSec: 10, endTimeSec: 20, text: "扉の奥を見る" },
+      ],
+    }, "target");
+
+    expect(split.segments).toHaveLength(2);
+    expect(split.segments[0]).toMatchObject({
+      id: "target",
+      speakerId: "speaker-gm",
+      startTimeSec: 10,
+      endTimeSec: 15,
+      text: "扉の奥",
+    });
+    expect(split.segments[1]?.id).not.toBe("target");
+    expect(split.segments[1]).toMatchObject({
+      speakerId: "speaker-gm",
+      startTimeSec: 16,
+      endTimeSec: 20,
+      text: "を見る",
+    });
   });
 });
 

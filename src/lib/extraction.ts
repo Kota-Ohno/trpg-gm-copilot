@@ -123,6 +123,44 @@ export function normalizeTranscriptSegmentTiming(liveLog: LiveLogSession): LiveL
   };
 }
 
+export function splitTranscriptSegment(liveLog: LiveLogSession, segmentId: string): LiveLogSession {
+  const targetIndex = liveLog.segments.findIndex((segment) => segment.id === segmentId);
+  const targetSegment = liveLog.segments[targetIndex];
+  if (!targetSegment) {
+    return liveLog;
+  }
+
+  const text = targetSegment.text.trim();
+  const splitIndex = text.length > 1 ? Math.ceil(text.length / 2) : text.length;
+  const firstText = text.slice(0, splitIndex).trim();
+  const secondText = text.slice(splitIndex).trim();
+  const durationSec = Math.max(2, targetSegment.endTimeSec - targetSegment.startTimeSec);
+  const midpointSec = targetSegment.startTimeSec + Math.ceil(durationSec / 2);
+
+  const firstSegment: TranscriptSegment = {
+    ...targetSegment,
+    endTimeSec: midpointSec,
+    text: firstText || targetSegment.text,
+  };
+  const secondSegment: TranscriptSegment = {
+    ...targetSegment,
+    id: createId("segment"),
+    startTimeSec: midpointSec + 1,
+    endTimeSec: Math.max(midpointSec + 2, targetSegment.endTimeSec),
+    text: secondText,
+  };
+
+  return {
+    ...liveLog,
+    segments: [
+      ...liveLog.segments.slice(0, targetIndex),
+      firstSegment,
+      secondSegment,
+      ...liveLog.segments.slice(targetIndex + 1),
+    ],
+  };
+}
+
 function formatTimestamp(seconds: number): string {
   const safeSeconds = Math.max(0, Math.round(seconds));
   const hours = Math.floor(safeSeconds / 3600);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Clock3, Copy, FileText, MessageSquareText, Plus, RotateCcw, Trash2, UserRound, Wand2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock3, Copy, FileText, MessageSquareText, Plus, RotateCcw, Split, Trash2, UserRound, Wand2 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -40,6 +40,7 @@ type SpeakerLogEditorProps = {
   onNormalizeTiming: () => void;
   onReset: () => void;
   onRestoreSample: () => void;
+  onSplitSegment: (segmentId: string) => void;
   onUpdateSegment: (segmentId: string, updates: Partial<TranscriptSegment>) => void;
   onNormalizeSpeakerName: (speakerId: string, name: string) => void;
   onUpdateSpeakerName: (speakerId: string, name: string) => void;
@@ -62,6 +63,7 @@ export function SpeakerLogEditor({
   onNormalizeTiming,
   onReset,
   onRestoreSample,
+  onSplitSegment,
   onUpdateSegment,
   onNormalizeSpeakerName,
   onUpdateSpeakerName,
@@ -441,6 +443,15 @@ export function SpeakerLogEditor({
                       variant="outline"
                     >
                       <Plus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      aria-label="発話を分割"
+                      disabled={isExtracting || segment.text.trim().length < 2}
+                      onClick={() => onSplitSegment(segment.id)}
+                      size="icon"
+                      variant="outline"
+                    >
+                      <Split className="h-4 w-4" />
                     </Button>
                     <Button
                       aria-label="発話を複製"

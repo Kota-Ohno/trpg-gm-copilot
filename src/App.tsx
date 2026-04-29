@@ -60,6 +60,7 @@ import {
   normalizeTranscriptSegmentTiming,
   parsePlainLogToLiveLog,
   previewTranscriptionDraftPayload,
+  splitTranscriptSegment,
   summarizeLiveLog,
   transcriptionDraftsToLiveLog,
 } from "./lib/extraction";
@@ -1114,6 +1115,10 @@ export function App() {
     });
   };
 
+  const splitSegment = (segmentId: string): void => {
+    updateLiveLog((current) => splitTranscriptSegment(current, segmentId));
+  };
+
   const approveItem = (item: ExtractionItem): void => {
     if (approvedIds.includes(item.id) || !item.title.trim() || !item.detail.trim()) {
       return;
@@ -1597,6 +1602,7 @@ export function App() {
                         onNormalizeTiming={normalizeSpeakerLogTiming}
                         onReset={resetCampaignState}
                         onRestoreSample={restoreSampleLiveLog}
+                        onSplitSegment={splitSegment}
                         onUpdateSegment={updateSegment}
                         onNormalizeSpeakerName={normalizeSpeakerName}
                         onUpdateSpeakerName={updateSpeakerName}
