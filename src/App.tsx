@@ -578,6 +578,19 @@ export function App() {
     URL.revokeObjectURL(objectUrl);
   };
 
+  const exportVisibleReviewItems = (): void => {
+    const blob = new Blob([JSON.stringify({ items: reviewItems }, null, 2)], {
+      type: "application/json",
+    });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = objectUrl;
+    link.download = createExportFileName(`${currentSession.title}-review-items`);
+    link.click();
+    URL.revokeObjectURL(objectUrl);
+  };
+
   const importCampaignState = async (file: File): Promise<void> => {
     try {
       const fileText = await file.text();
@@ -1870,6 +1883,10 @@ export function App() {
                           >
                             <Trash2 className="h-4 w-4" />
                             表示中を破棄
+                          </Button>
+                          <Button disabled={reviewItems.length === 0} onClick={exportVisibleReviewItems} size="sm" variant="outline">
+                            <Download className="h-4 w-4" />
+                            表示中を書き出し
                           </Button>
                         </div>
                       </CardContent>
