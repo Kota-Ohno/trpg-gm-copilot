@@ -225,6 +225,20 @@ export function SpeakerLogEditor({
                 未入力 {emptySegmentCount}
               </Button>
             )}
+            {(showLowConfidenceOnly || showEmptySegmentsOnly) && (
+              <Button
+                disabled={isExtracting}
+                onClick={() => {
+                  setShowLowConfidenceOnly(false);
+                  setShowEmptySegmentsOnly(false);
+                }}
+                size="sm"
+                variant="ghost"
+              >
+                <RotateCcw className="h-4 w-4" />
+                条件解除
+              </Button>
+            )}
             <Button disabled={isExtracting} onClick={onAddSegment} size="sm" variant="outline">
               <Plus className="h-4 w-4" />
               発話を追加
