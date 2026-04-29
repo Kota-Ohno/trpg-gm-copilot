@@ -437,7 +437,7 @@ export function parsePlainLogToLiveLog(log: string, title: string): LiveLogSessi
   }
 
   return {
-    id: createId("session"),
+    id: createId("live-log"),
     title,
     sourceType: "imported",
     speakers: Array.from(speakersByName.values()),

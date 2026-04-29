@@ -143,6 +143,7 @@ describe("parsePlainLogToLiveLog", () => {
     );
 
     expect(liveLog).not.toBeNull();
+    expect(liveLog?.id.startsWith("live-log-")).toBe(true);
     expect(liveLog?.title).toBe("通常ログ取り込み");
     expect(liveLog?.speakers.map((speaker) => [speaker.name, speaker.role])).toEqual([
       ["GM", "GM"],
