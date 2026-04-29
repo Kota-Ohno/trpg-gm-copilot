@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   liveLogToTranscriptionDrafts,
   normalizeTranscriptionDrafts,
+  parsePlainLogToLiveLog,
   summarizeLiveLog,
   transcriptionDraftsToLiveLog,
 } from "./extraction";
@@ -127,5 +128,45 @@ describe("summarizeLiveLog", () => {
       totalSegmentCount: 3,
       usedSpeakerCount: 2,
     });
+  });
+});
+
+describe("parsePlainLogToLiveLog", () => {
+  it("parses timestamped speaker lines and continuation text", () => {
+    const liveLog = parsePlainLogToLiveLog(
+      `
+      [00:05] GM: 扉の奥から足音が聞こえる
+      低く引きずるような音も混じっている
+      [00:14] アキラ: 聞き耳を立てます
+      `,
+      "通常ログ取り込み",
+    );
+
+    expect(liveLog).not.toBeNull();
+    expect(liveLog?.title).toBe("通常ログ取り込み");
+    expect(liveLog?.speakers.map((speaker) => [speaker.name, speaker.role])).toEqual([
+      ["GM", "GM"],
+      ["アキラ", "PL"],
+    ]);
+    expect(liveLog?.segments.map((segment) => ({
+      startTimeSec: segment.startTimeSec,
+      endTimeSec: segment.endTimeSec,
+      text: segment.text,
+    }))).toEqual([
+      {
+        startTimeSec: 5,
+        endTimeSec: 11,
+        text: "扉の奥から足音が聞こえる\n低く引きずるような音も混じっている",
+      },
+      {
+        startTimeSec: 14,
+        endTimeSec: 20,
+        text: "聞き耳を立てます",
+      },
+    ]);
+  });
+
+  it("returns null when no speaker lines are found", () => {
+    expect(parsePlainLogToLiveLog("ただのメモ\n続き", "空")).toBeNull();
   });
 });
