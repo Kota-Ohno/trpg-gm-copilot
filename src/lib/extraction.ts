@@ -27,6 +27,12 @@ export type LiveLogSummary = {
   usedSpeakerCount: number;
 };
 
+export type TranscriptionDraftPreview =
+  | { status: "empty" }
+  | { status: "invalid-json" }
+  | { status: "invalid-shape" }
+  | { status: "valid"; segmentCount: number; lowConfidenceCount: number };
+
 const npcNamePattern = /(?:女将|村長|灯台守|船長|医師|司祭|娘|甥|少女|少年|老人|男|女)(?:の)?([ァ-ヶー一-龠々]{1,8})|([ァ-ヶー一-龠々]{1,8})(?:は|が).*(?:話|言|証言)/;
 const plainLogLinePattern = /^(?:\[\s*([0-9０-９:.：\s]+)\s*\]\s*)?([^:：]{1,32})[:：]\s*(.+)$/;
 
@@ -297,6 +303,33 @@ export function normalizeTranscriptionDrafts(value: unknown): TranscriptionSegme
       ...(typeof draft.confidence === "number" ? { confidence: draft.confidence } : {}),
     }];
   });
+}
+
+export function previewTranscriptionDraftPayload(payload: string): TranscriptionDraftPreview {
+  if (!payload.trim()) {
+    return { status: "empty" };
+  }
+
+  try {
+    const parsedDrafts = JSON.parse(payload) as unknown;
+    const normalizedDrafts = normalizeTranscriptionDrafts(parsedDrafts);
+    if (!normalizedDrafts) {
+      return { status: "invalid-shape" };
+    }
+
+    return {
+      status: "valid",
+      segmentCount: normalizedDrafts.length,
+      lowConfidenceCount: normalizedDrafts.filter(
+        (draft) =>
+          typeof draft.confidence === "number" &&
+          Number.isFinite(draft.confidence) &&
+          draft.confidence < lowConfidenceThreshold,
+      ).length,
+    };
+  } catch {
+    return { status: "invalid-json" };
+  }
 }
 
 export function transcriptionDraftsToLiveLog(

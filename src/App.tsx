@@ -47,9 +47,9 @@ import {
 import {
   liveLogToTranscriptionDrafts,
   liveLogToPlainText,
-  lowConfidenceThreshold,
   normalizeTranscriptionDrafts,
   parsePlainLogToLiveLog,
+  previewTranscriptionDraftPayload,
   summarizeLiveLog,
   transcriptionDraftsToLiveLog,
 } from "./lib/extraction";
@@ -91,11 +91,6 @@ type ConfirmationRequest = {
   confirmLabel: string;
   onConfirm: () => void;
 };
-type TranscriptionDraftPreview =
-  | { status: "empty" }
-  | { status: "invalid-json" }
-  | { status: "invalid-shape" }
-  | { status: "valid"; segmentCount: number; lowConfidenceCount: number };
 
 const tabOptions: Array<{ value: WorkspaceTab; label: string }> = [
   { value: "log", label: "ログ" },
@@ -297,32 +292,10 @@ export function App() {
     transcriptionProvider,
   } = campaignState;
   const selectedTranscriptionProvider = getTranscriptionProvider(transcriptionProvider.providerId);
-  const transcriptionDraftPreview = useMemo<TranscriptionDraftPreview>(() => {
-    if (!transcriptionDraftJson.trim()) {
-      return { status: "empty" };
-    }
-
-    try {
-      const parsedDrafts = JSON.parse(transcriptionDraftJson) as unknown;
-      const normalizedDrafts = normalizeTranscriptionDrafts(parsedDrafts);
-      if (!normalizedDrafts) {
-        return { status: "invalid-shape" };
-      }
-
-      return {
-        status: "valid",
-        segmentCount: normalizedDrafts.length,
-        lowConfidenceCount: normalizedDrafts.filter(
-          (draft) =>
-            typeof draft.confidence === "number" &&
-            Number.isFinite(draft.confidence) &&
-            draft.confidence < lowConfidenceThreshold,
-        ).length,
-      };
-    } catch {
-      return { status: "invalid-json" };
-    }
-  }, [transcriptionDraftJson]);
+  const transcriptionDraftPreview = useMemo(
+    () => previewTranscriptionDraftPayload(transcriptionDraftJson),
+    [transcriptionDraftJson],
+  );
 
   const approvedCount = approvedIds.length;
   const remainingCount = items.length - approvedCount;

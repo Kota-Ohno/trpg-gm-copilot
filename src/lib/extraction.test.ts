@@ -3,6 +3,7 @@ import {
   liveLogToTranscriptionDrafts,
   normalizeTranscriptionDrafts,
   parsePlainLogToLiveLog,
+  previewTranscriptionDraftPayload,
   summarizeLiveLog,
   transcriptionDraftsToLiveLog,
 } from "./extraction";
@@ -68,6 +69,24 @@ describe("normalizeTranscriptionDrafts", () => {
     })).toEqual([
       { speakerName: "GM", text: "足音が近づく", confidence: 0.82 },
     ]);
+  });
+});
+
+describe("previewTranscriptionDraftPayload", () => {
+  it("reports empty, malformed, invalid shape, and valid payload states", () => {
+    expect(previewTranscriptionDraftPayload(" ")).toEqual({ status: "empty" });
+    expect(previewTranscriptionDraftPayload("{")).toEqual({ status: "invalid-json" });
+    expect(previewTranscriptionDraftPayload("{}")).toEqual({ status: "invalid-shape" });
+    expect(previewTranscriptionDraftPayload(JSON.stringify({
+      segments: [
+        { speakerName: "GM", text: "安全", confidence: 0.95 },
+        { speakerName: "PL", text: "不明瞭", confidence: 0.4 },
+      ],
+    }))).toEqual({
+      status: "valid",
+      segmentCount: 2,
+      lowConfidenceCount: 1,
+    });
   });
 });
 
