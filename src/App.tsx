@@ -819,6 +819,19 @@ export function App() {
     updateCurrentSession({ liveLog: cloneJson(sampleLiveLog) });
   };
 
+  const appendQuickResultToLog = (): void => {
+    const text = quickResult.trim();
+    if (!text) {
+      return;
+    }
+
+    updateCurrentSession({
+      log: currentSession.log.trim() ? `${currentSession.log.trim()}\nGM: ${text}` : `GM: ${text}`,
+    });
+    setLogInputMode("plain");
+    setActiveTab("log");
+  };
+
   const applyImportedTranscriptionDraftLog = (liveLogFromDrafts: LiveLogSession): void => {
     updateCurrentSession({ liveLog: liveLogFromDrafts });
     setTranscriptionDraftJson("");
@@ -1924,8 +1937,12 @@ export function App() {
                 候補
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               <p className="text-sm leading-6">{quickResult}</p>
+              <Button disabled={!quickResult.trim() || isExtracting} onClick={appendQuickResultToLog} size="sm" variant="outline">
+                <Plus className="h-4 w-4" />
+                通常ログへ追記
+              </Button>
             </CardContent>
           </Card>
 
