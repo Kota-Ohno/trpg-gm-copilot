@@ -72,6 +72,28 @@ export function countChronicleItems(chronicle: Chronicle): number {
   );
 }
 
+export function getSessionSearchText(session: SessionState): string {
+  return [
+    session.title,
+    session.date,
+    session.log,
+    ...session.liveLog.speakers.map((speaker) => speaker.name),
+    ...session.liveLog.segments.map((segment) => segment.text),
+  ].join("\n");
+}
+
+export function getCampaignSearchText(campaign: CampaignState): string {
+  return [
+    campaign.campaignName,
+    ...campaign.sessions.map((session) => session.title),
+    ...campaign.chronicle.events,
+    ...campaign.chronicle.clues.flatMap((clue) => [clue.title, clue.detail]),
+    ...campaign.chronicle.npcs.flatMap((npc) => [npc.name, npc.role, npc.publicKnowledge, npc.gmSecret]),
+    ...campaign.chronicle.locations.flatMap((location) => [location.name, location.detail]),
+    ...campaign.chronicle.threads.flatMap((thread) => [thread.title, thread.detail, thread.nextMove]),
+  ].join("\n");
+}
+
 function getLocalDateTimeString(date = new Date()): string {
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");

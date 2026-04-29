@@ -45,7 +45,9 @@ import {
   duplicateCampaignState,
   duplicateSessionState,
   generatePrepNote,
+  getCampaignSearchText,
   getLocalDateString,
+  getSessionSearchText,
   normalizeCampaignLibraryState,
   normalizeCampaignState,
 } from "./lib/campaign";
@@ -365,27 +367,13 @@ export function App() {
   const normalizedCampaignQuery = campaignQuery.trim().toLowerCase();
   const visibleCampaigns = normalizedCampaignQuery
     ? campaignLibrary.campaigns.filter((campaign) =>
-        [
-          campaign.campaignName,
-          ...campaign.sessions.map((session) => session.title),
-          ...campaign.chronicle.events,
-          ...campaign.chronicle.clues.flatMap((clue) => [clue.title, clue.detail]),
-          ...campaign.chronicle.npcs.flatMap((npc) => [npc.name, npc.role, npc.publicKnowledge, npc.gmSecret]),
-          ...campaign.chronicle.locations.flatMap((location) => [location.name, location.detail]),
-          ...campaign.chronicle.threads.flatMap((thread) => [thread.title, thread.detail, thread.nextMove]),
-        ].some((value) => value.toLowerCase().includes(normalizedCampaignQuery)),
+        getCampaignSearchText(campaign).toLowerCase().includes(normalizedCampaignQuery),
       )
     : campaignLibrary.campaigns;
   const normalizedSessionQuery = sessionQuery.trim().toLowerCase();
   const visibleSessions = normalizedSessionQuery
     ? campaignState.sessions.filter((session) =>
-        [
-          session.title,
-          session.date,
-          session.log,
-          ...session.liveLog.speakers.map((speaker) => speaker.name),
-          ...session.liveLog.segments.map((segment) => segment.text),
-        ].some((value) => value.toLowerCase().includes(normalizedSessionQuery)),
+        getSessionSearchText(session).toLowerCase().includes(normalizedSessionQuery),
       )
     : campaignState.sessions;
   const canExtractLog =

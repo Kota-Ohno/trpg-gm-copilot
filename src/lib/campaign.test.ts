@@ -3,6 +3,8 @@ import {
   countChronicleItems,
   duplicateCampaignState,
   duplicateSessionState,
+  getCampaignSearchText,
+  getSessionSearchText,
   normalizeCampaignLibraryState,
   normalizeCampaignState,
 } from "./campaign";
@@ -115,6 +117,48 @@ describe("countChronicleItems", () => {
       locations: [{ name: "l", detail: "d" }],
       threads: [{ title: "t", detail: "d", nextMove: "n" }],
     })).toBe(5);
+  });
+});
+
+describe("search text helpers", () => {
+  it("includes session log and speaker content", () => {
+    const session = normalizeCampaignState({
+      sessions: [
+        {
+          title: "第3夜",
+          date: "2026-04-30",
+          log: "GM: 港へ向かう",
+          liveLog: {
+            title: "話者ログ",
+            speakers: [{ id: "speaker-1", name: "アキラ", role: "PL" }],
+            segments: [{ id: "segment-1", speakerId: "speaker-1", startTimeSec: 0, endTimeSec: 5, text: "灯台を調べる" }],
+          },
+          extractionItems: [],
+          approvedIds: [],
+        },
+      ],
+    }).sessions[0];
+
+    expect(getSessionSearchText(session)).toContain("第3夜");
+    expect(getSessionSearchText(session)).toContain("アキラ");
+    expect(getSessionSearchText(session)).toContain("灯台を調べる");
+  });
+
+  it("includes campaign memory content", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "灰ヶ浦",
+      chronicle: {
+        events: ["港に到着"],
+        npcs: [{ name: "潮見レン", role: "灯台守の甥", publicKnowledge: "鐘を知る", gmSecret: "秘密", attitude: "協力的" }],
+        clues: [{ title: "古い鍵", detail: "倉庫で見つかる", status: "known" }],
+        locations: [{ name: "灯台", detail: "岬に立つ" }],
+        threads: [{ title: "月の鐘", detail: "まだ鳴らない", nextMove: "次回鳴る" }],
+      },
+    });
+
+    expect(getCampaignSearchText(campaign)).toContain("灰ヶ浦");
+    expect(getCampaignSearchText(campaign)).toContain("潮見レン");
+    expect(getCampaignSearchText(campaign)).toContain("月の鐘");
   });
 });
 
