@@ -176,6 +176,12 @@ const reviewKindOptions: Array<{ value: ReviewKindFilter; label: string }> = [
   { value: "伏線", label: "伏線" },
 ];
 
+const transcriptionLanguageOptions = [
+  { value: "ja", label: "日本語" },
+  { value: "en", label: "English" },
+  { value: "auto", label: "自動" },
+];
+
 const extractionSourceLabels: Record<ExtractionRun["sourceType"], string> = {
   plain: "通常ログ由来",
   speaker: "話者付きログ由来",
@@ -2148,6 +2154,26 @@ export function App() {
                 <label className="text-xs font-medium text-muted-foreground" htmlFor="transcription-language">
                   言語
                 </label>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {transcriptionLanguageOptions.map((option) => (
+                    <Button
+                      key={option.value}
+                      disabled={isExtracting}
+                      onClick={() =>
+                        updateCampaignState({
+                          transcriptionProvider: {
+                            ...transcriptionProvider,
+                            language: option.value,
+                          },
+                        })
+                      }
+                      size="sm"
+                      variant={transcriptionProvider.language === option.value ? "default" : "outline"}
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
+                </div>
                 <Input
                   className="mt-1"
                   disabled={isExtracting}
