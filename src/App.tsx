@@ -65,6 +65,7 @@ import {
   transcriptionProviders,
 } from "./lib/extraction-provider-settings";
 import { runExtractionProvider } from "./lib/extraction-providers";
+import { checkTranscriptionProviderReadiness } from "./lib/transcription-providers";
 import type {
   CampaignState,
   CampaignLibraryState,
@@ -301,6 +302,10 @@ export function App() {
   const transcriptionDraftPreview = useMemo(
     () => previewTranscriptionDraftPayload(transcriptionDraftJson),
     [transcriptionDraftJson],
+  );
+  const transcriptionProviderReadiness = useMemo(
+    () => checkTranscriptionProviderReadiness(transcriptionProvider, providerSecrets),
+    [providerSecrets, transcriptionProvider],
   );
 
   const approvedCount = approvedIds.length;
@@ -1901,9 +1906,13 @@ export function App() {
                 <Badge variant={selectedTranscriptionProvider.status === "available" ? "default" : "secondary"}>
                   {selectedTranscriptionProvider.status === "available" ? "利用可能" : "計画中"}
                 </Badge>
+                <Badge variant={transcriptionProviderReadiness.ok ? "default" : "destructive"}>
+                  {transcriptionProviderReadiness.ok ? "準備OK" : "要設定"}
+                </Badge>
                 <Badge variant="outline">{selectedTranscriptionProvider.label}</Badge>
                 <Badge variant="muted">言語 {transcriptionProvider.language}</Badge>
               </div>
+              <p className="text-xs text-muted-foreground">{transcriptionProviderReadiness.message}</p>
               <div>
                 <label className="text-xs font-medium text-muted-foreground" htmlFor="transcription-provider-select">
                   Provider
