@@ -1913,6 +1913,24 @@ export function App() {
                 <Badge variant="muted">言語 {transcriptionProvider.language}</Badge>
               </div>
               <p className="text-xs text-muted-foreground">{transcriptionProviderReadiness.message}</p>
+              <Button
+                disabled={isExtracting}
+                onClick={() =>
+                  updateCampaignState({
+                    transcriptionProvider: {
+                      providerId: selectedTranscriptionProvider.id,
+                      model: selectedTranscriptionProvider.defaultModel,
+                      endpoint: selectedTranscriptionProvider.defaultEndpoint,
+                      language: transcriptionProvider.language.trim() || "ja",
+                    },
+                  })
+                }
+                size="sm"
+                variant="ghost"
+              >
+                <RotateCcw className="h-4 w-4" />
+                既定値に戻す
+              </Button>
               <div>
                 <label className="text-xs font-medium text-muted-foreground" htmlFor="transcription-provider-select">
                   Provider
