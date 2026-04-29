@@ -371,7 +371,13 @@ export function App() {
   const normalizedSessionQuery = sessionQuery.trim().toLowerCase();
   const visibleSessions = normalizedSessionQuery
     ? campaignState.sessions.filter((session) =>
-        [session.title, session.date].some((value) => value.toLowerCase().includes(normalizedSessionQuery)),
+        [
+          session.title,
+          session.date,
+          session.log,
+          ...session.liveLog.speakers.map((speaker) => speaker.name),
+          ...session.liveLog.segments.map((segment) => segment.text),
+        ].some((value) => value.toLowerCase().includes(normalizedSessionQuery)),
       )
     : campaignState.sessions;
   const canExtractLog =
