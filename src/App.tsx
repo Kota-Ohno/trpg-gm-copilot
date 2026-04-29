@@ -519,6 +519,20 @@ export function App() {
     setTranscriptionImportError(null);
   };
 
+  const exportSpeakerLogText = (): void => {
+    const text = liveLogToPlainText(currentSession.liveLog);
+    const blob = new Blob([text], {
+      type: "text/plain;charset=utf-8",
+    });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = objectUrl;
+    link.download = `${createExportFileName(`${currentSession.title}-speaker-log`).replace(/\.json$/, "")}.txt`;
+    link.click();
+    URL.revokeObjectURL(objectUrl);
+  };
+
   const importCampaignState = async (file: File): Promise<void> => {
     try {
       const fileText = await file.text();
@@ -1472,6 +1486,15 @@ export function App() {
                       >
                         <Download className="h-4 w-4" />
                         現在の話者ログを書き出し
+                      </Button>
+                      <Button
+                        disabled={isExtracting || currentSession.liveLog.segments.every((segment) => !segment.text.trim())}
+                        onClick={exportSpeakerLogText}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <FileText className="h-4 w-4" />
+                        テキスト書き出し
                       </Button>
                       <Badge variant="muted">draft-v1</Badge>
                     </div>
