@@ -76,6 +76,7 @@ const CAMPAIGN_LIBRARY_STORAGE_KEY = "chronicle-gm.campaign-library.v1";
 const PROVIDER_SECRETS_STORAGE_KEY = "chronicle-gm.provider-secrets.v1";
 const campaignNameInputId = "campaign-name";
 const campaignImportInputId = "campaign-json-import";
+const transcriptionDraftImportInputId = "transcription-draft-json-import";
 const sessionTitleInputId = "active-session-title";
 const sessionDateInputId = "active-session-date";
 
@@ -724,6 +725,17 @@ export function App() {
     }
   };
 
+  const importTranscriptionDraftFile = async (file: File): Promise<void> => {
+    try {
+      const fileText = await file.text();
+      JSON.parse(fileText);
+      setTranscriptionDraftJson(fileText);
+      setTranscriptionImportError(null);
+    } catch {
+      setTranscriptionImportError("JSONファイルとして読み込めません。");
+    }
+  };
+
   const updateSpeakerName = (speakerId: string, name: string): void => {
     updateLiveLog((current) => ({
       ...current,
@@ -1311,6 +1323,31 @@ export function App() {
                       </p>
                     )}
                     <div className="flex flex-wrap gap-2">
+                      <label
+                        className={
+                          isExtracting
+                            ? "inline-flex h-8 cursor-not-allowed items-center justify-center gap-2 rounded-md px-3 text-xs font-medium opacity-50"
+                            : "inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md px-3 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                        }
+                        htmlFor={transcriptionDraftImportInputId}
+                      >
+                        <Upload className="h-4 w-4" />
+                        JSONファイル
+                        <input
+                          accept="application/json,.json"
+                          className="sr-only"
+                          disabled={isExtracting}
+                          id={transcriptionDraftImportInputId}
+                          type="file"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            event.target.value = "";
+                            if (file) {
+                              void importTranscriptionDraftFile(file);
+                            }
+                          }}
+                        />
+                      </label>
                       <Button
                         onClick={() => {
                           setTranscriptionDraftJson(sampleTranscriptionDraftJson);
