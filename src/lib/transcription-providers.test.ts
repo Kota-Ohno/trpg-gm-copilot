@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkTranscriptionProviderReadiness } from "./transcription-providers";
+import { checkTranscriptionProviderReadiness, hasWebSpeechRecognitionSupport } from "./transcription-providers";
 
 describe("checkTranscriptionProviderReadiness", () => {
   it("marks manual transcription as ready", () => {
@@ -22,5 +22,14 @@ describe("checkTranscriptionProviderReadiness", () => {
       { providerId: "openai", model: "gpt-4o-mini-transcribe", endpoint: "https://api.openai.com/v1", language: "ja" },
       { openAiApiKey: "sk-test" },
     ).ok).toBe(true);
+  });
+});
+
+describe("hasWebSpeechRecognitionSupport", () => {
+  it("detects standard and webkit speech recognition constructors", () => {
+    expect(hasWebSpeechRecognitionSupport({ SpeechRecognition: function SpeechRecognition() {} })).toBe(true);
+    expect(hasWebSpeechRecognitionSupport({ webkitSpeechRecognition: function SpeechRecognition() {} })).toBe(true);
+    expect(hasWebSpeechRecognitionSupport({})).toBe(false);
+    expect(hasWebSpeechRecognitionSupport(null)).toBe(false);
   });
 });

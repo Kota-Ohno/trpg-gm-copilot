@@ -6,6 +6,14 @@ export type TranscriptionProviderCheckResult = {
   message: string;
 };
 
+export function hasWebSpeechRecognitionSupport(value: unknown): boolean {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    ("SpeechRecognition" in value || "webkitSpeechRecognition" in value)
+  );
+}
+
 export function checkTranscriptionProviderReadiness(
   settings: TranscriptionProviderSettings,
   secrets: ProviderSecretSettings,
@@ -20,9 +28,7 @@ export function checkTranscriptionProviderReadiness(
   }
 
   if (provider.id === "web-speech") {
-    const hasBrowserSupport =
-      typeof window !== "undefined" &&
-      ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+    const hasBrowserSupport = typeof window !== "undefined" && hasWebSpeechRecognitionSupport(window);
 
     return {
       ok: hasBrowserSupport,
