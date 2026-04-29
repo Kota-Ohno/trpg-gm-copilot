@@ -586,7 +586,18 @@ export function App() {
   };
 
   const exportVisibleReviewItems = (): void => {
-    const blob = new Blob([JSON.stringify({ items: reviewItems }, null, 2)], {
+    const blob = new Blob([JSON.stringify({
+      exportedAt: new Date().toISOString(),
+      campaignName,
+      sessionTitle: currentSession.title,
+      filters: {
+        kind: reviewKindFilter,
+        query: reviewQuery.trim(),
+        showApproved: showApprovedReviewItems,
+        invalidOnly: showInvalidReviewItemsOnly,
+      },
+      items: reviewItems,
+    }, null, 2)], {
       type: "application/json",
     });
     const objectUrl = URL.createObjectURL(blob);
@@ -599,7 +610,11 @@ export function App() {
   };
 
   const exportFilteredChronicle = (filteredChronicle: typeof chronicle): void => {
-    const blob = new Blob([JSON.stringify(filteredChronicle, null, 2)], {
+    const blob = new Blob([JSON.stringify({
+      exportedAt: new Date().toISOString(),
+      campaignName,
+      chronicle: filteredChronicle,
+    }, null, 2)], {
       type: "application/json",
     });
     const objectUrl = URL.createObjectURL(blob);
