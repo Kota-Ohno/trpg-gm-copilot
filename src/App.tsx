@@ -1289,7 +1289,7 @@ export function App() {
                 aria-label="キャンペーンを検索"
                 className="pl-8"
                 disabled={isExtracting}
-                placeholder="キャンペーン名で検索"
+                placeholder="キャンペーン名・記憶で検索"
                 value={campaignQuery}
                 onChange={(event) => setCampaignQuery(event.target.value)}
               />
@@ -1437,7 +1437,7 @@ export function App() {
                 aria-label="セッションを検索"
                 className="pl-8"
                 disabled={isExtracting}
-                placeholder="タイトル・日付で検索"
+                placeholder="タイトル・日付・ログで検索"
                 value={sessionQuery}
                 onChange={(event) => setSessionQuery(event.target.value)}
               />
