@@ -1968,6 +1968,61 @@ export function App() {
                   }
                 />
               </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground" htmlFor="transcription-model">
+                  Model
+                </label>
+                <Input
+                  className="mt-1"
+                  disabled={isExtracting}
+                  id="transcription-model"
+                  value={transcriptionProvider.model}
+                  onBlur={(event) =>
+                    updateCampaignState({
+                      transcriptionProvider: {
+                        ...transcriptionProvider,
+                        model: event.target.value.trim() || selectedTranscriptionProvider.defaultModel,
+                      },
+                    })
+                  }
+                  onChange={(event) =>
+                    updateCampaignState({
+                      transcriptionProvider: {
+                        ...transcriptionProvider,
+                        model: event.target.value,
+                      },
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground" htmlFor="transcription-endpoint">
+                  Endpoint
+                </label>
+                <Input
+                  className="mt-1"
+                  disabled={isExtracting}
+                  id="transcription-endpoint"
+                  placeholder="Provider endpoint"
+                  value={transcriptionProvider.endpoint}
+                  onBlur={(event) =>
+                    updateCampaignState({
+                      transcriptionProvider: {
+                        ...transcriptionProvider,
+                        endpoint: event.target.value.trim(),
+                      },
+                    })
+                  }
+                  onChange={(event) =>
+                    updateCampaignState({
+                      transcriptionProvider: {
+                        ...transcriptionProvider,
+                        endpoint: event.target.value,
+                      },
+                    })
+                  }
+                />
+              </div>
             </CardContent>
           </Card>
 
