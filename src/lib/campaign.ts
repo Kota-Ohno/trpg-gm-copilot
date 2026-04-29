@@ -420,6 +420,33 @@ export function createNewSession(index: number): SessionState {
   };
 }
 
+export function duplicateSessionState(sourceSession: SessionState): SessionState {
+  const duplicatedSession = cloneJson(sourceSession);
+  const speakerIdMap = new Map(duplicatedSession.liveLog.speakers.map((speaker) => [speaker.id, createId("speaker")]));
+  const fallbackSpeakerId = duplicatedSession.liveLog.speakers[0]?.id;
+
+  return {
+    ...duplicatedSession,
+    id: createId("session"),
+    title: `${sourceSession.title} コピー`,
+    approvedIds: [],
+    extractionRun: null,
+    liveLog: {
+      ...duplicatedSession.liveLog,
+      id: createId("live-log"),
+      speakers: duplicatedSession.liveLog.speakers.map((speaker) => ({
+        ...speaker,
+        id: speakerIdMap.get(speaker.id) ?? createId("speaker"),
+      })),
+      segments: duplicatedSession.liveLog.segments.map((segment) => ({
+        ...segment,
+        id: createId("segment"),
+        speakerId: speakerIdMap.get(segment.speakerId) ?? speakerIdMap.get(fallbackSpeakerId ?? "") ?? segment.speakerId,
+      })),
+    },
+  };
+}
+
 function uniqueItems(items: string[]): string[] {
   return Array.from(new Set(items.filter((item) => item.trim().length > 0)));
 }

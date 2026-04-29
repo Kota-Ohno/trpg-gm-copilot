@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeCampaignLibraryState, normalizeCampaignState } from "./campaign";
+import { duplicateSessionState, normalizeCampaignLibraryState, normalizeCampaignState } from "./campaign";
 
 describe("normalizeCampaignState", () => {
   it("migrates a legacy single-session state into the session list", () => {
@@ -114,5 +114,51 @@ describe("normalizeCampaignLibraryState", () => {
     expect(library.campaigns[0]?.id).toBe("campaign-1");
     expect(library.campaigns[1]?.id).not.toBe("campaign-1");
     expect(library.activeCampaignId).toBe("campaign-1");
+  });
+});
+
+describe("duplicateSessionState", () => {
+  it("copies session content while resetting ids and approval state", () => {
+    const source = normalizeCampaignState({
+      sessions: [
+        {
+          id: "session-1",
+          title: "第1夜",
+          date: "2026-04-29",
+          log: "GM: 開始",
+          liveLog: {
+            id: "live-log-1",
+            title: "第1夜",
+            sourceType: "manual",
+            speakers: [{ id: "speaker-1", name: "GM", role: "GM" }],
+            segments: [{ id: "segment-1", speakerId: "speaker-1", startTimeSec: 0, endTimeSec: 5, text: "開始" }],
+          },
+          extractionItems: [{ id: "item-1", kind: "出来事", title: "開始", detail: "GM: 開始", visibility: "PL既知" }],
+          extractionRun: {
+            sourceType: "plain",
+            providerId: "rule-based",
+            providerLabel: "ルールベース",
+            executedProviderId: "rule-based",
+            executedProviderLabel: "ルールベース",
+            fallbackUsed: false,
+            itemCount: 1,
+            promptLength: 0,
+          },
+          approvedIds: ["item-1"],
+        },
+      ],
+    }).sessions[0];
+
+    const duplicated = duplicateSessionState(source);
+
+    expect(duplicated.id).not.toBe(source.id);
+    expect(duplicated.title).toBe("第1夜 コピー");
+    expect(duplicated.log).toBe(source.log);
+    expect(duplicated.approvedIds).toEqual([]);
+    expect(duplicated.extractionRun).toBeNull();
+    expect(duplicated.liveLog.id).not.toBe(source.liveLog.id);
+    expect(duplicated.liveLog.speakers[0]?.id).not.toBe(source.liveLog.speakers[0]?.id);
+    expect(duplicated.liveLog.segments[0]?.id).not.toBe(source.liveLog.segments[0]?.id);
+    expect(duplicated.liveLog.segments[0]?.speakerId).toBe(duplicated.liveLog.speakers[0]?.id);
   });
 });
