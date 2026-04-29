@@ -62,19 +62,27 @@ export function SpeakerLogEditor({
   onUpdateSpeakerRole,
 }: SpeakerLogEditorProps) {
   const [showLowConfidenceOnly, setShowLowConfidenceOnly] = useState(false);
+  const [showEmptySegmentsOnly, setShowEmptySegmentsOnly] = useState(false);
   const sortedSegments = [...liveLog.segments].sort((first, second) => first.startTimeSec - second.startTimeSec);
   const liveLogSummary = summarizeLiveLog(liveLog);
   const hasSegmentText = liveLog.segments.some((segment) => segment.text.trim().length > 0);
   const emptySegmentCount = isExtracting ? 0 : liveLogSummary.emptySegmentCount;
   const lowConfidenceCount = liveLogSummary.lowConfidenceCount;
-  const visibleSegments = showLowConfidenceOnly
-    ? sortedSegments.filter(
-        (segment) =>
-          typeof segment.confidence === "number" &&
-          Number.isFinite(segment.confidence) &&
-          segment.confidence < lowConfidenceThreshold,
-      )
-    : sortedSegments;
+  const visibleSegments = sortedSegments.filter((segment) => {
+    if (showLowConfidenceOnly) {
+      return (
+        typeof segment.confidence === "number" &&
+        Number.isFinite(segment.confidence) &&
+        segment.confidence < lowConfidenceThreshold
+      );
+    }
+
+    if (showEmptySegmentsOnly) {
+      return segment.text.trim().length === 0;
+    }
+
+    return true;
+  });
 
   return (
     <div className="grid gap-4">
@@ -186,17 +194,35 @@ export function SpeakerLogEditor({
             <MessageSquareText className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-sm font-semibold">発話ログ</h2>
             {showLowConfidenceOnly && <Badge variant="destructive">要確認のみ</Badge>}
+            {showEmptySegmentsOnly && <Badge variant="secondary">未入力のみ</Badge>}
           </div>
           <div className="flex flex-wrap gap-2">
             {lowConfidenceCount > 0 && (
               <Button
                 aria-pressed={showLowConfidenceOnly}
                 disabled={isExtracting}
-                onClick={() => setShowLowConfidenceOnly((current) => !current)}
+                onClick={() => {
+                  setShowLowConfidenceOnly((current) => !current);
+                  setShowEmptySegmentsOnly(false);
+                }}
                 size="sm"
                 variant={showLowConfidenceOnly ? "default" : "outline"}
               >
                 要確認 {lowConfidenceCount}
+              </Button>
+            )}
+            {emptySegmentCount > 0 && (
+              <Button
+                aria-pressed={showEmptySegmentsOnly}
+                disabled={isExtracting}
+                onClick={() => {
+                  setShowEmptySegmentsOnly((current) => !current);
+                  setShowLowConfidenceOnly(false);
+                }}
+                size="sm"
+                variant={showEmptySegmentsOnly ? "default" : "outline"}
+              >
+                未入力 {emptySegmentCount}
               </Button>
             )}
             <Button disabled={isExtracting} onClick={onAddSegment} size="sm" variant="outline">
@@ -218,8 +244,18 @@ export function SpeakerLogEditor({
           <div className="grid gap-3">
             {visibleSegments.length === 0 && (
               <div className="rounded-md border border-dashed bg-background p-6 text-center">
-                <p className="text-sm font-medium">要確認の発話はありません</p>
-                <Button className="mt-3" onClick={() => setShowLowConfidenceOnly(false)} size="sm" variant="outline">
+                <p className="text-sm font-medium">
+                  {showEmptySegmentsOnly ? "未入力の発話はありません" : "要確認の発話はありません"}
+                </p>
+                <Button
+                  className="mt-3"
+                  onClick={() => {
+                    setShowLowConfidenceOnly(false);
+                    setShowEmptySegmentsOnly(false);
+                  }}
+                  size="sm"
+                  variant="outline"
+                >
                   すべて表示
                 </Button>
               </div>
