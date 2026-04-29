@@ -60,7 +60,7 @@ export const transcriptionProviders: Array<ProviderDefinition<TranscriptionProvi
     label: "OpenAI",
     defaultModel: "gpt-4o-mini-transcribe",
     defaultEndpoint: "https://api.openai.com/v1",
-    status: "planned",
+    status: "available",
   },
   {
     id: "web-speech",
