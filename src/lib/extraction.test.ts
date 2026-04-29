@@ -87,13 +87,14 @@ describe("previewTranscriptionDraftPayload", () => {
     expect(previewTranscriptionDraftPayload(JSON.stringify([{ text: " " }]))).toEqual({ status: "empty-segments" });
     expect(previewTranscriptionDraftPayload(JSON.stringify({
       segments: [
-        { speakerName: "GM", text: "安全", confidence: 0.95 },
-        { speakerName: "PL", text: "不明瞭", confidence: 0.4 },
+        { speakerName: "GM", startTimeSec: 0, endTimeSec: 4, text: "安全", confidence: 0.95 },
+        { speakerName: "PL", startTimeSec: 5, endTimeSec: 8, text: "不明瞭", confidence: 0.4 },
       ],
     }))).toEqual({
       status: "valid",
       segmentCount: 2,
       speakerCount: 2,
+      totalDurationSec: 7,
       lowConfidenceCount: 1,
     });
   });
