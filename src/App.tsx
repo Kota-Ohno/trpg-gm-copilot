@@ -592,6 +592,19 @@ export function App() {
     URL.revokeObjectURL(objectUrl);
   };
 
+  const exportFilteredChronicle = (filteredChronicle: typeof chronicle): void => {
+    const blob = new Blob([JSON.stringify(filteredChronicle, null, 2)], {
+      type: "application/json",
+    });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = objectUrl;
+    link.download = createExportFileName(`${campaignName}-filtered-memory`);
+    link.click();
+    URL.revokeObjectURL(objectUrl);
+  };
+
   const importCampaignState = async (file: File): Promise<void> => {
     try {
       const fileText = await file.text();
@@ -1960,6 +1973,7 @@ export function App() {
             {activeTab === "chronicle" && (
               <ChronicleView
                 chronicle={chronicle}
+                onExportFilteredChronicle={exportFilteredChronicle}
                 onUpdateClueStatus={updateClueStatus}
                 onUpdateNpcAttitude={updateNpcAttitude}
                 onUpdateThreadNextMove={updateThreadNextMove}

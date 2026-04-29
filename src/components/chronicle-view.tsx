@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { RotateCcw } from "lucide-react";
+import { Download, RotateCcw } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -45,6 +45,7 @@ type ChronicleViewProps = {
   onUpdateClueStatus?: (clueIndex: number, status: ClueStatus) => void;
   onUpdateNpcAttitude?: (npcIndex: number, attitude: string) => void;
   onUpdateThreadNextMove?: (threadIndex: number, nextMove: string) => void;
+  onExportFilteredChronicle?: (chronicle: Chronicle) => void;
 };
 
 export function ChronicleView({
@@ -52,6 +53,7 @@ export function ChronicleView({
   onUpdateClueStatus,
   onUpdateNpcAttitude,
   onUpdateThreadNextMove,
+  onExportFilteredChronicle,
 }: ChronicleViewProps) {
   const [query, setQuery] = useState("");
   const [clueStatusFilter, setClueStatusFilter] = useState<ClueStatusFilter>("all");
@@ -87,6 +89,13 @@ export function ChronicleView({
     filteredChronicle.npcs.length +
     filteredChronicle.locations.length +
     filteredChronicle.threads.length;
+  const exportableChronicle: Chronicle = {
+    events: filteredChronicle.events,
+    npcs: filteredChronicle.npcs.map(({ npc }) => npc),
+    clues: filteredChronicle.clues.map(({ clue }) => clue),
+    locations: filteredChronicle.locations,
+    threads: filteredChronicle.threads.map(({ thread }) => thread),
+  };
   const clueStatusCounts = chronicle.clues.reduce<Record<ClueStatus, number>>(
     (counts, clue) => ({
       ...counts,
@@ -163,6 +172,16 @@ export function ChronicleView({
               <RotateCcw className="h-4 w-4" />
               解除
             </Button>
+            {onExportFilteredChronicle && (
+              <Button
+                disabled={filteredCount === 0}
+                onClick={() => onExportFilteredChronicle(exportableChronicle)}
+                variant="outline"
+              >
+                <Download className="h-4 w-4" />
+                表示中を書き出し
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
