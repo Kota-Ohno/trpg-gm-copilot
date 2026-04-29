@@ -47,6 +47,7 @@ import {
 import {
   liveLogToTranscriptionDrafts,
   liveLogToPlainText,
+  lowConfidenceThreshold,
   normalizeTranscriptionDrafts,
   parsePlainLogToLiveLog,
   summarizeLiveLog,
@@ -90,6 +91,11 @@ type ConfirmationRequest = {
   confirmLabel: string;
   onConfirm: () => void;
 };
+type TranscriptionDraftPreview =
+  | { status: "empty" }
+  | { status: "invalid-json" }
+  | { status: "invalid-shape" }
+  | { status: "valid"; segmentCount: number; lowConfidenceCount: number };
 
 const tabOptions: Array<{ value: WorkspaceTab; label: string }> = [
   { value: "log", label: "ログ" },
@@ -291,6 +297,32 @@ export function App() {
     transcriptionProvider,
   } = campaignState;
   const selectedTranscriptionProvider = getTranscriptionProvider(transcriptionProvider.providerId);
+  const transcriptionDraftPreview = useMemo<TranscriptionDraftPreview>(() => {
+    if (!transcriptionDraftJson.trim()) {
+      return { status: "empty" };
+    }
+
+    try {
+      const parsedDrafts = JSON.parse(transcriptionDraftJson) as unknown;
+      const normalizedDrafts = normalizeTranscriptionDrafts(parsedDrafts);
+      if (!normalizedDrafts) {
+        return { status: "invalid-shape" };
+      }
+
+      return {
+        status: "valid",
+        segmentCount: normalizedDrafts.length,
+        lowConfidenceCount: normalizedDrafts.filter(
+          (draft) =>
+            typeof draft.confidence === "number" &&
+            Number.isFinite(draft.confidence) &&
+            draft.confidence < lowConfidenceThreshold,
+        ).length,
+      };
+    } catch {
+      return { status: "invalid-json" };
+    }
+  }, [transcriptionDraftJson]);
 
   const approvedCount = approvedIds.length;
   const remainingCount = items.length - approvedCount;
@@ -1362,6 +1394,22 @@ export function App() {
                       value={transcriptionDraftJson}
                       onChange={(event) => setTranscriptionDraftJson(event.target.value)}
                     />
+                    {transcriptionDraftPreview.status !== "empty" && (
+                      <div className="flex flex-wrap gap-2">
+                        {transcriptionDraftPreview.status === "valid" ? (
+                          <>
+                            <Badge variant="outline">読み取り可能 {transcriptionDraftPreview.segmentCount}発話</Badge>
+                            {transcriptionDraftPreview.lowConfidenceCount > 0 && (
+                              <Badge variant="destructive">要確認 {transcriptionDraftPreview.lowConfidenceCount}</Badge>
+                            )}
+                          </>
+                        ) : (
+                          <Badge variant="destructive">
+                            {transcriptionDraftPreview.status === "invalid-json" ? "JSONエラー" : "形式エラー"}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                     {transcriptionImportError && (
                       <p className="text-xs text-destructive" role="alert">
                         {transcriptionImportError}
