@@ -1216,6 +1216,7 @@ export function App() {
               <button
                 className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 key={item.label}
+                onClick={() => setActiveTab("chronicle")}
                 type="button"
               >
                 <span className="flex items-center gap-2">
