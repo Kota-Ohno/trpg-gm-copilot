@@ -93,6 +93,7 @@ describe("previewTranscriptionDraftPayload", () => {
     }))).toEqual({
       status: "valid",
       segmentCount: 2,
+      speakerCount: 2,
       lowConfidenceCount: 1,
     });
   });

@@ -32,7 +32,7 @@ export type TranscriptionDraftPreview =
   | { status: "empty-segments" }
   | { status: "invalid-json" }
   | { status: "invalid-shape" }
-  | { status: "valid"; segmentCount: number; lowConfidenceCount: number };
+  | { status: "valid"; segmentCount: number; speakerCount: number; lowConfidenceCount: number };
 
 const npcNamePattern = /(?:女将|村長|灯台守|船長|医師|司祭|娘|甥|少女|少年|老人|男|女)(?:の)?([ァ-ヶー一-龠々]{1,8})|([ァ-ヶー一-龠々]{1,8})(?:は|が).*(?:話|言|証言)/;
 const plainLogLinePattern = /^(?:\[\s*([0-9０-９:.：\s]+)\s*\]\s*)?([^:：]{1,32})[:：]\s*(.+)$/;
@@ -434,6 +434,7 @@ export function previewTranscriptionDraftPayload(payload: string): Transcription
     return {
       status: "valid",
       segmentCount: normalizedDrafts.length,
+      speakerCount: new Set(normalizedDrafts.map((draft) => draft.speakerName?.trim() || "話者不明")).size,
       lowConfidenceCount: normalizedDrafts.filter(
         (draft) =>
           typeof draft.confidence === "number" &&
