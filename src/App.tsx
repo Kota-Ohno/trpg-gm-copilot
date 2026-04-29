@@ -1473,6 +1473,9 @@ export function App() {
                         >
                           {session.date} / {session.approvedIds.length}採用 / {session.extractionItems.length}候補 /{" "}
                           {liveLogSummary.nonEmptySegmentCount}発話
+                          {liveLogSummary.averageConfidence !== null
+                            ? ` / 平均${Math.round(liveLogSummary.averageConfidence * 100)}%`
+                            : ""}
                           {liveLogSummary.lowConfidenceCount > 0 ? ` / 要確認${liveLogSummary.lowConfidenceCount}` : ""}
                         </span>
                       </button>
