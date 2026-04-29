@@ -268,6 +268,7 @@ export function App() {
   const [showApprovedReviewItems, setShowApprovedReviewItems] = useState(true);
   const [reviewKindFilter, setReviewKindFilter] = useState<ReviewKindFilter>("all");
   const [reviewQuery, setReviewQuery] = useState("");
+  const [showInvalidReviewItemsOnly, setShowInvalidReviewItemsOnly] = useState(false);
   const [campaignQuery, setCampaignQuery] = useState("");
   const [sessionQuery, setSessionQuery] = useState("");
   const [transcriptionDraftJson, setTranscriptionDraftJson] = useState("");
@@ -317,6 +318,10 @@ export function App() {
       return false;
     }
 
+    if (showInvalidReviewItemsOnly && item.title.trim() && item.detail.trim()) {
+      return false;
+    }
+
     return (
       !normalizedReviewQuery ||
       [item.title, item.detail, item.kind, item.visibility].some((value) =>
@@ -324,7 +329,11 @@ export function App() {
       )
     );
   });
-  const hasReviewFilter = reviewKindFilter !== "all" || !showApprovedReviewItems || normalizedReviewQuery.length > 0;
+  const hasReviewFilter =
+    reviewKindFilter !== "all" ||
+    !showApprovedReviewItems ||
+    showInvalidReviewItemsOnly ||
+    normalizedReviewQuery.length > 0;
   const approvableVisibleReviewCount = reviewItems.filter(
     (item) => !approvedIds.includes(item.id) && item.title.trim() && item.detail.trim(),
   ).length;
@@ -1673,6 +1682,14 @@ export function App() {
                             {showApprovedReviewItems ? "採用済みを隠す" : "採用済みも表示"}
                           </Button>
                           <Button
+                            disabled={invalidReviewItemCount === 0}
+                            onClick={() => setShowInvalidReviewItemsOnly((current) => !current)}
+                            size="sm"
+                            variant={showInvalidReviewItemsOnly ? "default" : "outline"}
+                          >
+                            未入力のみ
+                          </Button>
+                          <Button
                             disabled={(hasReviewFilter ? approvableVisibleReviewCount : approvableRemainingCount) === 0}
                             onClick={() =>
                               approveRemainingItems(
@@ -1707,6 +1724,15 @@ export function App() {
                             {reviewKindFilter !== "all" && (
                               <Button onClick={() => setReviewKindFilter("all")} size="sm" variant="outline">
                                 種別フィルタを解除
+                              </Button>
+                            )}
+                            {showInvalidReviewItemsOnly && (
+                              <Button
+                                onClick={() => setShowInvalidReviewItemsOnly(false)}
+                                size="sm"
+                                variant="outline"
+                              >
+                                未入力フィルタを解除
                               </Button>
                             )}
                             {normalizedReviewQuery && (
