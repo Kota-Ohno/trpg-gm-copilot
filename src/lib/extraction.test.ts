@@ -8,6 +8,7 @@ import {
   normalizeTranscriptionDrafts,
   parsePlainLogToLiveLog,
   previewTranscriptionDraftPayload,
+  runRuleBasedExtraction,
   summarizeLiveLog,
   transcriptionDraftsToLiveLog,
 } from "./extraction";
@@ -93,6 +94,19 @@ describe("previewTranscriptionDraftPayload", () => {
       segmentCount: 2,
       lowConfidenceCount: 1,
     });
+  });
+});
+
+describe("runRuleBasedExtraction", () => {
+  it("extracts clue, secret, thread, event, and NPC candidates", () => {
+    const items = runRuleBasedExtraction([
+      { speakerName: "GM", role: "GM", text: "港に到着し、古い鍵を見つける。" },
+      { speakerName: "GM", role: "GM", text: "この儀式の真相はまだ秘密です。" },
+      { speakerName: "PL", role: "PL", text: "灯台守レンは月の鐘について話した。" },
+    ]);
+
+    expect(items.map((item) => item.kind)).toEqual(expect.arrayContaining(["出来事", "手がかり", "GM秘密", "伏線", "NPC"]));
+    expect(items.some((item) => item.visibility === "GMのみ")).toBe(true);
   });
 });
 
