@@ -1431,6 +1431,18 @@ export function App() {
                       </Button>
                       <Button
                         disabled={!transcriptionDraftJson.trim() || isExtracting}
+                        onClick={() => {
+                          setTranscriptionDraftJson("");
+                          setTranscriptionImportError(null);
+                        }}
+                        size="sm"
+                        variant="ghost"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        入力をクリア
+                      </Button>
+                      <Button
+                        disabled={!transcriptionDraftJson.trim() || isExtracting}
                         onClick={importTranscriptionDraftJson}
                         size="sm"
                         variant="outline"
