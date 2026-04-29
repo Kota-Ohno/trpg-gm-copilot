@@ -730,6 +730,13 @@ export function App() {
     updateCurrentSession({ liveLog: cloneJson(sampleLiveLog) });
   };
 
+  const applyImportedTranscriptionDraftLog = (liveLogFromDrafts: LiveLogSession): void => {
+    updateCurrentSession({ liveLog: liveLogFromDrafts });
+    setTranscriptionDraftJson("");
+    setTranscriptionImportError(null);
+    setLogInputMode("speaker");
+  };
+
   const importTranscriptionDraftJson = (): void => {
     try {
       const parsedDrafts = JSON.parse(transcriptionDraftJson) as unknown;
@@ -753,10 +760,17 @@ export function App() {
         return;
       }
 
-      updateCurrentSession({ liveLog: liveLogFromDrafts });
-      setTranscriptionDraftJson("");
-      setTranscriptionImportError(null);
-      setLogInputMode("speaker");
+      if (currentSession.liveLog.segments.some((segment) => segment.text.trim())) {
+        setConfirmation({
+          title: "話者ログを置き換えますか",
+          message: "現在の話者ログを、文字起こしドラフトから作成したログで置き換えます。",
+          confirmLabel: "置き換える",
+          onConfirm: () => applyImportedTranscriptionDraftLog(liveLogFromDrafts),
+        });
+        return;
+      }
+
+      applyImportedTranscriptionDraftLog(liveLogFromDrafts);
     } catch {
       setTranscriptionImportError("JSONとして読み込めません。");
     }
