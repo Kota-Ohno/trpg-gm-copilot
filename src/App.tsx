@@ -12,6 +12,7 @@ import {
   Map as MapIcon,
   MessageSquareText,
   Plus,
+  RotateCcw,
   Search,
   ShieldCheck,
   Sparkles,
@@ -1708,6 +1709,20 @@ export function App() {
                             variant={showInvalidReviewItemsOnly ? "default" : "outline"}
                           >
                             未入力のみ
+                          </Button>
+                          <Button
+                            disabled={!hasReviewFilter}
+                            onClick={() => {
+                              setReviewKindFilter("all");
+                              setReviewQuery("");
+                              setShowApprovedReviewItems(true);
+                              setShowInvalidReviewItemsOnly(false);
+                            }}
+                            size="sm"
+                            variant="ghost"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                            条件解除
                           </Button>
                           <Button
                             disabled={(hasReviewFilter ? approvableVisibleReviewCount : approvableRemainingCount) === 0}
