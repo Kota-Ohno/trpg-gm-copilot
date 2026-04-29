@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, FileText, MessageSquareText, Plus, RotateCcw, Trash2, UserRound, Wand2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, FileText, MessageSquareText, Plus, RotateCcw, Trash2, UserRound, Wand2 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -34,6 +34,7 @@ type SpeakerLogEditorProps = {
   onApplyToPlainLog: () => void;
   onDeleteSpeaker: (speakerId: string) => void;
   onDeleteSegment: (segmentId: string) => void;
+  onDuplicateSegment: (segmentId: string) => void;
   onExtract: () => void | Promise<void>;
   onMergeAdjacentSegments: () => void;
   onReset: () => void;
@@ -54,6 +55,7 @@ export function SpeakerLogEditor({
   onApplyToPlainLog,
   onDeleteSpeaker,
   onDeleteSegment,
+  onDuplicateSegment,
   onExtract,
   onMergeAdjacentSegments,
   onReset,
@@ -433,6 +435,15 @@ export function SpeakerLogEditor({
                       variant="outline"
                     >
                       <Plus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      aria-label="発話を複製"
+                      disabled={isExtracting}
+                      onClick={() => onDuplicateSegment(segment.id)}
+                      size="icon"
+                      variant="outline"
+                    >
+                      <Copy className="h-4 w-4" />
                     </Button>
                     <Button
                       aria-label="発話を削除"

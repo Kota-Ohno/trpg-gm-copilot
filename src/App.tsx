@@ -1070,6 +1070,32 @@ export function App() {
     }));
   };
 
+  const duplicateSegment = (segmentId: string): void => {
+    updateLiveLog((current) => {
+      const targetIndex = current.segments.findIndex((segment) => segment.id === segmentId);
+      const targetSegment = current.segments[targetIndex];
+      if (!targetSegment) {
+        return current;
+      }
+
+      const duplicatedSegment: TranscriptSegment = {
+        ...targetSegment,
+        id: createId("segment"),
+        startTimeSec: targetSegment.endTimeSec + 1,
+        endTimeSec: targetSegment.endTimeSec + Math.max(1, targetSegment.endTimeSec - targetSegment.startTimeSec) + 1,
+      };
+
+      return {
+        ...current,
+        segments: [
+          ...current.segments.slice(0, targetIndex + 1),
+          duplicatedSegment,
+          ...current.segments.slice(targetIndex + 1),
+        ],
+      };
+    });
+  };
+
   const approveItem = (item: ExtractionItem): void => {
     if (approvedIds.includes(item.id) || !item.title.trim() || !item.detail.trim()) {
       return;
@@ -1547,6 +1573,7 @@ export function App() {
                         onApplyToPlainLog={applyLiveLogToPlainLog}
                         onDeleteSpeaker={deleteSpeaker}
                         onDeleteSegment={deleteSegment}
+                        onDuplicateSegment={duplicateSegment}
                         onExtract={runExtractionPreview}
                         onMergeAdjacentSegments={mergeAdjacentSpeakerLogSegments}
                         onReset={resetCampaignState}
