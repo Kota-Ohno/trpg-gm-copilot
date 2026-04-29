@@ -49,6 +49,7 @@ import {
   liveLogToPlainText,
   normalizeTranscriptionDrafts,
   parsePlainLogToLiveLog,
+  summarizeLiveLog,
   transcriptionDraftsToLiveLog,
 } from "./lib/extraction";
 import {
@@ -1167,13 +1168,7 @@ export function App() {
             <div className="space-y-1">
               {visibleSessions.map((session) => (
                 (() => {
-                  const spokenSegmentCount = session.liveLog.segments.filter((segment) => segment.text.trim()).length;
-                  const lowConfidenceSegmentCount = session.liveLog.segments.filter(
-                    (segment) =>
-                      typeof segment.confidence === "number" &&
-                      Number.isFinite(segment.confidence) &&
-                      segment.confidence < 0.85,
-                  ).length;
+                  const liveLogSummary = summarizeLiveLog(session.liveLog);
 
                   return (
                     <div
@@ -1194,8 +1189,8 @@ export function App() {
                           }
                         >
                           {session.date} / {session.approvedIds.length}採用 / {session.extractionItems.length}候補 /{" "}
-                          {spokenSegmentCount}発話
-                          {lowConfidenceSegmentCount > 0 ? ` / 要確認${lowConfidenceSegmentCount}` : ""}
+                          {liveLogSummary.nonEmptySegmentCount}発話
+                          {liveLogSummary.lowConfidenceCount > 0 ? ` / 要確認${liveLogSummary.lowConfidenceCount}` : ""}
                         </span>
                       </button>
                       <Button

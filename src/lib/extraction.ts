@@ -16,6 +16,17 @@ export type ExtractionInputLine = {
   text: string;
 };
 
+export const lowConfidenceThreshold = 0.85;
+
+export type LiveLogSummary = {
+  emptySegmentCount: number;
+  lowConfidenceCount: number;
+  nonEmptySegmentCount: number;
+  totalDurationSec: number;
+  totalSegmentCount: number;
+  usedSpeakerCount: number;
+};
+
 const npcNamePattern = /(?:女将|村長|灯台守|船長|医師|司祭|娘|甥|少女|少年|老人|男|女)(?:の)?([ァ-ヶー一-龠々]{1,8})|([ァ-ヶー一-龠々]{1,8})(?:は|が).*(?:話|言|証言)/;
 const plainLogLinePattern = /^(?:\[\s*([0-9０-９:.：\s]+)\s*\]\s*)?([^:：]{1,32})[:：]\s*(.+)$/;
 
@@ -38,6 +49,25 @@ export function liveLogToPlainText(liveLog: LiveLogSession): string {
       return `[${formatTimestamp(segment.startTimeSec)}] ${speaker?.name ?? "話者不明"}: ${segment.text.trim()}`;
     })
     .join("\n");
+}
+
+export function summarizeLiveLog(liveLog: LiveLogSession): LiveLogSummary {
+  return {
+    emptySegmentCount: liveLog.segments.filter((segment) => segment.text.trim().length === 0).length,
+    lowConfidenceCount: liveLog.segments.filter(
+      (segment) =>
+        typeof segment.confidence === "number" &&
+        Number.isFinite(segment.confidence) &&
+        segment.confidence < lowConfidenceThreshold,
+    ).length,
+    nonEmptySegmentCount: liveLog.segments.filter((segment) => segment.text.trim().length > 0).length,
+    totalDurationSec: liveLog.segments.reduce(
+      (total, segment) => total + Math.max(0, segment.endTimeSec - segment.startTimeSec),
+      0,
+    ),
+    totalSegmentCount: liveLog.segments.length,
+    usedSpeakerCount: new Set(liveLog.segments.map((segment) => segment.speakerId)).size,
+  };
 }
 
 function formatTimestamp(seconds: number): string {

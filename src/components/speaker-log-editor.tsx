@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import type { LiveLogSession, SpeakerRole, TranscriptSegment } from "../types";
+import { lowConfidenceThreshold, summarizeLiveLog } from "../lib/extraction";
 
 const speakerRoleLabels: Record<SpeakerRole, string> = {
   GM: "GM",
@@ -62,23 +63,16 @@ export function SpeakerLogEditor({
 }: SpeakerLogEditorProps) {
   const [showLowConfidenceOnly, setShowLowConfidenceOnly] = useState(false);
   const sortedSegments = [...liveLog.segments].sort((first, second) => first.startTimeSec - second.startTimeSec);
+  const liveLogSummary = summarizeLiveLog(liveLog);
   const hasSegmentText = liveLog.segments.some((segment) => segment.text.trim().length > 0);
-  const nonEmptySegmentCount = liveLog.segments.filter((segment) => segment.text.trim().length > 0).length;
-  const emptySegmentCount = isExtracting
-    ? 0
-    : liveLog.segments.filter((segment) => segment.text.trim().length === 0).length;
-  const totalDurationSec = liveLog.segments.reduce(
-    (total, segment) => total + Math.max(0, segment.endTimeSec - segment.startTimeSec),
-    0,
-  );
-  const usedSpeakerCount = new Set(liveLog.segments.map((segment) => segment.speakerId)).size;
-  const lowConfidenceCount = liveLog.segments.filter(
-    (segment) => typeof segment.confidence === "number" && Number.isFinite(segment.confidence) && segment.confidence < 0.85,
-  ).length;
+  const emptySegmentCount = isExtracting ? 0 : liveLogSummary.emptySegmentCount;
+  const lowConfidenceCount = liveLogSummary.lowConfidenceCount;
   const visibleSegments = showLowConfidenceOnly
     ? sortedSegments.filter(
         (segment) =>
-          typeof segment.confidence === "number" && Number.isFinite(segment.confidence) && segment.confidence < 0.85,
+          typeof segment.confidence === "number" &&
+          Number.isFinite(segment.confidence) &&
+          segment.confidence < lowConfidenceThreshold,
       )
     : sortedSegments;
 
@@ -90,12 +84,12 @@ export function SpeakerLogEditor({
             <Badge variant="outline">
               {liveLog.sourceType === "sample" ? "サンプル" : liveLog.sourceType === "imported" ? "取り込み" : "手動"}
             </Badge>
-            <Badge variant="muted">{liveLog.segments.length}発話</Badge>
-            <Badge variant="muted">本文あり {nonEmptySegmentCount}</Badge>
+            <Badge variant="muted">{liveLogSummary.totalSegmentCount}発話</Badge>
+            <Badge variant="muted">本文あり {liveLogSummary.nonEmptySegmentCount}</Badge>
             {emptySegmentCount > 0 && <Badge variant="muted">未入力 {emptySegmentCount}</Badge>}
-            <Badge variant="muted">合計 {formatTimestamp(totalDurationSec)}</Badge>
+            <Badge variant="muted">合計 {formatTimestamp(liveLogSummary.totalDurationSec)}</Badge>
             <Badge variant="muted">{liveLog.speakers.length}話者</Badge>
-            <Badge variant="muted">使用中 {usedSpeakerCount}</Badge>
+            <Badge variant="muted">使用中 {liveLogSummary.usedSpeakerCount}</Badge>
             {lowConfidenceCount > 0 && <Badge variant="destructive">要確認 {lowConfidenceCount}</Badge>}
           </div>
           <p className="mt-2 text-sm font-medium">{liveLog.title}</p>
@@ -337,7 +331,10 @@ export function SpeakerLogEditor({
                       </Badge>
                     )}
                     {confidencePercent !== null && (
-                      <Badge className="mt-2" variant={confidencePercent < 85 ? "destructive" : "muted"}>
+                      <Badge
+                        className="mt-2"
+                        variant={confidencePercent < lowConfidenceThreshold * 100 ? "destructive" : "muted"}
+                      >
                         信頼度 {confidencePercent}%
                       </Badge>
                     )}
