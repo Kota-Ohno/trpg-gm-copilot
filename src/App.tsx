@@ -261,6 +261,7 @@ export function App() {
   const [campaignLibrary, setCampaignLibrary] = useState<CampaignLibraryState>(loadCampaignLibraryState);
   const [showApprovedReviewItems, setShowApprovedReviewItems] = useState(true);
   const [reviewKindFilter, setReviewKindFilter] = useState<ReviewKindFilter>("all");
+  const [reviewQuery, setReviewQuery] = useState("");
   const [campaignQuery, setCampaignQuery] = useState("");
   const [sessionQuery, setSessionQuery] = useState("");
   const [transcriptionDraftJson, setTranscriptionDraftJson] = useState("");
@@ -295,12 +296,22 @@ export function App() {
   const approvableRemainingCount = items.filter(
     (item) => !approvedIds.includes(item.id) && item.title.trim() && item.detail.trim(),
   ).length;
+  const normalizedReviewQuery = reviewQuery.trim().toLowerCase();
   const reviewItems = items.filter((item) => {
     if (!showApprovedReviewItems && approvedIds.includes(item.id)) {
       return false;
     }
 
-    return reviewKindFilter === "all" || item.kind === reviewKindFilter;
+    if (reviewKindFilter !== "all" && item.kind !== reviewKindFilter) {
+      return false;
+    }
+
+    return (
+      !normalizedReviewQuery ||
+      [item.title, item.detail, item.kind, item.visibility].some((value) =>
+        value.toLowerCase().includes(normalizedReviewQuery),
+      )
+    );
   });
   const reviewKindCounts = reviewKindOptions.reduce<Record<ReviewKindFilter, number>>(
     (counts, option) => ({
@@ -1467,11 +1478,19 @@ export function App() {
                           {approvableRemainingCount !== remainingCount && (
                             <Badge variant="outline">{approvableRemainingCount}件採用可能</Badge>
                           )}
-                          {(reviewKindFilter !== "all" || !showApprovedReviewItems) && (
+                          {(reviewKindFilter !== "all" || !showApprovedReviewItems || normalizedReviewQuery) && (
                             <Badge variant="outline">{reviewItems.length}件を表示中</Badge>
                           )}
+                          {normalizedReviewQuery && <Badge variant="secondary">検索: {reviewQuery.trim()}</Badge>}
                         </div>
                         <div className="flex flex-wrap gap-2">
+                          <Input
+                            aria-label="抽出候補を検索"
+                            className="h-9 w-48"
+                            placeholder="候補を検索"
+                            value={reviewQuery}
+                            onChange={(event) => setReviewQuery(event.target.value)}
+                          />
                           <select
                             className="h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             value={reviewKindFilter}
@@ -1517,6 +1536,11 @@ export function App() {
                             {reviewKindFilter !== "all" && (
                               <Button onClick={() => setReviewKindFilter("all")} size="sm" variant="outline">
                                 種別フィルタを解除
+                              </Button>
+                            )}
+                            {normalizedReviewQuery && (
+                              <Button onClick={() => setReviewQuery("")} size="sm" variant="outline">
+                                検索を解除
                               </Button>
                             )}
                           </div>
