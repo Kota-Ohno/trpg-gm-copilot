@@ -101,6 +101,28 @@ export function mergeAdjacentTranscriptSegments(liveLog: LiveLogSession): LiveLo
   };
 }
 
+export function normalizeTranscriptSegmentTiming(liveLog: LiveLogSession): LiveLogSession {
+  let nextStartTimeSec = 0;
+
+  return {
+    ...liveLog,
+    segments: [...liveLog.segments]
+      .sort((first, second) => first.startTimeSec - second.startTimeSec)
+      .map((segment) => {
+        const durationSec = Math.max(1, segment.endTimeSec - segment.startTimeSec);
+        const startTimeSec = Math.max(nextStartTimeSec, Math.round(segment.startTimeSec));
+        const endTimeSec = startTimeSec + durationSec;
+        nextStartTimeSec = endTimeSec + 1;
+
+        return {
+          ...segment,
+          startTimeSec,
+          endTimeSec,
+        };
+      }),
+  };
+}
+
 function formatTimestamp(seconds: number): string {
   const safeSeconds = Math.max(0, Math.round(seconds));
   const hours = Math.floor(safeSeconds / 3600);

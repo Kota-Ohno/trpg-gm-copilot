@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Copy, FileText, MessageSquareText, Plus, RotateCcw, Trash2, UserRound, Wand2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock3, Copy, FileText, MessageSquareText, Plus, RotateCcw, Trash2, UserRound, Wand2 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -37,6 +37,7 @@ type SpeakerLogEditorProps = {
   onDuplicateSegment: (segmentId: string) => void;
   onExtract: () => void | Promise<void>;
   onMergeAdjacentSegments: () => void;
+  onNormalizeTiming: () => void;
   onReset: () => void;
   onRestoreSample: () => void;
   onUpdateSegment: (segmentId: string, updates: Partial<TranscriptSegment>) => void;
@@ -58,6 +59,7 @@ export function SpeakerLogEditor({
   onDuplicateSegment,
   onExtract,
   onMergeAdjacentSegments,
+  onNormalizeTiming,
   onReset,
   onRestoreSample,
   onUpdateSegment,
@@ -128,6 +130,10 @@ export function SpeakerLogEditor({
           <Button disabled={isExtracting || !hasMergeableAdjacentSegments} onClick={onMergeAdjacentSegments} variant="outline">
             <MessageSquareText className="h-4 w-4" />
             連続発話を結合
+          </Button>
+          <Button disabled={isExtracting || liveLog.segments.length < 2} onClick={onNormalizeTiming} variant="outline">
+            <Clock3 className="h-4 w-4" />
+            時刻を整える
           </Button>
           <Button disabled={isExtracting || !canExtract} onClick={onExtract}>
             <Wand2 className="h-4 w-4" />

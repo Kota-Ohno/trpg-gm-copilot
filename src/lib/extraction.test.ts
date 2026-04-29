@@ -4,6 +4,7 @@ import {
   liveLogToPlainText,
   liveLogToTranscriptionDrafts,
   mergeAdjacentTranscriptSegments,
+  normalizeTranscriptSegmentTiming,
   normalizeTranscriptionDrafts,
   parsePlainLogToLiveLog,
   previewTranscriptionDraftPayload,
@@ -202,6 +203,29 @@ describe("mergeAdjacentTranscriptSegments", () => {
         confidence: 0.7,
       },
       { id: "c", speakerId: "speaker-pl", startTimeSec: 9, endTimeSec: 12, text: "返答" },
+    ]);
+  });
+});
+
+describe("normalizeTranscriptSegmentTiming", () => {
+  it("sorts segments and removes timing overlaps", () => {
+    const normalized = normalizeTranscriptSegmentTiming({
+      ...summaryLiveLog,
+      segments: [
+        { id: "late", speakerId: "speaker-pl", startTimeSec: 2, endTimeSec: 5, text: "後" },
+        { id: "early", speakerId: "speaker-gm", startTimeSec: 0, endTimeSec: 4, text: "先" },
+        { id: "overlap", speakerId: "speaker-gm", startTimeSec: 3, endTimeSec: 4, text: "重なり" },
+      ],
+    });
+
+    expect(normalized.segments.map((segment) => ({
+      id: segment.id,
+      startTimeSec: segment.startTimeSec,
+      endTimeSec: segment.endTimeSec,
+    }))).toEqual([
+      { id: "early", startTimeSec: 0, endTimeSec: 4 },
+      { id: "late", startTimeSec: 5, endTimeSec: 8 },
+      { id: "overlap", startTimeSec: 9, endTimeSec: 10 },
     ]);
   });
 });

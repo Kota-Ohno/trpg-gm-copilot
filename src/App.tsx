@@ -57,6 +57,7 @@ import {
   liveLogToPlainText,
   normalizeTranscriptionDrafts,
   mergeAdjacentTranscriptSegments,
+  normalizeTranscriptSegmentTiming,
   parsePlainLogToLiveLog,
   previewTranscriptionDraftPayload,
   summarizeLiveLog,
@@ -810,6 +811,10 @@ export function App() {
 
   const mergeAdjacentSpeakerLogSegments = (): void => {
     updateLiveLog(mergeAdjacentTranscriptSegments);
+  };
+
+  const normalizeSpeakerLogTiming = (): void => {
+    updateLiveLog(normalizeTranscriptSegmentTiming);
   };
 
   const appendQuickResultToLog = (): void => {
@@ -1576,6 +1581,7 @@ export function App() {
                         onDuplicateSegment={duplicateSegment}
                         onExtract={runExtractionPreview}
                         onMergeAdjacentSegments={mergeAdjacentSpeakerLogSegments}
+                        onNormalizeTiming={normalizeSpeakerLogTiming}
                         onReset={resetCampaignState}
                         onRestoreSample={restoreSampleLiveLog}
                         onUpdateSegment={updateSegment}
