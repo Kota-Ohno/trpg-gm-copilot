@@ -331,6 +331,25 @@ export function transcriptionDraftsToLiveLog(
   };
 }
 
+export function liveLogToTranscriptionDrafts(liveLog: LiveLogSession): TranscriptionSegmentDraft[] {
+  return [...liveLog.segments]
+    .sort((first, second) => first.startTimeSec - second.startTimeSec)
+    .filter((segment) => segment.text.trim().length > 0)
+    .map((segment) => {
+      const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
+
+      return {
+        speakerName: speaker?.name ?? "話者不明",
+        startTimeSec: segment.startTimeSec,
+        endTimeSec: segment.endTimeSec,
+        text: segment.text,
+        ...(typeof segment.confidence === "number" && Number.isFinite(segment.confidence)
+          ? { confidence: Math.max(0, Math.min(1, segment.confidence)) }
+          : {}),
+      };
+    });
+}
+
 export function parsePlainLogToLiveLog(log: string, title: string): LiveLogSession | null {
   const speakersByName = new Map<string, Speaker>();
   const segments: TranscriptSegment[] = [];

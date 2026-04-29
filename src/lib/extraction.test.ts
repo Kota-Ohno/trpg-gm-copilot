@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeTranscriptionDrafts, transcriptionDraftsToLiveLog } from "./extraction";
+import { liveLogToTranscriptionDrafts, normalizeTranscriptionDrafts, transcriptionDraftsToLiveLog } from "./extraction";
 
 describe("normalizeTranscriptionDrafts", () => {
   it("rejects non-array draft input", () => {
@@ -53,5 +53,57 @@ describe("transcriptionDraftsToLiveLog", () => {
 
   it("returns null when every draft text is blank", () => {
     expect(transcriptionDraftsToLiveLog([{ speakerName: "GM", text: "   " }], "空ログ")).toBeNull();
+  });
+});
+
+describe("liveLogToTranscriptionDrafts", () => {
+  it("exports sorted non-empty transcript segments with speaker names", () => {
+    expect(liveLogToTranscriptionDrafts({
+      id: "live-log-1",
+      title: "ログ",
+      sourceType: "manual",
+      speakers: [
+        { id: "speaker-gm", name: "GM", role: "GM" },
+        { id: "speaker-pl", name: "アキラ", role: "PL" },
+      ],
+      segments: [
+        {
+          id: "segment-2",
+          speakerId: "speaker-pl",
+          startTimeSec: 8,
+          endTimeSec: 12,
+          text: "調べます",
+          confidence: 0.88,
+        },
+        {
+          id: "segment-empty",
+          speakerId: "speaker-pl",
+          startTimeSec: 4,
+          endTimeSec: 6,
+          text: " ",
+        },
+        {
+          id: "segment-1",
+          speakerId: "speaker-gm",
+          startTimeSec: 0,
+          endTimeSec: 5,
+          text: "足音が聞こえる",
+        },
+      ],
+    })).toEqual([
+      {
+        speakerName: "GM",
+        startTimeSec: 0,
+        endTimeSec: 5,
+        text: "足音が聞こえる",
+      },
+      {
+        speakerName: "アキラ",
+        startTimeSec: 8,
+        endTimeSec: 12,
+        text: "調べます",
+        confidence: 0.88,
+      },
+    ]);
   });
 });

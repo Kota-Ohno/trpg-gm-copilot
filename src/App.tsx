@@ -45,6 +45,7 @@ import {
   normalizeCampaignState,
 } from "./lib/campaign";
 import {
+  liveLogToTranscriptionDrafts,
   liveLogToPlainText,
   normalizeTranscriptionDrafts,
   parsePlainLogToLiveLog,
@@ -480,6 +481,21 @@ export function App() {
     link.click();
     URL.revokeObjectURL(objectUrl);
     setStorageError(null);
+  };
+
+  const exportTranscriptionDraftJson = (): void => {
+    const drafts = liveLogToTranscriptionDrafts(currentSession.liveLog);
+    const blob = new Blob([JSON.stringify({ segments: drafts }, null, 2)], {
+      type: "application/json",
+    });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = objectUrl;
+    link.download = createExportFileName(`${currentSession.title}-transcription-draft`);
+    link.click();
+    URL.revokeObjectURL(objectUrl);
+    setTranscriptionImportError(null);
   };
 
   const importCampaignState = async (file: File): Promise<void> => {
@@ -1367,6 +1383,15 @@ export function App() {
                       >
                         <Upload className="h-4 w-4" />
                         話者付きログへ取り込み
+                      </Button>
+                      <Button
+                        disabled={isExtracting || currentSession.liveLog.segments.every((segment) => !segment.text.trim())}
+                        onClick={exportTranscriptionDraftJson}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Download className="h-4 w-4" />
+                        現在の話者ログを書き出し
                       </Button>
                       <Badge variant="muted">draft-v1</Badge>
                     </div>
