@@ -1415,7 +1415,12 @@ export function App() {
 
           <div className="mt-6 space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <label className="text-xs font-medium text-muted-foreground">セッション</label>
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-muted-foreground">セッション</label>
+                {normalizedSessionQuery && (
+                  <Badge variant="muted">{visibleSessions.length}/{campaignState.sessions.length}</Badge>
+                )}
+              </div>
               <Button disabled={isExtracting} onClick={addNewSession} size="sm" variant="outline">
                 <Plus className="h-3.5 w-3.5" />
                 追加
