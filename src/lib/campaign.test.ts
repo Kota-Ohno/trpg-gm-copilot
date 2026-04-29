@@ -54,7 +54,22 @@ describe("normalizeCampaignState", () => {
               { id: "speaker-1", name: "PL", role: "bad-role" },
             ],
             segments: [
-              { id: "segment-1", speakerId: "missing-speaker", startTimeSec: -5, endTimeSec: -1, text: 123 },
+              {
+                id: "segment-1",
+                speakerId: "missing-speaker",
+                startTimeSec: -5,
+                endTimeSec: -1,
+                text: 123,
+                confidence: 1.7,
+              },
+              {
+                id: "segment-2",
+                speakerId: "speaker-1",
+                startTimeSec: 4,
+                endTimeSec: 2,
+                text: "低信頼",
+                confidence: -0.4,
+              },
             ],
           },
           extractionItems: [],
@@ -66,7 +81,7 @@ describe("normalizeCampaignState", () => {
 
     const [session] = campaign.sessions;
     const [firstSpeaker, secondSpeaker] = session.liveLog.speakers;
-    const [segment] = session.liveLog.segments;
+    const [segment, lowConfidenceSegment] = session.liveLog.segments;
 
     expect(campaign.extractionProvider.providerId).toBe("rule-based");
     expect(campaign.transcriptionProvider.providerId).toBe("web-speech");
@@ -80,6 +95,8 @@ describe("normalizeCampaignState", () => {
     expect(segment.startTimeSec).toBe(0);
     expect(segment.endTimeSec).toBe(0);
     expect(segment.text).toBe("");
+    expect(segment.confidence).toBe(1);
+    expect(lowConfidenceSegment.confidence).toBe(0);
   });
 });
 

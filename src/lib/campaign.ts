@@ -514,7 +514,7 @@ function normalizeLiveLog(rawLiveLog: unknown, fallbackTitle: string): LiveLogSe
             : fallbackSpeakerId,
         startTimeSec,
         text: typeof segmentRecord.text === "string" ? segmentRecord.text : "",
-        ...(Number.isNaN(confidence) ? {} : { confidence }),
+        ...(Number.isNaN(confidence) ? {} : { confidence: Math.max(0, Math.min(1, confidence)) }),
       };
     }),
   };
