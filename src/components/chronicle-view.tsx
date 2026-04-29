@@ -178,6 +178,16 @@ export function ChronicleView({
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-medium">{candidate.title}</p>
                   <Badge variant="secondary">{candidate.label}</Badge>
+                  <Button
+                    onClick={() => {
+                      setQuery(candidate.title);
+                      setClueStatusFilter("all");
+                    }}
+                    size="sm"
+                    variant="ghost"
+                  >
+                    表示
+                  </Button>
                 </div>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">{candidate.detail}</p>
               </div>
