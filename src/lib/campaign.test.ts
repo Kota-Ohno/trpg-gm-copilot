@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { duplicateSessionState, normalizeCampaignLibraryState, normalizeCampaignState } from "./campaign";
+import { duplicateCampaignState, duplicateSessionState, normalizeCampaignLibraryState, normalizeCampaignState } from "./campaign";
 
 describe("normalizeCampaignState", () => {
   it("migrates a legacy single-session state into the session list", () => {
@@ -160,5 +160,35 @@ describe("duplicateSessionState", () => {
     expect(duplicated.liveLog.speakers[0]?.id).not.toBe(source.liveLog.speakers[0]?.id);
     expect(duplicated.liveLog.segments[0]?.id).not.toBe(source.liveLog.segments[0]?.id);
     expect(duplicated.liveLog.segments[0]?.speakerId).toBe(duplicated.liveLog.speakers[0]?.id);
+  });
+});
+
+describe("duplicateCampaignState", () => {
+  it("copies campaign memory and regenerates campaign/session identity", () => {
+    const source = normalizeCampaignState({
+      id: "campaign-1",
+      campaignName: "灰ヶ浦",
+      activeSessionId: "session-2",
+      chronicle: {
+        events: ["港に到着"],
+        npcs: [],
+        clues: [],
+        locations: [],
+        threads: [],
+      },
+      sessions: [
+        { id: "session-1", title: "第1夜", date: "2026-04-28", log: "", extractionItems: [], approvedIds: [] },
+        { id: "session-2", title: "第2夜", date: "2026-04-29", log: "", extractionItems: [], approvedIds: [] },
+      ],
+    });
+
+    const duplicated = duplicateCampaignState(source);
+
+    expect(duplicated.id).not.toBe(source.id);
+    expect(duplicated.campaignName).toBe("灰ヶ浦 コピー");
+    expect(duplicated.chronicle.events).toEqual(["港に到着"]);
+    expect(duplicated.sessions).toHaveLength(2);
+    expect(duplicated.sessions.map((session) => session.id)).not.toEqual(source.sessions.map((session) => session.id));
+    expect(duplicated.activeSessionId).toBe(duplicated.sessions[1]?.id);
   });
 });

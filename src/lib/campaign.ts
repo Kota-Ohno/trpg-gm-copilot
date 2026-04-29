@@ -117,6 +117,22 @@ export function createNewCampaignState(index: number): CampaignState {
   };
 }
 
+export function duplicateCampaignState(sourceCampaign: CampaignState): CampaignState {
+  const duplicatedCampaign = cloneJson(sourceCampaign);
+  const duplicatedSessions = duplicatedCampaign.sessions.map(duplicateSessionState);
+  const sessions = duplicatedSessions.length > 0 ? duplicatedSessions : [createNewSession(1)];
+  const activeSessionIndex = sourceCampaign.sessions.findIndex((session) => session.id === sourceCampaign.activeSessionId);
+  const activeSession = sessions[Math.max(0, activeSessionIndex)];
+
+  return {
+    ...duplicatedCampaign,
+    id: createId("campaign"),
+    campaignName: `${sourceCampaign.campaignName} コピー`,
+    sessions,
+    activeSessionId: activeSession?.id ?? sessions[0].id,
+  };
+}
+
 const initialSession = initialCampaignState.sessions[0];
 
 function isRecord(value: unknown): value is Record<string, unknown> {

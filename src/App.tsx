@@ -40,6 +40,7 @@ import {
   createId,
   createNewCampaignState,
   createNewSession,
+  duplicateCampaignState,
   duplicateSessionState,
   generatePrepNote,
   getLocalDateString,
@@ -432,6 +433,25 @@ export function App() {
       return {
         campaigns: [...current.campaigns, nextCampaign],
         activeCampaignId: nextCampaign.id,
+      };
+    });
+    setCampaignQuery("");
+    setSessionQuery("");
+    setLogInputMode("plain");
+    setActiveTab("log");
+  };
+
+  const duplicateCampaign = (campaignId: string): void => {
+    setCampaignLibrary((current) => {
+      const sourceCampaign = current.campaigns.find((campaign) => campaign.id === campaignId);
+      if (!sourceCampaign) {
+        return current;
+      }
+
+      const duplicatedCampaign = duplicateCampaignState(sourceCampaign);
+      return {
+        campaigns: [...current.campaigns, duplicatedCampaign],
+        activeCampaignId: duplicatedCampaign.id,
       };
     });
     setCampaignQuery("");
@@ -1119,6 +1139,15 @@ export function App() {
                       {campaign.sessions.length}セッション / {campaign.chronicle.events.length + campaign.chronicle.clues.length}記憶
                     </span>
                   </button>
+                  <Button
+                    aria-label={`${campaign.campaignName}を複製`}
+                    disabled={isExtracting}
+                    onClick={() => duplicateCampaign(campaign.id)}
+                    size="icon"
+                    variant="ghost"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
                   <Button
                     aria-label={`${campaign.campaignName}を削除`}
                     disabled={isExtracting || campaignLibrary.campaigns.length <= 1}
