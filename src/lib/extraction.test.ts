@@ -17,6 +17,17 @@ describe("normalizeTranscriptionDrafts", () => {
       { text: "名前なし" },
     ]);
   });
+
+  it("accepts provider-style objects with a segments array", () => {
+    expect(normalizeTranscriptionDrafts({
+      provider: "example",
+      segments: [
+        { speakerName: "GM", text: "足音が近づく", confidence: 0.82 },
+      ],
+    })).toEqual([
+      { speakerName: "GM", text: "足音が近づく", confidence: 0.82 },
+    ]);
+  });
 });
 
 describe("transcriptionDraftsToLiveLog", () => {

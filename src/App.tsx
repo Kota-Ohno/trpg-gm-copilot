@@ -697,7 +697,7 @@ export function App() {
       const parsedDrafts = JSON.parse(transcriptionDraftJson) as unknown;
       const normalizedDrafts = normalizeTranscriptionDrafts(parsedDrafts);
       if (!normalizedDrafts) {
-        setTranscriptionImportError("文字起こしドラフトは配列JSONで入力してください。");
+        setTranscriptionImportError("文字起こしドラフトは配列JSON、またはsegments配列を持つJSONで入力してください。");
         return;
       }
 
@@ -1294,7 +1294,7 @@ export function App() {
                       文字起こしドラフト取り込み
                     </CardTitle>
                     <CardDescription className="mt-2">
-                      Provider実装前の検証用に、発話配列JSONを話者付きログへ変換します。
+                      Provider実装前の検証用に、発話配列JSONまたはsegments配列を持つJSONを話者付きログへ変換します。
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">

@@ -239,11 +239,17 @@ export function runRuleBasedExtraction(lines: ExtractionInputLine[]): Extraction
 }
 
 export function normalizeTranscriptionDrafts(value: unknown): TranscriptionSegmentDraft[] | null {
-  if (!Array.isArray(value)) {
+  const draftItems = Array.isArray(value)
+    ? value
+    : value && typeof value === "object" && !Array.isArray(value) && Array.isArray((value as { segments?: unknown }).segments)
+      ? (value as { segments: unknown[] }).segments
+      : null;
+
+  if (!draftItems) {
     return null;
   }
 
-  return value.flatMap((item) => {
+  return draftItems.flatMap((item) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) {
       return [];
     }
