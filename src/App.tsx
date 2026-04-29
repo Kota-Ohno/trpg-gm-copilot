@@ -1119,45 +1119,56 @@ export function App() {
             </div>
             <div className="space-y-1">
               {visibleCampaigns.map((campaign) => (
-                <div
-                  className={
-                    campaign.id === campaignState.id
-                      ? "flex items-center gap-1 rounded-md bg-primary px-2 py-2 text-sm text-primary-foreground"
-                      : "flex items-center gap-1 rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  }
-                  key={campaign.id}
-                >
-                  <button className="min-w-0 flex-1 text-left" onClick={() => switchCampaign(campaign.id)} type="button">
-                    <span className="block truncate font-medium">{campaign.campaignName}</span>
-                    <span
+                (() => {
+                  const memoryCount =
+                    campaign.chronicle.events.length +
+                    campaign.chronicle.clues.length +
+                    campaign.chronicle.npcs.length +
+                    campaign.chronicle.locations.length +
+                    campaign.chronicle.threads.length;
+
+                  return (
+                    <div
                       className={
                         campaign.id === campaignState.id
-                          ? "block text-xs opacity-80"
-                          : "block text-xs text-muted-foreground"
+                          ? "flex items-center gap-1 rounded-md bg-primary px-2 py-2 text-sm text-primary-foreground"
+                          : "flex items-center gap-1 rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       }
+                      key={campaign.id}
                     >
-                      {campaign.sessions.length}セッション / {campaign.chronicle.events.length + campaign.chronicle.clues.length}記憶
-                    </span>
-                  </button>
-                  <Button
-                    aria-label={`${campaign.campaignName}を複製`}
-                    disabled={isExtracting}
-                    onClick={() => duplicateCampaign(campaign.id)}
-                    size="icon"
-                    variant="ghost"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    aria-label={`${campaign.campaignName}を削除`}
-                    disabled={isExtracting || campaignLibrary.campaigns.length <= 1}
-                    onClick={() => deleteCampaign(campaign.id)}
-                    size="icon"
-                    variant="ghost"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                      <button className="min-w-0 flex-1 text-left" onClick={() => switchCampaign(campaign.id)} type="button">
+                        <span className="block truncate font-medium">{campaign.campaignName}</span>
+                        <span
+                          className={
+                            campaign.id === campaignState.id
+                              ? "block text-xs opacity-80"
+                              : "block text-xs text-muted-foreground"
+                          }
+                        >
+                          {campaign.sessions.length}セッション / {memoryCount}記憶
+                        </span>
+                      </button>
+                      <Button
+                        aria-label={`${campaign.campaignName}を複製`}
+                        disabled={isExtracting}
+                        onClick={() => duplicateCampaign(campaign.id)}
+                        size="icon"
+                        variant="ghost"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        aria-label={`${campaign.campaignName}を削除`}
+                        disabled={isExtracting || campaignLibrary.campaigns.length <= 1}
+                        onClick={() => deleteCampaign(campaign.id)}
+                        size="icon"
+                        variant="ghost"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  );
+                })()
               ))}
               {visibleCampaigns.length === 0 && (
                 <p className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground">
