@@ -303,6 +303,7 @@ export function App() {
 
   const approvedCount = approvedIds.length;
   const remainingCount = items.length - approvedCount;
+  const invalidReviewItemCount = items.filter((item) => !item.title.trim() || !item.detail.trim()).length;
   const approvableRemainingCount = items.filter(
     (item) => !approvedIds.includes(item.id) && item.title.trim() && item.detail.trim(),
   ).length;
@@ -1636,6 +1637,9 @@ export function App() {
                           <Badge variant="muted">{remainingCount}未確認</Badge>
                           {approvableRemainingCount !== remainingCount && (
                             <Badge variant="outline">{approvableRemainingCount}件採用可能</Badge>
+                          )}
+                          {invalidReviewItemCount > 0 && (
+                            <Badge variant="destructive">未入力 {invalidReviewItemCount}</Badge>
                           )}
                           {hasReviewFilter && (
                             <Badge variant="outline">{reviewItems.length}件を表示中</Badge>
