@@ -1166,36 +1166,50 @@ export function App() {
             </div>
             <div className="space-y-1">
               {visibleSessions.map((session) => (
-                <div
-                  className={
-                    session.id === campaignState.activeSessionId
-                      ? "flex items-center gap-1 rounded-md bg-primary px-2 py-2 text-sm text-primary-foreground"
-                      : "flex items-center gap-1 rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  }
-                  key={session.id}
-                >
-                  <button className="min-w-0 flex-1 text-left" onClick={() => switchSession(session.id)} type="button">
-                    <span className="block truncate font-medium">{session.title}</span>
-                    <span
+                (() => {
+                  const spokenSegmentCount = session.liveLog.segments.filter((segment) => segment.text.trim()).length;
+                  const lowConfidenceSegmentCount = session.liveLog.segments.filter(
+                    (segment) =>
+                      typeof segment.confidence === "number" &&
+                      Number.isFinite(segment.confidence) &&
+                      segment.confidence < 0.85,
+                  ).length;
+
+                  return (
+                    <div
                       className={
                         session.id === campaignState.activeSessionId
-                          ? "block text-xs opacity-80"
-                          : "block text-xs text-muted-foreground"
+                          ? "flex items-center gap-1 rounded-md bg-primary px-2 py-2 text-sm text-primary-foreground"
+                          : "flex items-center gap-1 rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       }
+                      key={session.id}
                     >
-                      {session.date} / {session.approvedIds.length}採用 / {session.extractionItems.length}候補
-                    </span>
-                  </button>
-                  <Button
-                    aria-label={`${session.title}を削除`}
-                    disabled={isExtracting || campaignState.sessions.length <= 1}
-                    onClick={() => deleteSession(session.id)}
-                    size="icon"
-                    variant="ghost"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                      <button className="min-w-0 flex-1 text-left" onClick={() => switchSession(session.id)} type="button">
+                        <span className="block truncate font-medium">{session.title}</span>
+                        <span
+                          className={
+                            session.id === campaignState.activeSessionId
+                              ? "block text-xs opacity-80"
+                              : "block text-xs text-muted-foreground"
+                          }
+                        >
+                          {session.date} / {session.approvedIds.length}採用 / {session.extractionItems.length}候補 /{" "}
+                          {spokenSegmentCount}発話
+                          {lowConfidenceSegmentCount > 0 ? ` / 要確認${lowConfidenceSegmentCount}` : ""}
+                        </span>
+                      </button>
+                      <Button
+                        aria-label={`${session.title}を削除`}
+                        disabled={isExtracting || campaignState.sessions.length <= 1}
+                        onClick={() => deleteSession(session.id)}
+                        size="icon"
+                        variant="ghost"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  );
+                })()
               ))}
               {visibleSessions.length === 0 && (
                 <p className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground">
