@@ -35,6 +35,7 @@ type SpeakerLogEditorProps = {
   onDeleteSpeaker: (speakerId: string) => void;
   onDeleteSegment: (segmentId: string) => void;
   onExtract: () => void | Promise<void>;
+  onMergeAdjacentSegments: () => void;
   onReset: () => void;
   onRestoreSample: () => void;
   onUpdateSegment: (segmentId: string, updates: Partial<TranscriptSegment>) => void;
@@ -54,6 +55,7 @@ export function SpeakerLogEditor({
   onDeleteSpeaker,
   onDeleteSegment,
   onExtract,
+  onMergeAdjacentSegments,
   onReset,
   onRestoreSample,
   onUpdateSegment,
@@ -66,6 +68,9 @@ export function SpeakerLogEditor({
   const sortedSegments = [...liveLog.segments].sort((first, second) => first.startTimeSec - second.startTimeSec);
   const liveLogSummary = summarizeLiveLog(liveLog);
   const hasSegmentText = liveLog.segments.some((segment) => segment.text.trim().length > 0);
+  const hasMergeableAdjacentSegments = sortedSegments.some(
+    (segment, index) => index > 0 && sortedSegments[index - 1].speakerId === segment.speakerId,
+  );
   const emptySegmentCount = isExtracting ? 0 : liveLogSummary.emptySegmentCount;
   const lowConfidenceCount = liveLogSummary.lowConfidenceCount;
   const visibleSegments = sortedSegments.filter((segment) => {
@@ -117,6 +122,10 @@ export function SpeakerLogEditor({
           <Button disabled={isExtracting || !hasSegmentText} onClick={onApplyToPlainLog}>
             <FileText className="h-4 w-4" />
             通常ログへ反映
+          </Button>
+          <Button disabled={isExtracting || !hasMergeableAdjacentSegments} onClick={onMergeAdjacentSegments} variant="outline">
+            <MessageSquareText className="h-4 w-4" />
+            連続発話を結合
           </Button>
           <Button disabled={isExtracting || !canExtract} onClick={onExtract}>
             <Wand2 className="h-4 w-4" />

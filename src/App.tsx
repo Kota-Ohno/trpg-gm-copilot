@@ -56,6 +56,7 @@ import {
   liveLogToTranscriptionDrafts,
   liveLogToPlainText,
   normalizeTranscriptionDrafts,
+  mergeAdjacentTranscriptSegments,
   parsePlainLogToLiveLog,
   previewTranscriptionDraftPayload,
   summarizeLiveLog,
@@ -807,6 +808,10 @@ export function App() {
     updateCurrentSession({ liveLog: cloneJson(sampleLiveLog) });
   };
 
+  const mergeAdjacentSpeakerLogSegments = (): void => {
+    updateLiveLog(mergeAdjacentTranscriptSegments);
+  };
+
   const appendQuickResultToLog = (): void => {
     const text = quickResult.trim();
     if (!text) {
@@ -1543,6 +1548,7 @@ export function App() {
                         onDeleteSpeaker={deleteSpeaker}
                         onDeleteSegment={deleteSegment}
                         onExtract={runExtractionPreview}
+                        onMergeAdjacentSegments={mergeAdjacentSpeakerLogSegments}
                         onReset={resetCampaignState}
                         onRestoreSample={restoreSampleLiveLog}
                         onUpdateSegment={updateSegment}

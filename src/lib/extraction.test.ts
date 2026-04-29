@@ -3,6 +3,7 @@ import {
   appendTranscriptionDraftsToLiveLog,
   liveLogToPlainText,
   liveLogToTranscriptionDrafts,
+  mergeAdjacentTranscriptSegments,
   normalizeTranscriptionDrafts,
   parsePlainLogToLiveLog,
   previewTranscriptionDraftPayload,
@@ -177,6 +178,31 @@ describe("summarizeLiveLog", () => {
       totalSegmentCount: 3,
       usedSpeakerCount: 2,
     });
+  });
+});
+
+describe("mergeAdjacentTranscriptSegments", () => {
+  it("merges consecutive segments by the same speaker", () => {
+    const merged = mergeAdjacentTranscriptSegments({
+      ...summaryLiveLog,
+      segments: [
+        { id: "a", speakerId: "speaker-gm", startTimeSec: 0, endTimeSec: 3, text: "前半", confidence: 0.9 },
+        { id: "b", speakerId: "speaker-gm", startTimeSec: 4, endTimeSec: 8, text: "後半", confidence: 0.7 },
+        { id: "c", speakerId: "speaker-pl", startTimeSec: 9, endTimeSec: 12, text: "返答" },
+      ],
+    });
+
+    expect(merged.segments).toEqual([
+      {
+        id: "a",
+        speakerId: "speaker-gm",
+        startTimeSec: 0,
+        endTimeSec: 8,
+        text: "前半\n後半",
+        confidence: 0.7,
+      },
+      { id: "c", speakerId: "speaker-pl", startTimeSec: 9, endTimeSec: 12, text: "返答" },
+    ]);
   });
 });
 

@@ -77,6 +77,30 @@ export function summarizeLiveLog(liveLog: LiveLogSession): LiveLogSummary {
   };
 }
 
+export function mergeAdjacentTranscriptSegments(liveLog: LiveLogSession): LiveLogSession {
+  const sortedSegments = [...liveLog.segments].sort((first, second) => first.startTimeSec - second.startTimeSec);
+  const mergedSegments: TranscriptSegment[] = [];
+
+  sortedSegments.forEach((segment) => {
+    const previousSegment = mergedSegments[mergedSegments.length - 1];
+    if (!previousSegment || previousSegment.speakerId !== segment.speakerId) {
+      mergedSegments.push({ ...segment });
+      return;
+    }
+
+    previousSegment.endTimeSec = Math.max(previousSegment.endTimeSec, segment.endTimeSec);
+    previousSegment.text = [previousSegment.text.trim(), segment.text.trim()].filter(Boolean).join("\n");
+    if (typeof previousSegment.confidence === "number" || typeof segment.confidence === "number") {
+      previousSegment.confidence = Math.min(previousSegment.confidence ?? 1, segment.confidence ?? 1);
+    }
+  });
+
+  return {
+    ...liveLog,
+    segments: mergedSegments,
+  };
+}
+
 function formatTimestamp(seconds: number): string {
   const safeSeconds = Math.max(0, Math.round(seconds));
   const hours = Math.floor(safeSeconds / 3600);
