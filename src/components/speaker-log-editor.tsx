@@ -109,6 +109,9 @@ export function SpeakerLogEditor({
             <Badge variant="muted">合計 {formatTimestamp(liveLogSummary.totalDurationSec)}</Badge>
             <Badge variant="muted">{liveLog.speakers.length}話者</Badge>
             <Badge variant="muted">使用中 {liveLogSummary.usedSpeakerCount}</Badge>
+            {liveLogSummary.averageConfidence !== null && (
+              <Badge variant="muted">平均信頼度 {Math.round(liveLogSummary.averageConfidence * 100)}%</Badge>
+            )}
             {lowConfidenceCount > 0 && <Badge variant="destructive">要確認 {lowConfidenceCount}</Badge>}
           </div>
           <p className="mt-2 text-sm font-medium">{liveLog.title}</p>

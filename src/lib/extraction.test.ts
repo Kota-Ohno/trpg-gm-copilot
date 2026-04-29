@@ -189,6 +189,7 @@ describe("liveLogToPlainText", () => {
 describe("summarizeLiveLog", () => {
   it("counts transcript health and duration", () => {
     expect(summarizeLiveLog(summaryLiveLog)).toEqual({
+      averageConfidence: 0.79,
       emptySegmentCount: 1,
       lowConfidenceCount: 1,
       nonEmptySegmentCount: 2,

@@ -19,6 +19,7 @@ export type ExtractionInputLine = {
 export const lowConfidenceThreshold = 0.85;
 
 export type LiveLogSummary = {
+  averageConfidence: number | null;
   emptySegmentCount: number;
   lowConfidenceCount: number;
   nonEmptySegmentCount: number;
@@ -59,7 +60,14 @@ export function liveLogToPlainText(liveLog: LiveLogSession): string {
 }
 
 export function summarizeLiveLog(liveLog: LiveLogSession): LiveLogSummary {
+  const confidenceValues = liveLog.segments
+    .map((segment) => segment.confidence)
+    .filter((confidence): confidence is number => typeof confidence === "number" && Number.isFinite(confidence));
+
   return {
+    averageConfidence: confidenceValues.length > 0
+      ? confidenceValues.reduce((total, confidence) => total + Math.max(0, Math.min(1, confidence)), 0) / confidenceValues.length
+      : null,
     emptySegmentCount: liveLog.segments.filter((segment) => segment.text.trim().length === 0).length,
     lowConfidenceCount: liveLog.segments.filter(
       (segment) =>
