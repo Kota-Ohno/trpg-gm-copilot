@@ -404,6 +404,52 @@ export function transcriptionDraftsToLiveLog(
   };
 }
 
+export function appendTranscriptionDraftsToLiveLog(
+  liveLog: LiveLogSession,
+  drafts: TranscriptionSegmentDraft[],
+): LiveLogSession | null {
+  const importedLiveLog = transcriptionDraftsToLiveLog(drafts, liveLog.title);
+  if (!importedLiveLog) {
+    return null;
+  }
+
+  const speakersByName = new Map(liveLog.speakers.map((speaker) => [speaker.name.trim(), speaker]));
+  const speakers = [...liveLog.speakers];
+  const speakerIdMap = new Map<string, string>();
+
+  importedLiveLog.speakers.forEach((speaker) => {
+    const existingSpeaker = speakersByName.get(speaker.name.trim());
+    if (existingSpeaker) {
+      speakerIdMap.set(speaker.id, existingSpeaker.id);
+      return;
+    }
+
+    speakers.push(speaker);
+    speakersByName.set(speaker.name.trim(), speaker);
+    speakerIdMap.set(speaker.id, speaker.id);
+  });
+
+  const lastEndTimeSec = liveLog.segments.reduce((max, segment) => Math.max(max, segment.endTimeSec), 0);
+  const firstImportedStartTimeSec = importedLiveLog.segments[0]?.startTimeSec ?? 0;
+  const offsetSec = liveLog.segments.length > 0 && firstImportedStartTimeSec <= lastEndTimeSec
+    ? lastEndTimeSec - firstImportedStartTimeSec + 1
+    : 0;
+
+  return {
+    ...liveLog,
+    speakers,
+    segments: [
+      ...liveLog.segments,
+      ...importedLiveLog.segments.map((segment) => ({
+        ...segment,
+        speakerId: speakerIdMap.get(segment.speakerId) ?? speakers[0].id,
+        startTimeSec: segment.startTimeSec + offsetSec,
+        endTimeSec: segment.endTimeSec + offsetSec,
+      })),
+    ],
+  };
+}
+
 export function liveLogToTranscriptionDrafts(liveLog: LiveLogSession): TranscriptionSegmentDraft[] {
   return [...liveLog.segments]
     .sort((first, second) => first.startTimeSec - second.startTimeSec)

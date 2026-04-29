@@ -50,6 +50,7 @@ import {
   normalizeCampaignState,
 } from "./lib/campaign";
 import {
+  appendTranscriptionDraftsToLiveLog,
   liveLogToTranscriptionDrafts,
   liveLogToPlainText,
   normalizeTranscriptionDrafts,
@@ -809,6 +810,30 @@ export function App() {
     setTranscriptionDraftJson("");
     setTranscriptionImportError(null);
     setLogInputMode("speaker");
+  };
+
+  const appendTranscriptionDraftJson = (): void => {
+    try {
+      const parsedDrafts = JSON.parse(transcriptionDraftJson) as unknown;
+      const normalizedDrafts = normalizeTranscriptionDrafts(parsedDrafts);
+      if (!normalizedDrafts || normalizedDrafts.length === 0) {
+        setTranscriptionImportError("追記できる発話ドラフトがありません。");
+        return;
+      }
+
+      const appendedLiveLog = appendTranscriptionDraftsToLiveLog(currentSession.liveLog, normalizedDrafts);
+      if (!appendedLiveLog) {
+        setTranscriptionImportError("追記できる発話本文がありません。");
+        return;
+      }
+
+      updateCurrentSession({ liveLog: appendedLiveLog });
+      setTranscriptionDraftJson("");
+      setTranscriptionImportError(null);
+      setLogInputMode("speaker");
+    } catch {
+      setTranscriptionImportError("JSONとして読み込めません。");
+    }
   };
 
   const importTranscriptionDraftJson = (): void => {
@@ -1580,6 +1605,15 @@ export function App() {
                       >
                         <Upload className="h-4 w-4" />
                         話者付きログへ取り込み
+                      </Button>
+                      <Button
+                        disabled={!transcriptionDraftJson.trim() || isExtracting}
+                        onClick={appendTranscriptionDraftJson}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Plus className="h-4 w-4" />
+                        現在の話者ログへ追記
                       </Button>
                       <Button
                         disabled={isExtracting || currentSession.liveLog.segments.every((segment) => !segment.text.trim())}

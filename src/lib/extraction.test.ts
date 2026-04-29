@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  appendTranscriptionDraftsToLiveLog,
   liveLogToPlainText,
   liveLogToTranscriptionDrafts,
   normalizeTranscriptionDrafts,
@@ -116,6 +117,23 @@ describe("transcriptionDraftsToLiveLog", () => {
 
   it("returns null when every draft text is blank", () => {
     expect(transcriptionDraftsToLiveLog([{ speakerName: "GM", text: "   " }], "空ログ")).toBeNull();
+  });
+});
+
+describe("appendTranscriptionDraftsToLiveLog", () => {
+  it("reuses speakers and offsets appended segments after the existing log", () => {
+    const appended = appendTranscriptionDraftsToLiveLog(summaryLiveLog, [
+      { speakerName: "GM", startTimeSec: 0, endTimeSec: 3, text: "続きです" },
+      { speakerName: "新PL", startTimeSec: 4, endTimeSec: 7, text: "参加します" },
+    ]);
+
+    expect(appended).not.toBeNull();
+    expect(appended?.speakers.map((speaker) => speaker.name)).toEqual(["GM", "アキラ", "新PL"]);
+    expect(appended?.segments).toHaveLength(5);
+    expect(appended?.segments[3]?.speakerId).toBe(appended?.speakers[0]?.id);
+    expect(appended?.segments[3]?.startTimeSec).toBe(13);
+    expect(appended?.segments[4]?.speakerId).toBe(appended?.speakers[2]?.id);
+    expect(appended?.segments[4]?.startTimeSec).toBe(17);
   });
 });
 
