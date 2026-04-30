@@ -68,6 +68,7 @@ import {
   previewTranscriptionDraftPayload,
   splitTranscriptSegment,
   summarizeLiveLog,
+  summarizePlainLog,
   transcriptionDraftsToLiveLog,
 } from "./lib/extraction";
 import {
@@ -409,7 +410,7 @@ export function App() {
     : campaignState.sessions;
   const canExtractLog =
     logInputMode === "plain"
-      ? log.trim().length > 0
+      ? summarizePlainLog(log).speakerLineCount > 0
       : liveLog.segments.some((segment) => segment.text.trim().length > 0);
   const dynamicPrepNote = useMemo(
     () => generatePrepNote(chronicle, campaignState.sessions, currentSession),
