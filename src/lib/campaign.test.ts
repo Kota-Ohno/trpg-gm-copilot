@@ -5,6 +5,7 @@ import {
   duplicateCampaignState,
   duplicateSessionState,
   createExportFileName,
+  generatePrepNote,
   getCampaignSearchText,
   getSessionSearchText,
   normalizeCampaignLibraryState,
@@ -368,5 +369,46 @@ describe("applyExtraction", () => {
     });
 
     expect(withDuplicateEvent).toBe(chronicle);
+  });
+});
+
+describe("generatePrepNote", () => {
+  it("combines approved session events with campaign memory hooks", () => {
+    const campaign = normalizeCampaignState({
+      chronicle: {
+        events: ["前回: 港で聞き込みをした"],
+        npcs: [{ name: "潮見レン", role: "灯台守の甥", publicKnowledge: "鐘を知る", gmSecret: "秘密", attitude: "協力的" }],
+        clues: [{ title: "月の鐘", detail: "満潮で鳴る", status: "partial" }],
+        locations: [{ name: "灯台", detail: "岬の古い建物" }],
+        threads: [{ title: "封じられた灯台", detail: "まだ開かない", nextMove: "次回、扉が反応する" }],
+      },
+      sessions: [
+        {
+          id: "session-1",
+          title: "第1夜",
+          date: "2026-04-29",
+          log: "",
+          extractionItems: [
+            { id: "item-1", kind: "出来事", title: "鐘が鳴る", detail: "遠くで鐘が一度鳴った", visibility: "PL既知" },
+            { id: "item-2", kind: "GM秘密", title: "月の鐘", detail: "満潮で鳴る", visibility: "GMのみ" },
+          ],
+          approvedIds: ["item-1", "item-2"],
+        },
+      ],
+    });
+
+    const prep = generatePrepNote(campaign.chronicle, campaign.sessions, campaign.sessions[0]);
+
+    expect(prep.shortRecap).toContain("遠くで鐘が一度鳴った");
+    expect(prep.hooks).toEqual(expect.arrayContaining([
+      "月の鐘: 次に開示するなら 満潮で鳴る",
+      "封じられた灯台: 次回、扉が反応する",
+    ]));
+    expect(prep.openQuestions).toContain("封じられた灯台: まだ開かない");
+    expect(prep.reminders).toEqual(expect.arrayContaining([
+      "1セッション分のログをキャンペーン記憶に積み上げ中。",
+      "月の鐘をどこまで開示するか決める。",
+      "月の鐘はPLに出す前に意図を確認する。",
+    ]));
   });
 });
