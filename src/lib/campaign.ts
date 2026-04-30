@@ -576,7 +576,7 @@ function normalizeLiveLog(rawLiveLog: unknown, fallbackTitle: string): LiveLogSe
     segments: rawSegments.map((segment) => {
       const segmentRecord = readRecord<TranscriptSegment>(segment);
       const startTimeSec = Math.max(0, readNumber(segmentRecord.startTimeSec, 0));
-      const endTimeSec = Math.max(startTimeSec, readNumber(segmentRecord.endTimeSec, startTimeSec));
+      const endTimeSec = Math.max(startTimeSec + 1, readNumber(segmentRecord.endTimeSec, startTimeSec + 1));
       const confidence = readNumber(segmentRecord.confidence, Number.NaN);
 
       return {

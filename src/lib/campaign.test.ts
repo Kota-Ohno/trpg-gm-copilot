@@ -102,7 +102,7 @@ describe("normalizeCampaignState", () => {
     expect(secondSpeaker.role).toBe("unknown");
     expect(segment.speakerId).toBe(firstSpeaker.id);
     expect(segment.startTimeSec).toBe(0);
-    expect(segment.endTimeSec).toBe(0);
+    expect(segment.endTimeSec).toBe(1);
     expect(segment.text).toBe("");
     expect(segment.confidence).toBe(1);
     expect(lowConfidenceSegment.confidence).toBe(0);
