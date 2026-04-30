@@ -472,16 +472,18 @@ export function duplicateSessionState(sourceSession: SessionState): SessionState
   const duplicatedSession = cloneJson(sourceSession);
   const speakerIdMap = new Map(duplicatedSession.liveLog.speakers.map((speaker) => [speaker.id, createId("speaker")]));
   const fallbackSpeakerId = duplicatedSession.liveLog.speakers[0]?.id;
+  const title = `${sourceSession.title} コピー`;
 
   return {
     ...duplicatedSession,
     id: createId("session"),
-    title: `${sourceSession.title} コピー`,
+    title,
     approvedIds: [],
     extractionRun: null,
     liveLog: {
       ...duplicatedSession.liveLog,
       id: createId("live-log"),
+      title,
       speakers: duplicatedSession.liveLog.speakers.map((speaker) => ({
         ...speaker,
         id: speakerIdMap.get(speaker.id) ?? createId("speaker"),

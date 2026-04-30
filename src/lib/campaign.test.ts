@@ -224,6 +224,7 @@ describe("duplicateSessionState", () => {
 
     expect(duplicated.id).not.toBe(source.id);
     expect(duplicated.title).toBe("第1夜 コピー");
+    expect(duplicated.liveLog.title).toBe("第1夜 コピー");
     expect(duplicated.log).toBe(source.log);
     expect(duplicated.approvedIds).toEqual([]);
     expect(duplicated.extractionRun).toBeNull();
