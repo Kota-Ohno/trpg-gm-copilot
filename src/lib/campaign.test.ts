@@ -93,7 +93,11 @@ describe("normalizeCampaignState", () => {
     const [segment, lowConfidenceSegment] = session.liveLog.segments;
 
     expect(campaign.extractionProvider.providerId).toBe("rule-based");
+    expect(campaign.extractionProvider.model).toBe("local-rules-v1");
+    expect(campaign.extractionProvider.endpoint).toBe("");
     expect(campaign.transcriptionProvider.providerId).toBe("web-speech");
+    expect(campaign.transcriptionProvider.model).toBe("browser-speech-recognition");
+    expect(campaign.transcriptionProvider.endpoint).toBe("");
     expect(campaign.transcriptionProvider.language).toBe("ja-JP");
     expect(session.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(session.liveLog.title).toBe("ログ検証");
@@ -106,6 +110,34 @@ describe("normalizeCampaignState", () => {
     expect(segment.text).toBe("");
     expect(segment.confidence).toBe(1);
     expect(lowConfidenceSegment.confidence).toBe(0);
+  });
+
+  it("restores default endpoints when provider endpoint settings are blank", () => {
+    const campaign = normalizeCampaignState({
+      extractionProvider: {
+        providerId: "openai",
+        model: "  ",
+        endpoint: "  ",
+      },
+      transcriptionProvider: {
+        providerId: "openai",
+        model: "  ",
+        endpoint: "  ",
+        language: "",
+      },
+    });
+
+    expect(campaign.extractionProvider).toEqual({
+      providerId: "openai",
+      model: "gpt-4.1-mini",
+      endpoint: "https://api.openai.com/v1",
+    });
+    expect(campaign.transcriptionProvider).toEqual({
+      providerId: "openai",
+      model: "gpt-4o-mini-transcribe",
+      endpoint: "https://api.openai.com/v1",
+      language: "ja",
+    });
   });
 });
 

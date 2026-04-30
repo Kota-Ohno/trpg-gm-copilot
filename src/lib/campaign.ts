@@ -271,7 +271,7 @@ function normalizeExtractionProviderSettings(rawSettings: unknown): ExtractionPr
   return {
     providerId: provider.id,
     model: readString(settings.model, provider.defaultModel),
-    endpoint: typeof settings.endpoint === "string" ? settings.endpoint.trim() : provider.defaultEndpoint,
+    endpoint: readString(settings.endpoint, provider.defaultEndpoint),
   };
 }
 
@@ -283,7 +283,7 @@ function normalizeTranscriptionProviderSettings(rawSettings: unknown): Transcrip
   return {
     providerId: provider.id,
     model: readString(settings.model, provider.defaultModel),
-    endpoint: typeof settings.endpoint === "string" ? settings.endpoint.trim() : provider.defaultEndpoint,
+    endpoint: readString(settings.endpoint, provider.defaultEndpoint),
     language: readString(settings.language, defaultTranscriptionProviderSettings.language),
   };
 }
