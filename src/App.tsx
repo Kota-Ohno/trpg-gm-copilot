@@ -44,6 +44,7 @@ import {
   createNewSession,
   duplicateCampaignState,
   duplicateSessionState,
+  formatCampaignLibraryMarkdown,
   formatChronicleMarkdown,
   formatPrepNoteMarkdown,
   generatePrepNote,
@@ -556,6 +557,15 @@ export function App() {
 
   const exportCampaignLibrary = (): void => {
     downloadJsonFile(sanitizeCampaignLibraryStateForExport(campaignLibrary), createExportFileName("campaign-library"));
+    setStorageError(null);
+  };
+
+  const exportCampaignLibraryMarkdown = (): void => {
+    downloadTextFile(
+      formatCampaignLibraryMarkdown(campaignLibrary),
+      `${createExportFileName("campaign-library-index").replace(/\.json$/, "")}.md`,
+      "text/markdown;charset=utf-8",
+    );
     setStorageError(null);
   };
 
@@ -1447,6 +1457,10 @@ export function App() {
               <Button onClick={exportCampaignLibrary} size="sm" variant="outline">
                 <Download className="h-3.5 w-3.5" />
                 全体を書き出し
+              </Button>
+              <Button onClick={exportCampaignLibraryMarkdown} size="sm" variant="outline">
+                <FileText className="h-3.5 w-3.5" />
+                目録を書き出し
               </Button>
               <label
                 className={

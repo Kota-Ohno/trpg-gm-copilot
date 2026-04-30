@@ -434,6 +434,31 @@ export function normalizeCampaignLibraryState(rawState: unknown): CampaignLibrar
   };
 }
 
+export function formatCampaignLibraryMarkdown(campaignLibrary: CampaignLibraryState): string {
+  return [
+    "# キャンペーンライブラリ",
+    "",
+    ...campaignLibrary.campaigns.flatMap((campaign, index) => {
+      const isActive = campaign.id === campaignLibrary.activeCampaignId;
+      const memoryCount = countChronicleItems(campaign.chronicle);
+      const sessionLines = campaign.sessions.map(
+        (session) =>
+          `  - ${session.title} (${session.date}) / 候補 ${session.extractionItems.length} / 採用 ${session.approvedIds.length}`,
+      );
+
+      return [
+        `## ${index + 1}. ${campaign.campaignName}${isActive ? " [選択中]" : ""}`,
+        "",
+        `- セッション: ${campaign.sessions.length}`,
+        `- 記憶: ${memoryCount}`,
+        "",
+        ...sessionLines,
+        "",
+      ];
+    }),
+  ].join("\n").trimEnd();
+}
+
 export function createExportFileName(campaignName: string): string {
   const safeName = campaignName
     .trim()

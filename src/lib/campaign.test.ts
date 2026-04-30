@@ -5,6 +5,7 @@ import {
   duplicateCampaignState,
   duplicateSessionState,
   createExportFileName,
+  formatCampaignLibraryMarkdown,
   formatChronicleMarkdown,
   formatPrepNoteMarkdown,
   generatePrepNote,
@@ -238,6 +239,32 @@ describe("normalizeCampaignLibraryState", () => {
     expect(library.campaigns[0]?.id).toBe("campaign-1");
     expect(library.campaigns[1]?.id).not.toBe("campaign-1");
     expect(library.activeCampaignId).toBe("campaign-1");
+  });
+});
+
+describe("formatCampaignLibraryMarkdown", () => {
+  it("formats campaigns and session counts as an index", () => {
+    const library = normalizeCampaignLibraryState({
+      activeCampaignId: "campaign-1",
+      campaigns: [
+        {
+          id: "campaign-1",
+          campaignName: "灰ヶ浦",
+          sessions: [
+            {
+              title: "第1夜",
+              date: "2026-04-30",
+              log: "",
+              extractionItems: [{ id: "item-1", kind: "出来事", title: "開始", detail: "開始した", visibility: "PL既知" }],
+              approvedIds: ["item-1"],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(formatCampaignLibraryMarkdown(library)).toContain("## 1. 灰ヶ浦 [選択中]");
+    expect(formatCampaignLibraryMarkdown(library)).toContain("- 第1夜 (2026-04-30) / 候補 1 / 採用 1");
   });
 });
 
