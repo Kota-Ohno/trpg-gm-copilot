@@ -469,6 +469,6 @@ describe("formatChronicleMarkdown", () => {
       clues: [{ title: "月の鐘", detail: "満潮で鳴る", status: "partial" }],
       locations: [],
       threads: [{ title: "封じられた灯台", detail: "まだ開かない", nextMove: "扉が反応する" }],
-    }, " 灰ヶ浦 記憶 ")).toContain("# 灰ヶ浦 記憶\n\n## 出来事\n\n- 港に到着");
+    }, " 灰ヶ浦 記憶 ")).toContain("- 月の鐘 [一部既知]: 満潮で鳴る");
   });
 });

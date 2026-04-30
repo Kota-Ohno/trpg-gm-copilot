@@ -677,11 +677,16 @@ export function formatPrepNoteMarkdown(prepNote: PrepNote, title: string): strin
 }
 
 export function formatChronicleMarkdown(chronicle: Chronicle, title: string): string {
+  const clueStatusLabels: Record<Clue["status"], string> = {
+    hidden: "GM秘密",
+    known: "PL既知",
+    partial: "一部既知",
+  };
   const sections: Array<[string, string[]]> = [
     ["出来事", chronicle.events],
     [
       "手がかり",
-      chronicle.clues.map((clue) => `${clue.title} [${clue.status}]: ${clue.detail}`),
+      chronicle.clues.map((clue) => `${clue.title} [${clueStatusLabels[clue.status]}]: ${clue.detail}`),
     ],
     [
       "NPC",
