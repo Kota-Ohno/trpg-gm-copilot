@@ -35,6 +35,18 @@ export type TranscriptionDraftPreview =
   | { status: "invalid-shape" }
   | { status: "valid"; segmentCount: number; speakerCount: number; totalDurationSec: number; lowConfidenceCount: number };
 
+export type SpeakerSegmentExport = {
+  segmentCount: number;
+  segments: Array<{
+    confidence?: number;
+    endTimeSec: number;
+    speakerName: string;
+    speakerRole: SpeakerRole;
+    startTimeSec: number;
+    text: string;
+  }>;
+};
+
 const npcNamePattern = /(?:女将|村長|灯台守|船長|医師|司祭|娘|甥|少女|少年|老人|男|女)(?:の)?([ァ-ヶー一-龠々]{1,8})|([ァ-ヶー一-龠々]{1,8})(?:は|が).*(?:話|言|証言)/;
 const plainLogLinePattern = /^(?:\[\s*([0-9０-９:.：\s]+)\s*\]\s*)?([^:：]{1,32})[:：]\s*(.+)$/;
 
@@ -594,6 +606,31 @@ export function liveLogToTranscriptionDrafts(liveLog: LiveLogSession): Transcrip
           : {}),
       };
     });
+}
+
+export function buildSpeakerSegmentExport(
+  liveLog: LiveLogSession,
+  segments: TranscriptSegment[],
+): SpeakerSegmentExport {
+  const speakersById = new Map(liveLog.speakers.map((speaker) => [speaker.id, speaker]));
+
+  return {
+    segmentCount: segments.length,
+    segments: segments.map((segment) => {
+      const speaker = speakersById.get(segment.speakerId);
+
+      return {
+        speakerName: speaker?.name ?? "話者不明",
+        speakerRole: speaker?.role ?? "unknown",
+        startTimeSec: segment.startTimeSec,
+        endTimeSec: segment.endTimeSec,
+        text: segment.text,
+        ...(typeof segment.confidence === "number" && Number.isFinite(segment.confidence)
+          ? { confidence: Math.max(0, Math.min(1, segment.confidence)) }
+          : {}),
+      };
+    }),
+  };
 }
 
 export function parsePlainLogToLiveLog(log: string, title: string): LiveLogSession | null {

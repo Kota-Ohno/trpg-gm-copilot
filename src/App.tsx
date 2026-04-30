@@ -53,6 +53,7 @@ import {
 } from "./lib/campaign";
 import {
   appendTranscriptionDraftsToLiveLog,
+  buildSpeakerSegmentExport,
   liveLogToTranscriptionDrafts,
   liveLogToPlainText,
   normalizeTranscriptionDrafts,
@@ -586,24 +587,11 @@ export function App() {
   };
 
   const exportVisibleSpeakerSegments = (segments: TranscriptSegment[]): void => {
-    const speakersById = new Map(currentSession.liveLog.speakers.map((speaker) => [speaker.id, speaker]));
     const blob = new Blob([JSON.stringify({
       exportedAt: new Date().toISOString(),
       campaignName,
       sessionTitle: currentSession.title,
-      segmentCount: segments.length,
-      segments: segments.map((segment) => {
-        const speaker = speakersById.get(segment.speakerId);
-
-        return {
-          speakerName: speaker?.name ?? "話者不明",
-          speakerRole: speaker?.role ?? "unknown",
-          startTimeSec: segment.startTimeSec,
-          endTimeSec: segment.endTimeSec,
-          text: segment.text,
-          confidence: segment.confidence,
-        };
-      }),
+      ...buildSpeakerSegmentExport(currentSession.liveLog, segments),
     }, null, 2)], {
       type: "application/json",
     });

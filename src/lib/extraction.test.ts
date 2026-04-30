@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   appendTranscriptionDraftsToLiveLog,
+  buildSpeakerSegmentExport,
   buildExtractionInput,
   liveLogToPlainText,
   liveLogToTranscriptionDrafts,
@@ -217,6 +218,47 @@ describe("liveLogToTranscriptionDrafts", () => {
         confidence: 0.88,
       },
     ]);
+  });
+});
+
+describe("buildSpeakerSegmentExport", () => {
+  it("exports selected segments with speaker metadata and clamped confidence", () => {
+    expect(buildSpeakerSegmentExport(summaryLiveLog, [
+      {
+        id: "segment-1",
+        speakerId: "speaker-gm",
+        startTimeSec: 0,
+        endTimeSec: 5,
+        text: "足音が聞こえる",
+        confidence: 1.4,
+      },
+      {
+        id: "segment-missing",
+        speakerId: "missing",
+        startTimeSec: 6,
+        endTimeSec: 8,
+        text: "誰かの声",
+      },
+    ])).toEqual({
+      segmentCount: 2,
+      segments: [
+        {
+          speakerName: "GM",
+          speakerRole: "GM",
+          startTimeSec: 0,
+          endTimeSec: 5,
+          text: "足音が聞こえる",
+          confidence: 1,
+        },
+        {
+          speakerName: "話者不明",
+          speakerRole: "unknown",
+          startTimeSec: 6,
+          endTimeSec: 8,
+          text: "誰かの声",
+        },
+      ],
+    });
   });
 });
 
