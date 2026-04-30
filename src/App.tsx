@@ -658,9 +658,15 @@ export function App() {
   };
 
   const exportCurrentSessionMarkdown = (): void => {
+    exportSessionMarkdown(currentSession);
+  };
+
+  const exportSessionMarkdown = (session: SessionState): void => {
+    const sessionPrepNote = generatePrepNote(chronicle, campaignState.sessions, session);
+
     downloadTextFile(
-      formatSessionMarkdown(currentSession, dynamicPrepNote),
-      `${createExportFileName(`${currentSession.title}-session-summary`).replace(/\.json$/, "")}.md`,
+      formatSessionMarkdown(session, sessionPrepNote),
+      `${createExportFileName(`${session.title}-session-summary`).replace(/\.json$/, "")}.md`,
       "text/markdown;charset=utf-8",
     );
   };
@@ -1560,6 +1566,15 @@ export function App() {
                           {liveLogSummary.lowConfidenceCount > 0 ? ` / 要確認${liveLogSummary.lowConfidenceCount}` : ""}
                         </span>
                       </button>
+                      <Button
+                        aria-label={`${session.title}を書き出し`}
+                        disabled={isExtracting}
+                        onClick={() => exportSessionMarkdown(session)}
+                        size="icon"
+                        variant="ghost"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Button>
                       <Button
                         aria-label={`${session.title}を複製`}
                         disabled={isExtracting}
