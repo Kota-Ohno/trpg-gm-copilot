@@ -137,6 +137,24 @@ describe("transcriptionDraftsToLiveLog", () => {
   it("returns null when every draft text is blank", () => {
     expect(transcriptionDraftsToLiveLog([{ speakerName: "GM", text: "   " }], "空ログ")).toBeNull();
   });
+
+  it("moves overlapping draft segments after the previous segment", () => {
+    const liveLog = transcriptionDraftsToLiveLog(
+      [
+        { speakerName: "GM", startTimeSec: 10, endTimeSec: 20, text: "長い説明" },
+        { speakerName: "PL", startTimeSec: 12, endTimeSec: 14, text: "割り込み" },
+      ],
+      "重複補正",
+    );
+
+    expect(liveLog?.segments.map((segment) => ({
+      startTimeSec: segment.startTimeSec,
+      endTimeSec: segment.endTimeSec,
+    }))).toEqual([
+      { startTimeSec: 10, endTimeSec: 20 },
+      { startTimeSec: 21, endTimeSec: 22 },
+    ]);
+  });
 });
 
 describe("appendTranscriptionDraftsToLiveLog", () => {

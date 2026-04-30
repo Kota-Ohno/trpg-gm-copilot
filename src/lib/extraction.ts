@@ -499,7 +499,7 @@ export function transcriptionDraftsToLiveLog(
       typeof draft.startTimeSec === "number" && Number.isFinite(draft.startTimeSec)
         ? draft.startTimeSec
         : fallbackStartTimeSec;
-    const startTimeSec = Math.max(previousSegment ? previousSegment.startTimeSec + 1 : 0, Math.round(rawStartTimeSec));
+    const startTimeSec = Math.max(previousSegment ? previousSegment.endTimeSec + 1 : 0, Math.round(rawStartTimeSec));
     const rawEndTimeSec =
       typeof draft.endTimeSec === "number" && Number.isFinite(draft.endTimeSec)
         ? draft.endTimeSec
