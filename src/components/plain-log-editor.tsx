@@ -72,7 +72,7 @@ export function PlainLogEditor({
             <RotateCcw className="h-4 w-4" />
             デモ初期化
           </Button>
-          <Button disabled={!hasLogText} onClick={onImportToSpeakerLog} variant="outline">
+          <Button disabled={!hasLogText || hasNoSpeakerLines || isExtracting} onClick={onImportToSpeakerLog} variant="outline">
             <MessageSquareText className="h-4 w-4" />
             話者付きログ化
           </Button>
