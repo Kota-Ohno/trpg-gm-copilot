@@ -9,7 +9,7 @@ Chronicle GM is a local-first TRPG campaign assistant for human GMs. It helps tu
 - Rule-based extraction plus OpenAI/Ollama provider settings.
 - GM review flow for extracted events, NPCs, clues, secrets, and threads, including candidate search, filtered bulk approval/rejection, and visible-candidate JSON/Markdown export.
 - Campaign memory view with search, clue status filtering, filtered JSON/Markdown export, editable disclosure status, NPC attitude editing, and thread next-move editing.
-- Dynamic next-session prep notes from approved campaign memory, with Markdown export.
+- Dynamic next-session prep notes from approved campaign memory, with prep-note and full-session Markdown export.
 - Quick GM rescue prompts that can be appended into plain logs or speaker logs.
 - Transcription provider settings scaffold with readiness checks for manual/OpenAI/Web Speech, transcript confidence and missing-timing metrics, low-confidence filtering, validated import preview, and sample/file-assisted draft JSON import/append/export for speaker logs.
 - Local autosave, JSON export/import, session duplication, and API key storage outside campaign exports.
