@@ -334,6 +334,7 @@ export function App() {
     () => previewTranscriptionDraftPayload(transcriptionDraftJson),
     [transcriptionDraftJson],
   );
+  const canApplyTranscriptionDraft = transcriptionDraftPreview.status === "valid" && !isExtracting;
   const transcriptionProviderReadiness = useMemo(
     () => checkTranscriptionProviderReadiness(transcriptionProvider, providerSecrets),
     [providerSecrets, transcriptionProvider],
@@ -1771,7 +1772,7 @@ export function App() {
                         入力をクリア
                       </Button>
                       <Button
-                        disabled={!transcriptionDraftJson.trim() || isExtracting}
+                        disabled={!canApplyTranscriptionDraft}
                         onClick={importTranscriptionDraftJson}
                         size="sm"
                         variant="outline"
@@ -1780,7 +1781,7 @@ export function App() {
                         話者付きログへ取り込み
                       </Button>
                       <Button
-                        disabled={!transcriptionDraftJson.trim() || isExtracting}
+                        disabled={!canApplyTranscriptionDraft}
                         onClick={appendTranscriptionDraftJson}
                         size="sm"
                         variant="outline"
