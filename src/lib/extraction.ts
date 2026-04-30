@@ -78,6 +78,25 @@ export function liveLogToPlainText(liveLog: LiveLogSession): string {
     .join("\n");
 }
 
+export function formatReviewItemsMarkdown(items: ExtractionItem[], title: string): string {
+  const visibleItems = items.filter((item) => item.title.trim() || item.detail.trim());
+
+  return [
+    `# ${title.trim() || "抽出候補"}`,
+    "",
+    ...(visibleItems.length > 0
+      ? visibleItems.flatMap((item, index) => [
+          `## ${index + 1}. ${item.title.trim() || "無題の候補"}`,
+          "",
+          `- 種別: ${item.kind}`,
+          `- 公開範囲: ${item.visibility}`,
+          `- 詳細: ${item.detail.trim() || "未入力"}`,
+          "",
+        ])
+      : ["- 表示中の抽出候補はありません。"]),
+  ].join("\n").trimEnd();
+}
+
 export function summarizeLiveLog(liveLog: LiveLogSession): LiveLogSummary {
   const confidenceValues = liveLog.segments
     .map((segment) => segment.confidence)

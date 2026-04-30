@@ -3,6 +3,7 @@ import {
   appendTranscriptionDraftsToLiveLog,
   buildSpeakerSegmentExport,
   buildExtractionInput,
+  formatReviewItemsMarkdown,
   liveLogToPlainText,
   liveLogToTranscriptionDrafts,
   mergeAdjacentTranscriptSegments,
@@ -269,6 +270,35 @@ describe("liveLogToPlainText", () => {
     expect(liveLogToPlainText(summaryLiveLog)).toBe([
       "[00:00] GM: 足音が聞こえる",
       "[00:08] アキラ: 調べます",
+    ].join("\n"));
+  });
+});
+
+describe("formatReviewItemsMarkdown", () => {
+  it("formats visible review candidates as markdown", () => {
+    expect(formatReviewItemsMarkdown([
+      {
+        id: "item-1",
+        kind: "手がかり",
+        title: " 古い鍵 ",
+        detail: "倉庫で見つかった",
+        visibility: "PL既知",
+      },
+      {
+        id: "item-2",
+        kind: "GM秘密",
+        title: "",
+        detail: "",
+        visibility: "GMのみ",
+      },
+    ], " 第1夜 候補 ")).toBe([
+      "# 第1夜 候補",
+      "",
+      "## 1. 古い鍵",
+      "",
+      "- 種別: 手がかり",
+      "- 公開範囲: PL既知",
+      "- 詳細: 倉庫で見つかった",
     ].join("\n"));
   });
 });

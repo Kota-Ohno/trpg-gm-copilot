@@ -55,6 +55,7 @@ import {
 import {
   appendTranscriptionDraftsToLiveLog,
   buildSpeakerSegmentExport,
+  formatReviewItemsMarkdown,
   liveLogToTranscriptionDrafts,
   liveLogToPlainText,
   normalizeTranscriptionDrafts,
@@ -594,6 +595,14 @@ export function App() {
       },
       items: reviewItems,
     }, createExportFileName(`${currentSession.title}-review-items`));
+  };
+
+  const exportVisibleReviewItemsMarkdown = (): void => {
+    downloadTextFile(
+      formatReviewItemsMarkdown(reviewItems, `${currentSession.title} 抽出候補`),
+      `${createExportFileName(`${currentSession.title}-review-items`).replace(/\.json$/, "")}.md`,
+      "text/markdown;charset=utf-8",
+    );
   };
 
   const exportFilteredChronicle = (filteredChronicle: typeof chronicle): void => {
@@ -1948,6 +1957,15 @@ export function App() {
                           <Button disabled={reviewItems.length === 0} onClick={exportVisibleReviewItems} size="sm" variant="outline">
                             <Download className="h-4 w-4" />
                             表示中を書き出し
+                          </Button>
+                          <Button
+                            disabled={reviewItems.length === 0}
+                            onClick={exportVisibleReviewItemsMarkdown}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <FileText className="h-4 w-4" />
+                            Markdown
                           </Button>
                         </div>
                       </CardContent>
