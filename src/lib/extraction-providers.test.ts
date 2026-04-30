@@ -66,8 +66,8 @@ describe("buildLlmExtractionResult", () => {
       executedProviderLabel: "OpenAI",
       fallbackUsed: false,
       itemCount: 1,
-      promptLength: 0,
       promptVersion: "extraction-v1",
     });
+    expect(result.run.promptLength).toBeGreaterThan(0);
   });
 });

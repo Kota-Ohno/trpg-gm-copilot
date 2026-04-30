@@ -224,6 +224,10 @@ export function buildLlmExtractionResult(
 ): ExtractionResult {
   const provider = getExtractionProvider(request.settings.providerId);
   const normalizedResponse = parseExtractionJson(responseText);
+  const promptLength = buildExtractionPrompt({
+    lines: buildExtractionInput(request.log, request.liveLog, request.source),
+    source: request.source,
+  }).length;
 
   return {
     items: normalizedResponse.items,
@@ -239,7 +243,7 @@ export function buildLlmExtractionResult(
         normalizedResponse.errors.length > 0
           ? "LLMレスポンスを読み取りましたが、一部の候補を検証で除外しました。"
           : "LLMレスポンスをJSONスキーマに沿って正規化しました。",
-      promptLength: 0,
+      promptLength,
       promptVersion: "extraction-v1",
       validationErrors: normalizedResponse.errors,
     },
