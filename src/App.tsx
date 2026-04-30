@@ -617,6 +617,7 @@ export function App() {
     downloadJsonFile({
       exportedAt: new Date().toISOString(),
       campaignName,
+      itemCount: countChronicleItems(filteredChronicle),
       chronicle: filteredChronicle,
     }, createExportFileName(`${campaignName}-filtered-memory`));
   };
