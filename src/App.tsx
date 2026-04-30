@@ -601,7 +601,7 @@ export function App() {
 
   const exportVisibleReviewItemsMarkdown = (): void => {
     downloadTextFile(
-      formatReviewItemsMarkdown(reviewItems, `${currentSession.title} 抽出候補`),
+      formatReviewItemsMarkdown(reviewItems, `${currentSession.title} 抽出候補`, approvedIds),
       `${createExportFileName(`${currentSession.title}-review-items`).replace(/\.json$/, "")}.md`,
       "text/markdown;charset=utf-8",
     );

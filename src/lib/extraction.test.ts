@@ -292,13 +292,14 @@ describe("formatReviewItemsMarkdown", () => {
         detail: "",
         visibility: "GMのみ",
       },
-    ], " 第1夜 候補 ")).toBe([
+    ], " 第1夜 候補 ", ["item-1"])).toBe([
       "# 第1夜 候補",
       "",
       "## 1. 古い鍵",
       "",
       "- 種別: 手がかり",
       "- 公開範囲: PL既知",
+      "- 状態: 採用済み",
       "- 詳細: 倉庫で見つかった",
     ].join("\n"));
   });

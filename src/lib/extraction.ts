@@ -85,8 +85,9 @@ export function liveLogToPlainText(liveLog: LiveLogSession): string {
     .join("\n");
 }
 
-export function formatReviewItemsMarkdown(items: ExtractionItem[], title: string): string {
+export function formatReviewItemsMarkdown(items: ExtractionItem[], title: string, approvedIds: string[] = []): string {
   const visibleItems = items.filter((item) => item.title.trim() || item.detail.trim());
+  const approvedIdSet = new Set(approvedIds);
 
   return [
     `# ${title.trim() || "抽出候補"}`,
@@ -97,6 +98,7 @@ export function formatReviewItemsMarkdown(items: ExtractionItem[], title: string
           "",
           `- 種別: ${item.kind}`,
           `- 公開範囲: ${item.visibility}`,
+          `- 状態: ${approvedIdSet.has(item.id) ? "採用済み" : "未確認"}`,
           `- 詳細: ${item.detail.trim() || "未入力"}`,
           "",
         ])
