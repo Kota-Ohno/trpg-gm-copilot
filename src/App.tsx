@@ -561,7 +561,13 @@ export function App() {
   const exportTranscriptionDraftJson = (): void => {
     const drafts = liveLogToTranscriptionDrafts(currentSession.liveLog);
 
-    downloadJsonFile({ segments: drafts }, createExportFileName(`${currentSession.title}-transcription-draft`));
+    downloadJsonFile({
+      exportedAt: new Date().toISOString(),
+      campaignName,
+      sessionTitle: currentSession.title,
+      segmentCount: drafts.length,
+      segments: drafts,
+    }, createExportFileName(`${currentSession.title}-transcription-draft`));
     setTranscriptionImportError(null);
   };
 
