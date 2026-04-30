@@ -128,6 +128,13 @@ export function formatSessionMarkdown(session: SessionState, prepNote?: PrepNote
     `- 日付: ${session.date}`,
     `- 抽出候補: ${session.extractionItems.length}`,
     `- 採用済み: ${session.approvedIds.length}`,
+    ...(session.extractionRun
+      ? [
+          `- 抽出Provider: ${session.extractionRun.executedProviderLabel}`,
+          `- フォールバック: ${session.extractionRun.fallbackUsed ? "あり" : "なし"}`,
+          ...(session.extractionRun.note ? [`- 抽出メモ: ${session.extractionRun.note}`] : []),
+        ]
+      : []),
     "",
     "## 通常ログ",
     "",

@@ -317,7 +317,17 @@ describe("formatSessionMarkdown", () => {
       extractionItems: [
         { id: "item-1", kind: "出来事", title: "港へ向かう", detail: "探索者が移動した", visibility: "PL既知" },
       ],
-      extractionRun: null,
+      extractionRun: {
+        sourceType: "plain",
+        providerId: "openai",
+        providerLabel: "OpenAI",
+        executedProviderId: "rule-based",
+        executedProviderLabel: "ルールベース",
+        fallbackUsed: true,
+        itemCount: 1,
+        note: "OpenAIからフォールバック",
+        promptLength: 1200,
+      },
       approvedIds: ["item-1"],
     }, {
       shortRecap: ["港へ向かった"],
@@ -327,6 +337,8 @@ describe("formatSessionMarkdown", () => {
     });
 
     expect(markdown).toContain("# 第1夜");
+    expect(markdown).toContain("- 抽出Provider: ルールベース");
+    expect(markdown).toContain("- フォールバック: あり");
     expect(markdown).toContain("```text\nGM: 港へ向かう\n```");
     expect(markdown).toContain("[00:00] GM: 足音が聞こえる");
     expect(markdown).toContain("## 抽出候補");
