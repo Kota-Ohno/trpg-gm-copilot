@@ -276,6 +276,21 @@ function sanitizeCampaignLibraryStateForExport(campaignLibrary: CampaignLibraryS
   };
 }
 
+function downloadTextFile(content: string, fileName: string, type: string): void {
+  const blob = new Blob([content], { type });
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = objectUrl;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(objectUrl);
+}
+
+function downloadJsonFile(content: unknown, fileName: string): void {
+  downloadTextFile(JSON.stringify(content, null, 2), fileName, "application/json");
+}
+
 export function App() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("log");
   const [isExtracting, setIsExtracting] = useState(false);
@@ -531,82 +546,43 @@ export function App() {
   };
 
   const exportCampaignState = (): void => {
-    const blob = new Blob([JSON.stringify(sanitizeCampaignStateForExport(campaignState), null, 2)], {
-      type: "application/json",
-    });
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = objectUrl;
-    link.download = createExportFileName(campaignName);
-    link.click();
-    URL.revokeObjectURL(objectUrl);
+    downloadJsonFile(sanitizeCampaignStateForExport(campaignState), createExportFileName(campaignName));
     setStorageError(null);
   };
 
   const exportCampaignLibrary = (): void => {
-    const blob = new Blob([JSON.stringify(sanitizeCampaignLibraryStateForExport(campaignLibrary), null, 2)], {
-      type: "application/json",
-    });
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = objectUrl;
-    link.download = createExportFileName("campaign-library");
-    link.click();
-    URL.revokeObjectURL(objectUrl);
+    downloadJsonFile(sanitizeCampaignLibraryStateForExport(campaignLibrary), createExportFileName("campaign-library"));
     setStorageError(null);
   };
 
   const exportTranscriptionDraftJson = (): void => {
     const drafts = liveLogToTranscriptionDrafts(currentSession.liveLog);
-    const blob = new Blob([JSON.stringify({ segments: drafts }, null, 2)], {
-      type: "application/json",
-    });
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
 
-    link.href = objectUrl;
-    link.download = createExportFileName(`${currentSession.title}-transcription-draft`);
-    link.click();
-    URL.revokeObjectURL(objectUrl);
+    downloadJsonFile({ segments: drafts }, createExportFileName(`${currentSession.title}-transcription-draft`));
     setTranscriptionImportError(null);
   };
 
   const exportSpeakerLogText = (): void => {
     const text = liveLogToPlainText(currentSession.liveLog);
-    const blob = new Blob([text], {
-      type: "text/plain;charset=utf-8",
-    });
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
 
-    link.href = objectUrl;
-    link.download = `${createExportFileName(`${currentSession.title}-speaker-log`).replace(/\.json$/, "")}.txt`;
-    link.click();
-    URL.revokeObjectURL(objectUrl);
+    downloadTextFile(
+      text,
+      `${createExportFileName(`${currentSession.title}-speaker-log`).replace(/\.json$/, "")}.txt`,
+      "text/plain;charset=utf-8",
+    );
   };
 
   const exportVisibleSpeakerSegments = (segments: TranscriptSegment[]): void => {
-    const blob = new Blob([JSON.stringify({
+    downloadJsonFile({
       exportedAt: new Date().toISOString(),
       campaignName,
       sessionTitle: currentSession.title,
       ...buildSpeakerSegmentExport(currentSession.liveLog, segments),
-    }, null, 2)], {
-      type: "application/json",
-    });
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = objectUrl;
-    link.download = createExportFileName(`${currentSession.title}-visible-speaker-segments`);
-    link.click();
-    URL.revokeObjectURL(objectUrl);
+    }, createExportFileName(`${currentSession.title}-visible-speaker-segments`));
   };
 
   const exportVisibleReviewItems = (): void => {
-    const blob = new Blob([JSON.stringify({
+    downloadJsonFile({
       exportedAt: new Date().toISOString(),
       campaignName,
       sessionTitle: currentSession.title,
@@ -617,47 +593,25 @@ export function App() {
         invalidOnly: showInvalidReviewItemsOnly,
       },
       items: reviewItems,
-    }, null, 2)], {
-      type: "application/json",
-    });
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = objectUrl;
-    link.download = createExportFileName(`${currentSession.title}-review-items`);
-    link.click();
-    URL.revokeObjectURL(objectUrl);
+    }, createExportFileName(`${currentSession.title}-review-items`));
   };
 
   const exportFilteredChronicle = (filteredChronicle: typeof chronicle): void => {
-    const blob = new Blob([JSON.stringify({
+    downloadJsonFile({
       exportedAt: new Date().toISOString(),
       campaignName,
       chronicle: filteredChronicle,
-    }, null, 2)], {
-      type: "application/json",
-    });
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = objectUrl;
-    link.download = createExportFileName(`${campaignName}-filtered-memory`);
-    link.click();
-    URL.revokeObjectURL(objectUrl);
+    }, createExportFileName(`${campaignName}-filtered-memory`));
   };
 
   const exportPrepNoteMarkdown = (): void => {
     const markdown = formatPrepNoteMarkdown(dynamicPrepNote, `${currentSession.title} 次回準備`);
-    const blob = new Blob([markdown], {
-      type: "text/markdown;charset=utf-8",
-    });
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
 
-    link.href = objectUrl;
-    link.download = `${createExportFileName(`${currentSession.title}-prep-note`).replace(/\.json$/, "")}.md`;
-    link.click();
-    URL.revokeObjectURL(objectUrl);
+    downloadTextFile(
+      markdown,
+      `${createExportFileName(`${currentSession.title}-prep-note`).replace(/\.json$/, "")}.md`,
+      "text/markdown;charset=utf-8",
+    );
   };
 
   const importCampaignState = async (file: File): Promise<void> => {
