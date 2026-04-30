@@ -649,6 +649,32 @@ export function generatePrepNote(chronicle: Chronicle, sessions: SessionState[],
   };
 }
 
+export function formatPrepNoteMarkdown(prepNote: PrepNote, title: string): string {
+  const sections: Array<[string, string[]]> = [
+    ["3行あらすじ", prepNote.shortRecap],
+    ["次回導入案", prepNote.hooks],
+    ["未解決の問い", prepNote.openQuestions],
+    ["GM確認メモ", prepNote.reminders],
+  ];
+
+  return [
+    `# ${title.trim() || "次回準備"}`,
+    "",
+    ...sections.flatMap(([sectionTitle, items]) => {
+      const visibleItems = items.map((item) => item.trim()).filter(Boolean);
+
+      return [
+        `## ${sectionTitle}`,
+        "",
+        ...(visibleItems.length > 0
+          ? visibleItems.map((item, index) => `${index + 1}. ${item}`)
+          : ["- 生成された準備項目はありません。"]),
+        "",
+      ];
+    }),
+  ].join("\n").trimEnd();
+}
+
 export function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chronicle {
   const titleKey = normalizeMemoryKey(item.title);
   const detailKey = normalizeMemoryKey(item.detail);

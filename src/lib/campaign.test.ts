@@ -5,6 +5,7 @@ import {
   duplicateCampaignState,
   duplicateSessionState,
   createExportFileName,
+  formatPrepNoteMarkdown,
   generatePrepNote,
   getCampaignSearchText,
   getSessionSearchText,
@@ -410,5 +411,34 @@ describe("generatePrepNote", () => {
       "月の鐘をどこまで開示するか決める。",
       "月の鐘はPLに出す前に意図を確認する。",
     ]));
+  });
+});
+
+describe("formatPrepNoteMarkdown", () => {
+  it("formats prep notes as portable markdown", () => {
+    expect(formatPrepNoteMarkdown({
+      shortRecap: [" 前回の要点 "],
+      hooks: ["導入案"],
+      openQuestions: [],
+      reminders: ["確認メモ"],
+    }, " 第2夜 準備 ")).toBe([
+      "# 第2夜 準備",
+      "",
+      "## 3行あらすじ",
+      "",
+      "1. 前回の要点",
+      "",
+      "## 次回導入案",
+      "",
+      "1. 導入案",
+      "",
+      "## 未解決の問い",
+      "",
+      "- 生成された準備項目はありません。",
+      "",
+      "## GM確認メモ",
+      "",
+      "1. 確認メモ",
+    ].join("\n"));
   });
 });

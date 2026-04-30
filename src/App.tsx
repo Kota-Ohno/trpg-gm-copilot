@@ -44,6 +44,7 @@ import {
   createNewSession,
   duplicateCampaignState,
   duplicateSessionState,
+  formatPrepNoteMarkdown,
   generatePrepNote,
   getCampaignSearchText,
   getLocalDateString,
@@ -641,6 +642,20 @@ export function App() {
 
     link.href = objectUrl;
     link.download = createExportFileName(`${campaignName}-filtered-memory`);
+    link.click();
+    URL.revokeObjectURL(objectUrl);
+  };
+
+  const exportPrepNoteMarkdown = (): void => {
+    const markdown = formatPrepNoteMarkdown(dynamicPrepNote, `${currentSession.title} 次回準備`);
+    const blob = new Blob([markdown], {
+      type: "text/markdown;charset=utf-8",
+    });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = objectUrl;
+    link.download = `${createExportFileName(`${currentSession.title}-prep-note`).replace(/\.json$/, "")}.md`;
     link.click();
     URL.revokeObjectURL(objectUrl);
   };
@@ -2060,7 +2075,13 @@ export function App() {
                         承認済み記憶と現在のセッション状態から自動で組み立てています。
                       </p>
                     </div>
-                    <Badge variant="outline">{campaignState.sessions.length}セッション</Badge>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline">{campaignState.sessions.length}セッション</Badge>
+                      <Button onClick={exportPrepNoteMarkdown} size="sm" variant="outline">
+                        <Download className="h-4 w-4" />
+                        Markdown
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
                 <PrepSection title="3行あらすじ" items={dynamicPrepNote.shortRecap} icon={FileText} />
