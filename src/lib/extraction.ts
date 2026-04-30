@@ -110,7 +110,9 @@ export function formatReviewItemsMarkdown(items: ExtractionItem[], title: string
 
 export function formatSessionMarkdown(session: SessionState, prepNote?: PrepNote): string {
   const speakerLogText = liveLogToPlainText(session.liveLog);
-  const reviewMarkdown = formatReviewItemsMarkdown(session.extractionItems, "抽出候補", session.approvedIds);
+  const reviewMarkdown = formatReviewItemsMarkdown(session.extractionItems, "抽出候補", session.approvedIds)
+    .replace(/^# /m, "## ")
+    .replace(/^## /gm, "### ");
   const prepSections: Array<[string, string[]]> = prepNote
     ? [
         ["3行あらすじ", prepNote.shortRecap],
@@ -135,7 +137,7 @@ export function formatSessionMarkdown(session: SessionState, prepNote?: PrepNote
     "",
     speakerLogText ? "```text\n" + speakerLogText + "\n```" : "話者付きログはありません。",
     "",
-    reviewMarkdown.replace(/^# .+$/m, "## 抽出候補"),
+    reviewMarkdown.replace(/^### 抽出候補$/m, "## 抽出候補"),
     "",
     ...prepSections.flatMap(([title, items]) => {
       const visibleItems = items.map((item) => item.trim()).filter(Boolean);

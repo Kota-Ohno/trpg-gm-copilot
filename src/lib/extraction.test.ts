@@ -330,6 +330,7 @@ describe("formatSessionMarkdown", () => {
     expect(markdown).toContain("```text\nGM: 港へ向かう\n```");
     expect(markdown).toContain("[00:00] GM: 足音が聞こえる");
     expect(markdown).toContain("## 抽出候補");
+    expect(markdown).toContain("### 1. 港へ向かう");
     expect(markdown).toContain("- 状態: 採用済み");
     expect(markdown).toContain("## 3行あらすじ");
   });
