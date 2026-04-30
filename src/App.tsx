@@ -1896,6 +1896,12 @@ export function App() {
                           {hasReviewFilter && (
                             <Badge variant="outline">{reviewItems.length}件を表示中</Badge>
                           )}
+                          {hasReviewFilter && approvableVisibleReviewCount > 0 && (
+                            <Badge variant="muted">表示中の採用可能 {approvableVisibleReviewCount}</Badge>
+                          )}
+                          {hasReviewFilter && rejectableVisibleReviewCount > 0 && (
+                            <Badge variant="muted">表示中の破棄可能 {rejectableVisibleReviewCount}</Badge>
+                          )}
                           {normalizedReviewQuery && <Badge variant="secondary">検索: {reviewQuery.trim()}</Badge>}
                         </div>
                         <div className="flex flex-wrap gap-2">
