@@ -86,7 +86,7 @@ export function getSessionSearchText(session: SessionState): string {
 export function getCampaignSearchText(campaign: CampaignState): string {
   return [
     campaign.campaignName,
-    ...campaign.sessions.map((session) => session.title),
+    ...campaign.sessions.map(getSessionSearchText),
     ...campaign.chronicle.events,
     ...campaign.chronicle.clues.flatMap((clue) => [clue.title, clue.detail]),
     ...campaign.chronicle.npcs.flatMap((npc) => [npc.name, npc.role, npc.publicKnowledge, npc.gmSecret]),

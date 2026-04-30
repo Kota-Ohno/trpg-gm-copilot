@@ -196,6 +196,17 @@ describe("search text helpers", () => {
   it("includes campaign memory content", () => {
     const campaign = normalizeCampaignState({
       campaignName: "灰ヶ浦",
+      sessions: [
+        {
+          title: "第4夜",
+          date: "2026-05-01",
+          log: "GM: 海鳴りが強い",
+          extractionItems: [
+            { id: "item-1", kind: "手がかり", title: "潮位表", detail: "干潮は深夜", visibility: "PL既知" },
+          ],
+          approvedIds: [],
+        },
+      ],
       chronicle: {
         events: ["港に到着"],
         npcs: [{ name: "潮見レン", role: "灯台守の甥", publicKnowledge: "鐘を知る", gmSecret: "秘密", attitude: "協力的" }],
@@ -208,6 +219,8 @@ describe("search text helpers", () => {
     expect(getCampaignSearchText(campaign)).toContain("灰ヶ浦");
     expect(getCampaignSearchText(campaign)).toContain("潮見レン");
     expect(getCampaignSearchText(campaign)).toContain("月の鐘");
+    expect(getCampaignSearchText(campaign)).toContain("潮位表");
+    expect(getCampaignSearchText(campaign)).toContain("海鳴りが強い");
   });
 });
 
