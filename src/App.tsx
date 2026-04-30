@@ -2385,7 +2385,7 @@ export function App() {
                     updateCampaignState({
                       transcriptionProvider: {
                         ...transcriptionProvider,
-                        endpoint: event.target.value.trim(),
+                        endpoint: event.target.value.trim() || selectedTranscriptionProvider.defaultEndpoint,
                       },
                     })
                   }

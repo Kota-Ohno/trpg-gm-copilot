@@ -169,7 +169,7 @@ export function ProviderSettingsCard({
           <Input
             disabled={isLocked}
             id={modelInputId}
-            onBlur={(event) => updateSettings({ model: event.target.value.trim() })}
+            onBlur={(event) => updateSettings({ model: event.target.value.trim() || selectedProvider.defaultModel })}
             onChange={(event) => updateSettings({ model: event.target.value })}
             value={settings.model}
           />
@@ -189,7 +189,7 @@ export function ProviderSettingsCard({
             className="mt-1"
             disabled={isLocked}
             id={endpointInputId}
-            onBlur={(event) => updateSettings({ endpoint: event.target.value.trim() })}
+            onBlur={(event) => updateSettings({ endpoint: event.target.value.trim() || selectedProvider.defaultEndpoint })}
             onChange={(event) => updateSettings({ endpoint: event.target.value })}
             placeholder="Provider endpoint"
             value={settings.endpoint}
