@@ -57,6 +57,7 @@ import {
   appendTranscriptionDraftsToLiveLog,
   buildSpeakerSegmentExport,
   formatReviewItemsMarkdown,
+  formatSessionMarkdown,
   liveLogToTranscriptionDrafts,
   liveLogToPlainText,
   normalizeTranscriptionDrafts,
@@ -642,6 +643,14 @@ export function App() {
     downloadTextFile(
       markdown,
       `${createExportFileName(`${currentSession.title}-prep-note`).replace(/\.json$/, "")}.md`,
+      "text/markdown;charset=utf-8",
+    );
+  };
+
+  const exportCurrentSessionMarkdown = (): void => {
+    downloadTextFile(
+      formatSessionMarkdown(currentSession, dynamicPrepNote),
+      `${createExportFileName(`${currentSession.title}-session-summary`).replace(/\.json$/, "")}.md`,
       "text/markdown;charset=utf-8",
     );
   };
@@ -2079,6 +2088,10 @@ export function App() {
                       <Button onClick={exportPrepNoteMarkdown} size="sm" variant="outline">
                         <Download className="h-4 w-4" />
                         Markdown
+                      </Button>
+                      <Button onClick={exportCurrentSessionMarkdown} size="sm" variant="outline">
+                        <FileText className="h-4 w-4" />
+                        セッション
                       </Button>
                     </div>
                   </CardContent>

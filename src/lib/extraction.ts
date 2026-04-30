@@ -1,6 +1,8 @@
 import type {
   ExtractionItem,
   LiveLogSession,
+  PrepNote,
+  SessionState,
   Speaker,
   SpeakerRole,
   TranscriptionSegmentDraft,
@@ -103,6 +105,50 @@ export function formatReviewItemsMarkdown(items: ExtractionItem[], title: string
           "",
         ])
       : ["- 表示中の抽出候補はありません。"]),
+  ].join("\n").trimEnd();
+}
+
+export function formatSessionMarkdown(session: SessionState, prepNote?: PrepNote): string {
+  const speakerLogText = liveLogToPlainText(session.liveLog);
+  const reviewMarkdown = formatReviewItemsMarkdown(session.extractionItems, "抽出候補", session.approvedIds);
+  const prepSections: Array<[string, string[]]> = prepNote
+    ? [
+        ["3行あらすじ", prepNote.shortRecap],
+        ["次回導入案", prepNote.hooks],
+        ["未解決の問い", prepNote.openQuestions],
+        ["GM確認メモ", prepNote.reminders],
+      ]
+    : [];
+
+  return [
+    `# ${session.title.trim() || "セッション"}`,
+    "",
+    `- 日付: ${session.date}`,
+    `- 抽出候補: ${session.extractionItems.length}`,
+    `- 採用済み: ${session.approvedIds.length}`,
+    "",
+    "## 通常ログ",
+    "",
+    session.log.trim() ? "```text\n" + session.log.trim() + "\n```" : "通常ログはありません。",
+    "",
+    "## 話者付きログ",
+    "",
+    speakerLogText ? "```text\n" + speakerLogText + "\n```" : "話者付きログはありません。",
+    "",
+    reviewMarkdown.replace(/^# .+$/m, "## 抽出候補"),
+    "",
+    ...prepSections.flatMap(([title, items]) => {
+      const visibleItems = items.map((item) => item.trim()).filter(Boolean);
+
+      return [
+        `## ${title}`,
+        "",
+        ...(visibleItems.length > 0
+          ? visibleItems.map((item, index) => `${index + 1}. ${item}`)
+          : ["- 生成された準備項目はありません。"]),
+        "",
+      ];
+    }),
   ].join("\n").trimEnd();
 }
 

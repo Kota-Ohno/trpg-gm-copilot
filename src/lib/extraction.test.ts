@@ -4,6 +4,7 @@ import {
   buildSpeakerSegmentExport,
   buildExtractionInput,
   formatReviewItemsMarkdown,
+  formatSessionMarkdown,
   liveLogToPlainText,
   liveLogToTranscriptionDrafts,
   mergeAdjacentTranscriptSegments,
@@ -302,6 +303,35 @@ describe("formatReviewItemsMarkdown", () => {
       "- 状態: 採用済み",
       "- 詳細: 倉庫で見つかった",
     ].join("\n"));
+  });
+});
+
+describe("formatSessionMarkdown", () => {
+  it("formats session logs, review items, and prep notes in one document", () => {
+    const markdown = formatSessionMarkdown({
+      id: "session-1",
+      title: "第1夜",
+      date: "2026-04-30",
+      log: "GM: 港へ向かう",
+      liveLog: summaryLiveLog,
+      extractionItems: [
+        { id: "item-1", kind: "出来事", title: "港へ向かう", detail: "探索者が移動した", visibility: "PL既知" },
+      ],
+      extractionRun: null,
+      approvedIds: ["item-1"],
+    }, {
+      shortRecap: ["港へ向かった"],
+      hooks: [],
+      openQuestions: [],
+      reminders: ["次回は灯台から"],
+    });
+
+    expect(markdown).toContain("# 第1夜");
+    expect(markdown).toContain("```text\nGM: 港へ向かう\n```");
+    expect(markdown).toContain("[00:00] GM: 足音が聞こえる");
+    expect(markdown).toContain("## 抽出候補");
+    expect(markdown).toContain("- 状態: 採用済み");
+    expect(markdown).toContain("## 3行あらすじ");
   });
 });
 
