@@ -1726,6 +1726,9 @@ export function App() {
                             <Badge variant="outline">読み取り可能 {transcriptionDraftPreview.segmentCount}発話</Badge>
                             <Badge variant="muted">{transcriptionDraftPreview.speakerCount}話者</Badge>
                             <Badge variant="muted">合計 {Math.round(transcriptionDraftPreview.totalDurationSec)}秒</Badge>
+                            {transcriptionDraftPreview.missingTimingCount > 0 && (
+                              <Badge variant="secondary">時刻なし {transcriptionDraftPreview.missingTimingCount}</Badge>
+                            )}
                             {transcriptionDraftPreview.lowConfidenceCount > 0 && (
                               <Badge variant="destructive">要確認 {transcriptionDraftPreview.lowConfidenceCount}</Badge>
                             )}

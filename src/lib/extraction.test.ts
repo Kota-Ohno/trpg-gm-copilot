@@ -91,13 +91,15 @@ describe("previewTranscriptionDraftPayload", () => {
       segments: [
         { speakerName: "GM", startTimeSec: 0, endTimeSec: 4, text: "安全", confidence: 0.95 },
         { speakerName: "PL", startTimeSec: 5, endTimeSec: 8, text: "不明瞭", confidence: 0.4 },
+        { speakerName: "PL", text: "時刻なし" },
       ],
     }))).toEqual({
       status: "valid",
-      segmentCount: 2,
+      segmentCount: 3,
       speakerCount: 2,
       totalDurationSec: 7,
       lowConfidenceCount: 1,
+      missingTimingCount: 1,
     });
   });
 });

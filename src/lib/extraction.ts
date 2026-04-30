@@ -33,7 +33,14 @@ export type TranscriptionDraftPreview =
   | { status: "empty-segments" }
   | { status: "invalid-json" }
   | { status: "invalid-shape" }
-  | { status: "valid"; segmentCount: number; speakerCount: number; totalDurationSec: number; lowConfidenceCount: number };
+  | {
+      status: "valid";
+      segmentCount: number;
+      speakerCount: number;
+      totalDurationSec: number;
+      lowConfidenceCount: number;
+      missingTimingCount: number;
+    };
 
 export type SpeakerSegmentExport = {
   segmentCount: number;
@@ -474,6 +481,13 @@ export function previewTranscriptionDraftPayload(payload: string): Transcription
           typeof draft.confidence === "number" &&
           Number.isFinite(draft.confidence) &&
           draft.confidence < lowConfidenceThreshold,
+      ).length,
+      missingTimingCount: normalizedDrafts.filter(
+        (draft) =>
+          typeof draft.startTimeSec !== "number" ||
+          !Number.isFinite(draft.startTimeSec) ||
+          typeof draft.endTimeSec !== "number" ||
+          !Number.isFinite(draft.endTimeSec),
       ).length,
     };
   } catch {
