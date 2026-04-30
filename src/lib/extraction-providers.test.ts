@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { testExtractionProviderConnection } from "./extraction-providers";
+import { buildLlmExtractionResult, testExtractionProviderConnection } from "./extraction-providers";
 
 describe("testExtractionProviderConnection", () => {
   it("reports rule based provider as locally ready", async () => {
@@ -19,6 +19,55 @@ describe("testExtractionProviderConnection", () => {
     })).resolves.toEqual({
       ok: false,
       message: "OpenAI API key が未入力です。model: gpt-4.1-mini",
+    });
+  });
+});
+
+describe("buildLlmExtractionResult", () => {
+  it("normalizes provider JSON and records extraction run metadata", () => {
+    const result = buildLlmExtractionResult(JSON.stringify({
+      items: [
+        {
+          id: "item-1",
+          kind: "手がかり",
+          title: "古い鍵",
+          detail: "倉庫で見つかった",
+          visibility: "PL既知",
+        },
+      ],
+    }), {
+      log: "GM: 古い鍵を見つける",
+      liveLog: {
+        id: "live-log-1",
+        title: "ログ",
+        sourceType: "manual",
+        speakers: [{ id: "speaker-gm", name: "GM", role: "GM" }],
+        segments: [],
+      },
+      secrets: { openAiApiKey: "sk-test" },
+      settings: { providerId: "openai", model: "gpt-4.1-mini", endpoint: "https://api.openai.com/v1" },
+      source: "plain",
+    });
+
+    expect(result.items).toEqual([
+      {
+        id: "item-1",
+        kind: "手がかり",
+        title: "古い鍵",
+        detail: "倉庫で見つかった",
+        visibility: "PL既知",
+      },
+    ]);
+    expect(result.run).toMatchObject({
+      sourceType: "plain",
+      providerId: "openai",
+      providerLabel: "OpenAI",
+      executedProviderId: "openai",
+      executedProviderLabel: "OpenAI",
+      fallbackUsed: false,
+      itemCount: 1,
+      promptLength: 0,
+      promptVersion: "extraction-v1",
     });
   });
 });
