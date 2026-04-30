@@ -344,4 +344,22 @@ describe("parsePlainLogToLiveLog", () => {
   it("returns null when no speaker lines are found", () => {
     expect(parsePlainLogToLiveLog("ただのメモ\n続き", "空")).toBeNull();
   });
+
+  it("moves backward timestamps after the previous parsed segment", () => {
+    const liveLog = parsePlainLogToLiveLog(
+      `
+      [00:10] GM: 先に起きたこと
+      [00:05] PL: 戻った時刻の発話
+      `,
+      "逆順タイムスタンプ",
+    );
+
+    expect(liveLog?.segments.map((segment) => ({
+      startTimeSec: segment.startTimeSec,
+      endTimeSec: segment.endTimeSec,
+    }))).toEqual([
+      { startTimeSec: 10, endTimeSec: 16 },
+      { startTimeSec: 17, endTimeSec: 23 },
+    ]);
+  });
 });

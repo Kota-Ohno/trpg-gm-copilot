@@ -631,7 +631,7 @@ export function parsePlainLogToLiveLog(log: string, title: string): LiveLogSessi
 
     const previousSegment = segments[segments.length - 1];
     const rawStartTimeSec = parsedStartTimeSec ?? segments.length * 8;
-    const startTimeSec = previousSegment ? Math.max(rawStartTimeSec, previousSegment.startTimeSec + 1) : rawStartTimeSec;
+    const startTimeSec = previousSegment ? Math.max(rawStartTimeSec, previousSegment.endTimeSec + 1) : rawStartTimeSec;
     if (previousSegment) {
       previousSegment.endTimeSec = Math.max(
         previousSegment.startTimeSec + 1,
