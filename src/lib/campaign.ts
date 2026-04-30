@@ -675,6 +675,45 @@ export function formatPrepNoteMarkdown(prepNote: PrepNote, title: string): strin
   ].join("\n").trimEnd();
 }
 
+export function formatChronicleMarkdown(chronicle: Chronicle, title: string): string {
+  const sections: Array<[string, string[]]> = [
+    ["出来事", chronicle.events],
+    [
+      "手がかり",
+      chronicle.clues.map((clue) => `${clue.title} [${clue.status}]: ${clue.detail}`),
+    ],
+    [
+      "NPC",
+      chronicle.npcs.map((npc) => `${npc.name}: ${npc.publicKnowledge} / 態度: ${npc.attitude}`),
+    ],
+    [
+      "場所",
+      chronicle.locations.map((location) => `${location.name}: ${location.detail}`),
+    ],
+    [
+      "伏線",
+      chronicle.threads.map((thread) => `${thread.title}: ${thread.detail} / 次: ${thread.nextMove}`),
+    ],
+  ];
+
+  return [
+    `# ${title.trim() || "キャンペーン記憶"}`,
+    "",
+    ...sections.flatMap(([sectionTitle, items]) => {
+      const visibleItems = items.map((item) => item.trim()).filter(Boolean);
+
+      return [
+        `## ${sectionTitle}`,
+        "",
+        ...(visibleItems.length > 0
+          ? visibleItems.map((item) => `- ${item}`)
+          : ["- 記録はありません。"]),
+        "",
+      ];
+    }),
+  ].join("\n").trimEnd();
+}
+
 export function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chronicle {
   const titleKey = normalizeMemoryKey(item.title);
   const detailKey = normalizeMemoryKey(item.detail);

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Download, RotateCcw } from "lucide-react";
+import { Download, FileText, RotateCcw } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -46,6 +46,7 @@ type ChronicleViewProps = {
   onUpdateNpcAttitude?: (npcIndex: number, attitude: string) => void;
   onUpdateThreadNextMove?: (threadIndex: number, nextMove: string) => void;
   onExportFilteredChronicle?: (chronicle: Chronicle) => void;
+  onExportFilteredChronicleMarkdown?: (chronicle: Chronicle) => void;
 };
 
 export function ChronicleView({
@@ -54,6 +55,7 @@ export function ChronicleView({
   onUpdateNpcAttitude,
   onUpdateThreadNextMove,
   onExportFilteredChronicle,
+  onExportFilteredChronicleMarkdown,
 }: ChronicleViewProps) {
   const [query, setQuery] = useState("");
   const [clueStatusFilter, setClueStatusFilter] = useState<ClueStatusFilter>("all");
@@ -180,6 +182,16 @@ export function ChronicleView({
               >
                 <Download className="h-4 w-4" />
                 表示中を書き出し
+              </Button>
+            )}
+            {onExportFilteredChronicleMarkdown && (
+              <Button
+                disabled={filteredCount === 0}
+                onClick={() => onExportFilteredChronicleMarkdown(exportableChronicle)}
+                variant="outline"
+              >
+                <FileText className="h-4 w-4" />
+                Markdown
               </Button>
             )}
           </div>

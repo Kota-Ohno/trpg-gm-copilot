@@ -5,6 +5,7 @@ import {
   duplicateCampaignState,
   duplicateSessionState,
   createExportFileName,
+  formatChronicleMarkdown,
   formatPrepNoteMarkdown,
   generatePrepNote,
   getCampaignSearchText,
@@ -440,5 +441,17 @@ describe("formatPrepNoteMarkdown", () => {
       "",
       "1. 確認メモ",
     ].join("\n"));
+  });
+});
+
+describe("formatChronicleMarkdown", () => {
+  it("formats campaign memory as readable markdown", () => {
+    expect(formatChronicleMarkdown({
+      events: ["港に到着"],
+      npcs: [{ name: "潮見レン", role: "灯台守の甥", publicKnowledge: "鐘を知る", gmSecret: "秘密", attitude: "協力的" }],
+      clues: [{ title: "月の鐘", detail: "満潮で鳴る", status: "partial" }],
+      locations: [],
+      threads: [{ title: "封じられた灯台", detail: "まだ開かない", nextMove: "扉が反応する" }],
+    }, " 灰ヶ浦 記憶 ")).toContain("# 灰ヶ浦 記憶\n\n## 出来事\n\n- 港に到着");
   });
 });

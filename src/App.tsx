@@ -44,6 +44,7 @@ import {
   createNewSession,
   duplicateCampaignState,
   duplicateSessionState,
+  formatChronicleMarkdown,
   formatPrepNoteMarkdown,
   generatePrepNote,
   getCampaignSearchText,
@@ -611,6 +612,14 @@ export function App() {
       campaignName,
       chronicle: filteredChronicle,
     }, createExportFileName(`${campaignName}-filtered-memory`));
+  };
+
+  const exportFilteredChronicleMarkdown = (filteredChronicle: typeof chronicle): void => {
+    downloadTextFile(
+      formatChronicleMarkdown(filteredChronicle, `${campaignName} キャンペーン記憶`),
+      `${createExportFileName(`${campaignName}-filtered-memory`).replace(/\.json$/, "")}.md`,
+      "text/markdown;charset=utf-8",
+    );
   };
 
   const exportPrepNoteMarkdown = (): void => {
@@ -2034,6 +2043,7 @@ export function App() {
               <ChronicleView
                 chronicle={chronicle}
                 onExportFilteredChronicle={exportFilteredChronicle}
+                onExportFilteredChronicleMarkdown={exportFilteredChronicleMarkdown}
                 onUpdateClueStatus={updateClueStatus}
                 onUpdateNpcAttitude={updateNpcAttitude}
                 onUpdateThreadNextMove={updateThreadNextMove}
