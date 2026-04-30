@@ -1080,7 +1080,7 @@ export function App() {
           ? nextSegment.endTimeSec
           : segment.endTimeSec;
         const startTimeSec = Math.max(0, Math.round(normalizedStartTimeSec));
-        const endTimeSec = Math.max(startTimeSec, Math.round(normalizedEndTimeSec));
+        const endTimeSec = Math.max(startTimeSec + 1, Math.round(normalizedEndTimeSec));
 
         return {
           ...nextSegment,
