@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyExtraction,
   countChronicleItems,
   duplicateCampaignState,
   duplicateSessionState,
@@ -294,5 +295,78 @@ describe("duplicateCampaignState", () => {
     expect(duplicated.sessions).toHaveLength(2);
     expect(duplicated.sessions.map((session) => session.id)).not.toEqual(source.sessions.map((session) => session.id));
     expect(duplicated.activeSessionId).toBe(duplicated.sessions[1]?.id);
+  });
+});
+
+describe("applyExtraction", () => {
+  it("adds approved items to the right campaign memory buckets", () => {
+    const chronicle = {
+      events: [],
+      npcs: [],
+      clues: [],
+      locations: [],
+      threads: [],
+    };
+
+    const withNpc = applyExtraction(chronicle, {
+      id: "npc-1",
+      kind: "NPC",
+      title: "潮見レン",
+      detail: "灯台守の甥",
+      visibility: "PL既知",
+    });
+    const withSecret = applyExtraction(withNpc, {
+      id: "secret-1",
+      kind: "GM秘密",
+      title: "月の鐘",
+      detail: "満潮で鳴る",
+      visibility: "GMのみ",
+    });
+    const withThread = applyExtraction(withSecret, {
+      id: "thread-1",
+      kind: "伏線",
+      title: "封じられた灯台",
+      detail: "次回開く",
+      visibility: "未開示候補",
+    });
+    const withEvent = applyExtraction(withThread, {
+      id: "event-1",
+      kind: "出来事",
+      title: "港に到着",
+      detail: "探索者が灰ヶ浦へ着いた",
+      visibility: "PL既知",
+    });
+
+    expect(withEvent.npcs).toMatchObject([{ name: "潮見レン", publicKnowledge: "灯台守の甥" }]);
+    expect(withEvent.clues).toMatchObject([{ title: "月の鐘", status: "hidden" }]);
+    expect(withEvent.threads).toMatchObject([{ title: "封じられた灯台", nextMove: "次回準備で使う候補として保持する。" }]);
+    expect(withEvent.events).toEqual(["港に到着: 探索者が灰ヶ浦へ着いた"]);
+  });
+
+  it("does not add duplicate memory items after whitespace normalization", () => {
+    const chronicle = {
+      events: ["港に到着: 探索者が灰ヶ浦へ着いた"],
+      npcs: [],
+      clues: [{ title: "月の鐘", detail: "満潮で鳴る", status: "hidden" as const }],
+      locations: [],
+      threads: [],
+    };
+
+    const withDuplicateClue = applyExtraction(chronicle, {
+      id: "secret-1",
+      kind: "GM秘密",
+      title: " 月の鐘 ",
+      detail: "満潮で鳴る",
+      visibility: "GMのみ",
+    });
+    const withDuplicateEvent = applyExtraction(withDuplicateClue, {
+      id: "event-1",
+      kind: "出来事",
+      title: "港に到着",
+      detail: "探索者が灰ヶ浦へ着いた",
+      visibility: "PL既知",
+    });
+
+    expect(withDuplicateEvent).toBe(chronicle);
   });
 });
