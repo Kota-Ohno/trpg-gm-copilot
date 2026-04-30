@@ -585,6 +585,37 @@ export function App() {
     URL.revokeObjectURL(objectUrl);
   };
 
+  const exportVisibleSpeakerSegments = (segments: TranscriptSegment[]): void => {
+    const speakersById = new Map(currentSession.liveLog.speakers.map((speaker) => [speaker.id, speaker]));
+    const blob = new Blob([JSON.stringify({
+      exportedAt: new Date().toISOString(),
+      campaignName,
+      sessionTitle: currentSession.title,
+      segmentCount: segments.length,
+      segments: segments.map((segment) => {
+        const speaker = speakersById.get(segment.speakerId);
+
+        return {
+          speakerName: speaker?.name ?? "話者不明",
+          speakerRole: speaker?.role ?? "unknown",
+          startTimeSec: segment.startTimeSec,
+          endTimeSec: segment.endTimeSec,
+          text: segment.text,
+          confidence: segment.confidence,
+        };
+      }),
+    }, null, 2)], {
+      type: "application/json",
+    });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = objectUrl;
+    link.download = createExportFileName(`${currentSession.title}-visible-speaker-segments`);
+    link.click();
+    URL.revokeObjectURL(objectUrl);
+  };
+
   const exportVisibleReviewItems = (): void => {
     const blob = new Blob([JSON.stringify({
       exportedAt: new Date().toISOString(),
@@ -1653,6 +1684,7 @@ export function App() {
                         onDeleteSegment={deleteSegment}
                         onDuplicateSegment={duplicateSegment}
                         onExtract={runExtractionPreview}
+                        onExportVisibleSegments={exportVisibleSpeakerSegments}
                         onMergeAdjacentSegments={mergeAdjacentSpeakerLogSegments}
                         onNormalizeTiming={normalizeSpeakerLogTiming}
                         onReset={resetCampaignState}

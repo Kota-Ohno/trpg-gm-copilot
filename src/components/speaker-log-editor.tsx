@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Clock3, Copy, FileText, MessageSquareText, Plus, RotateCcw, Split, Trash2, UserRound, Wand2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock3, Copy, Download, FileText, MessageSquareText, Plus, RotateCcw, Split, Trash2, UserRound, Wand2 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -36,6 +36,7 @@ type SpeakerLogEditorProps = {
   onDeleteSegment: (segmentId: string) => void;
   onDuplicateSegment: (segmentId: string) => void;
   onExtract: () => void | Promise<void>;
+  onExportVisibleSegments: (segments: TranscriptSegment[]) => void;
   onMergeAdjacentSegments: () => void;
   onNormalizeTiming: () => void;
   onReset: () => void;
@@ -59,6 +60,7 @@ export function SpeakerLogEditor({
   onDeleteSegment,
   onDuplicateSegment,
   onExtract,
+  onExportVisibleSegments,
   onMergeAdjacentSegments,
   onNormalizeTiming,
   onReset,
@@ -261,6 +263,15 @@ export function SpeakerLogEditor({
                 条件解除
               </Button>
             )}
+            <Button
+              disabled={isExtracting || visibleSegments.length === 0}
+              onClick={() => onExportVisibleSegments(visibleSegments)}
+              size="sm"
+              variant="outline"
+            >
+              <Download className="h-4 w-4" />
+              表示中JSON
+            </Button>
             <Button disabled={isExtracting} onClick={onAddSegment} size="sm" variant="outline">
               <Plus className="h-4 w-4" />
               発話を追加
