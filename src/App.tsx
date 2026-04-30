@@ -1261,6 +1261,29 @@ export function App() {
     });
   };
 
+  const rejectInvalidReviewItems = (): void => {
+    const targetIds = new Set(
+      items
+        .filter((item) => !approvedIds.includes(item.id) && (!item.title.trim() || !item.detail.trim()))
+        .map((item) => item.id),
+    );
+    if (targetIds.size === 0) {
+      return;
+    }
+
+    setConfirmation({
+      title: "未入力候補を破棄しますか",
+      message: `${targetIds.size}件のタイトルまたは詳細が未入力の候補を削除します。採用済みの候補は残します。`,
+      confirmLabel: "破棄する",
+      onConfirm: () => {
+        updateActiveSession((session) => ({
+          ...session,
+          extractionItems: session.extractionItems.filter((item) => !targetIds.has(item.id)),
+        }));
+      },
+    });
+  };
+
   const updateExtractionItem = (itemId: string, updates: Partial<ExtractionItem>): void => {
     updateActiveSession((session) => ({
       ...session,
@@ -1950,6 +1973,15 @@ export function App() {
                             variant={showInvalidReviewItemsOnly ? "default" : "outline"}
                           >
                             未入力のみ
+                          </Button>
+                          <Button
+                            disabled={invalidReviewItemCount === 0}
+                            onClick={rejectInvalidReviewItems}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            未入力を破棄
                           </Button>
                           <Button
                             disabled={!hasReviewFilter}
