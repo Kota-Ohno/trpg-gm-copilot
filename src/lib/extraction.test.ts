@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   appendTranscriptionDraftsToLiveLog,
+  buildExtractionInput,
   liveLogToPlainText,
   liveLogToTranscriptionDrafts,
   mergeAdjacentTranscriptSegments,
@@ -110,6 +111,30 @@ describe("runRuleBasedExtraction", () => {
 
     expect(items.map((item) => item.kind)).toEqual(expect.arrayContaining(["出来事", "手がかり", "GM秘密", "伏線", "NPC"]));
     expect(items.some((item) => item.visibility === "GMのみ")).toBe(true);
+  });
+});
+
+describe("buildExtractionInput", () => {
+  it("sorts speaker log lines and ignores blank segments", () => {
+    expect(buildExtractionInput("ignored", summaryLiveLog, "speaker")).toEqual([
+      { role: "GM", speakerName: "GM", text: "足音が聞こえる" },
+      { role: "PL", speakerName: "アキラ", text: "調べます" },
+    ]);
+  });
+
+  it("keeps plain log continuation lines on the previous speaker", () => {
+    expect(buildExtractionInput(
+      `
+      GM: 扉が開く
+      古い鍵が落ちている
+      アキラ: 調べます
+      `,
+      summaryLiveLog,
+      "plain",
+    )).toEqual([
+      { role: "GM", speakerName: "GM", text: "扉が開く\n古い鍵が落ちている" },
+      { role: "PL", speakerName: "アキラ", text: "調べます" },
+    ]);
   });
 });
 
