@@ -213,7 +213,7 @@ function buildRuleBasedFallback(
       note: buildFallbackNote(note, context, generatedItems.length > 0),
       promptLength: context.prompt.length,
       promptVersion: "extraction-v1",
-      validationErrors: normalizedValidationErrors,
+      ...(normalizedValidationErrors.length > 0 ? { validationErrors: normalizedValidationErrors } : {}),
     },
   };
 }
@@ -245,7 +245,7 @@ export function buildLlmExtractionResult(
           : "LLMレスポンスをJSONスキーマに沿って正規化しました。",
       promptLength,
       promptVersion: "extraction-v1",
-      validationErrors: normalizedResponse.errors,
+      ...(normalizedResponse.errors.length > 0 ? { validationErrors: normalizedResponse.errors } : {}),
     },
   };
 }

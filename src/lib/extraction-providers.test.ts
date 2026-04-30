@@ -69,5 +69,6 @@ describe("buildLlmExtractionResult", () => {
       promptVersion: "extraction-v1",
     });
     expect(result.run.promptLength).toBeGreaterThan(0);
+    expect(result.run.validationErrors).toBeUndefined();
   });
 });
