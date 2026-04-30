@@ -73,6 +73,8 @@ export function SpeakerLogEditor({
 }: SpeakerLogEditorProps) {
   const [showLowConfidenceOnly, setShowLowConfidenceOnly] = useState(false);
   const [showEmptySegmentsOnly, setShowEmptySegmentsOnly] = useState(false);
+  const [segmentQuery, setSegmentQuery] = useState("");
+  const normalizedSegmentQuery = segmentQuery.trim().toLowerCase();
   const sortedSegments = [...liveLog.segments].sort((first, second) => first.startTimeSec - second.startTimeSec);
   const liveLogSummary = summarizeLiveLog(liveLog);
   const hasSegmentText = liveLog.segments.some((segment) => segment.text.trim().length > 0);
@@ -82,6 +84,16 @@ export function SpeakerLogEditor({
   const emptySegmentCount = isExtracting ? 0 : liveLogSummary.emptySegmentCount;
   const lowConfidenceCount = liveLogSummary.lowConfidenceCount;
   const visibleSegments = sortedSegments.filter((segment) => {
+    const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
+    if (
+      normalizedSegmentQuery &&
+      ![segment.text, speaker?.name ?? "", speaker ? speakerRoleLabels[speaker.role] : ""].some((value) =>
+        value.toLowerCase().includes(normalizedSegmentQuery),
+      )
+    ) {
+      return false;
+    }
+
     if (showLowConfidenceOnly) {
       return (
         typeof segment.confidence === "number" &&
@@ -217,10 +229,19 @@ export function SpeakerLogEditor({
           <div className="flex items-center gap-2">
             <MessageSquareText className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-sm font-semibold">発話ログ</h2>
+            {normalizedSegmentQuery && <Badge variant="secondary">検索: {segmentQuery.trim()}</Badge>}
             {showLowConfidenceOnly && <Badge variant="destructive">要確認のみ</Badge>}
             {showEmptySegmentsOnly && <Badge variant="secondary">未入力のみ</Badge>}
           </div>
           <div className="flex flex-wrap gap-2">
+            <Input
+              aria-label="発話ログを検索"
+              className="h-8 w-44"
+              disabled={isExtracting}
+              placeholder="発話を検索"
+              value={segmentQuery}
+              onChange={(event) => setSegmentQuery(event.target.value)}
+            />
             {lowConfidenceCount > 0 && (
               <Button
                 aria-pressed={showLowConfidenceOnly}
@@ -249,10 +270,11 @@ export function SpeakerLogEditor({
                 未入力 {emptySegmentCount}
               </Button>
             )}
-            {(showLowConfidenceOnly || showEmptySegmentsOnly) && (
+            {(normalizedSegmentQuery || showLowConfidenceOnly || showEmptySegmentsOnly) && (
               <Button
                 disabled={isExtracting}
                 onClick={() => {
+                  setSegmentQuery("");
                   setShowLowConfidenceOnly(false);
                   setShowEmptySegmentsOnly(false);
                 }}
@@ -292,11 +314,16 @@ export function SpeakerLogEditor({
             {visibleSegments.length === 0 && (
               <div className="rounded-md border border-dashed bg-background p-6 text-center">
                 <p className="text-sm font-medium">
-                  {showEmptySegmentsOnly ? "未入力の発話はありません" : "要確認の発話はありません"}
+                  {normalizedSegmentQuery
+                    ? "検索に一致する発話はありません"
+                    : showEmptySegmentsOnly
+                      ? "未入力の発話はありません"
+                      : "要確認の発話はありません"}
                 </p>
                 <Button
                   className="mt-3"
                   onClick={() => {
+                    setSegmentQuery("");
                     setShowLowConfidenceOnly(false);
                     setShowEmptySegmentsOnly(false);
                   }}
