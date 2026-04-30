@@ -178,7 +178,9 @@ describe("search text helpers", () => {
             speakers: [{ id: "speaker-1", name: "アキラ", role: "PL" }],
             segments: [{ id: "segment-1", speakerId: "speaker-1", startTimeSec: 0, endTimeSec: 5, text: "灯台を調べる" }],
           },
-          extractionItems: [],
+          extractionItems: [
+            { id: "item-1", kind: "GM秘密", title: "海底洞窟", detail: "干潮時だけ入れる", visibility: "GMのみ" },
+          ],
           approvedIds: [],
         },
       ],
@@ -187,6 +189,8 @@ describe("search text helpers", () => {
     expect(getSessionSearchText(session)).toContain("第3夜");
     expect(getSessionSearchText(session)).toContain("アキラ");
     expect(getSessionSearchText(session)).toContain("灯台を調べる");
+    expect(getSessionSearchText(session)).toContain("海底洞窟");
+    expect(getSessionSearchText(session)).toContain("干潮時だけ入れる");
   });
 
   it("includes campaign memory content", () => {
