@@ -111,15 +111,19 @@ export function ChronicleView({
   );
   const nextRevealCandidates = [
     ...chronicle.clues
-      .filter((clue) => clue.status !== "known")
-      .map((clue) => ({
+      .map((clue, index) => ({ clue, index }))
+      .filter(({ clue }) => clue.status !== "known")
+      .map(({ clue, index }) => ({
+        clueIndex: index,
         id: `clue:${clue.title}:${clue.detail}`,
+        kind: "clue" as const,
         title: clue.title,
         detail: clue.detail,
         label: statusLabels[clue.status],
       })),
     ...chronicle.threads.map((thread, index) => ({
       id: `thread:${index}:${thread.title}:${thread.detail}:${thread.nextMove}`,
+      kind: "thread" as const,
       title: thread.title,
       detail: thread.nextMove,
       label: "伏線",
@@ -219,6 +223,15 @@ export function ChronicleView({
                   >
                     表示
                   </Button>
+                  {candidate.kind === "clue" && onUpdateClueStatus && (
+                    <Button
+                      onClick={() => onUpdateClueStatus(candidate.clueIndex, "known")}
+                      size="sm"
+                      variant="outline"
+                    >
+                      PL既知にする
+                    </Button>
+                  )}
                 </div>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">{candidate.detail}</p>
               </div>
