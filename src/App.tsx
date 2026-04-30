@@ -595,6 +595,12 @@ export function App() {
         showApproved: showApprovedReviewItems,
         invalidOnly: showInvalidReviewItemsOnly,
       },
+      counts: {
+        total: reviewItems.length,
+        approved: reviewItems.filter((item) => approvedIds.includes(item.id)).length,
+        approvable: approvableVisibleReviewCount,
+        rejectable: rejectableVisibleReviewCount,
+      },
       items: reviewItems,
     }, createExportFileName(`${currentSession.title}-review-items`));
   };
