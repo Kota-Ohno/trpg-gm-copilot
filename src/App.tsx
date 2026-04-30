@@ -1617,6 +1617,14 @@ export function App() {
                         <CardDescription className="mt-2">
                           初期MVPでは貼り付け入力に絞ります。ココフォリアやDiscordログの取り込みは後から足せます。
                         </CardDescription>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Badge variant={logInputMode === "speaker" ? "default" : "outline"}>
+                            {logInputMode === "speaker" ? "抽出元: 話者付きログ" : "抽出元: 通常ログ"}
+                          </Badge>
+                          {logInputMode === "speaker" && (
+                            <Badge variant="muted">{summarizeLiveLog(liveLog).nonEmptySegmentCount}発話</Badge>
+                          )}
+                        </div>
                       </div>
                       <Tabs ariaLabel="ログ入力方式" value={logInputMode} options={logInputOptions} onChange={setLogInputMode} />
                     </div>
