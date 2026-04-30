@@ -249,6 +249,18 @@ describe("normalizeTranscriptSegmentTiming", () => {
 });
 
 describe("splitTranscriptSegment", () => {
+  it("does not split missing or too-short segments", () => {
+    const liveLog = {
+      ...summaryLiveLog,
+      segments: [
+        { id: "target", speakerId: "speaker-gm", startTimeSec: 10, endTimeSec: 11, text: "短" },
+      ],
+    };
+
+    expect(splitTranscriptSegment(liveLog, "missing")).toBe(liveLog);
+    expect(splitTranscriptSegment(liveLog, "target")).toBe(liveLog);
+  });
+
   it("splits one segment into two adjacent segments", () => {
     const split = splitTranscriptSegment({
       ...summaryLiveLog,

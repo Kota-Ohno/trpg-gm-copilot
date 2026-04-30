@@ -139,6 +139,10 @@ export function splitTranscriptSegment(liveLog: LiveLogSession, segmentId: strin
   }
 
   const text = targetSegment.text.trim();
+  if (text.length < 2) {
+    return liveLog;
+  }
+
   const midpointIndex = text.length > 1 ? Math.ceil(text.length / 2) : text.length;
   const preferredSplitIndex = findPreferredTextSplitIndex(text, midpointIndex);
   const splitIndex = preferredSplitIndex ?? midpointIndex;
