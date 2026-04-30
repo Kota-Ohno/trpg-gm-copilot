@@ -13,6 +13,7 @@ import {
   previewTranscriptionDraftPayload,
   runRuleBasedExtraction,
   splitTranscriptSegment,
+  summarizePlainLog,
   summarizeLiveLog,
   transcriptionDraftsToLiveLog,
 } from "./extraction";
@@ -313,6 +314,22 @@ describe("summarizeLiveLog", () => {
       totalDurationSec: 11,
       totalSegmentCount: 3,
       usedSpeakerCount: 2,
+    });
+  });
+});
+
+describe("summarizePlainLog", () => {
+  it("counts non-empty lines and timestamped speaker lines", () => {
+    expect(summarizePlainLog([
+      "[00:05] GM: 扉が開く",
+      "続きの描写",
+      "",
+      "アキラ: 調べます",
+    ].join("\n"))).toEqual({
+      characterCount: 33,
+      nonEmptyLineCount: 3,
+      speakerLineCount: 2,
+      speakerLineRatio: 67,
     });
   });
 });

@@ -2,6 +2,7 @@ import { AlertTriangle, MessageSquareText, RotateCcw, Wand2 } from "lucide-react
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
+import { summarizePlainLog } from "../lib/extraction";
 
 type PlainLogEditorProps = {
   canExtract: boolean;
@@ -23,10 +24,8 @@ export function PlainLogEditor({
   onReset,
 }: PlainLogEditorProps) {
   const hasLogText = log.trim().length > 0;
-  const nonEmptyLines = log.split(/\r?\n/).filter((line) => line.trim().length > 0);
-  const speakerLineCount = nonEmptyLines.filter((line) => /^(?:\[[^\]]+\]\s*)?[^:：]{1,32}[:：]\s*.+$/.test(line.trim())).length;
-  const speakerLineRatio = nonEmptyLines.length > 0 ? Math.round((speakerLineCount / nonEmptyLines.length) * 100) : 0;
-  const hasNoSpeakerLines = hasLogText && speakerLineCount === 0;
+  const plainLogSummary = summarizePlainLog(log);
+  const hasNoSpeakerLines = hasLogText && plainLogSummary.speakerLineCount === 0;
   const logStatusId = "plain-log-editor-status";
 
   return (
@@ -42,13 +41,13 @@ export function PlainLogEditor({
       <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm text-muted-foreground">{log.length.toLocaleString()}文字</p>
-            <Badge variant="muted">{nonEmptyLines.length.toLocaleString()}有効行</Badge>
+            <p className="text-sm text-muted-foreground">{plainLogSummary.characterCount.toLocaleString()}文字</p>
+            <Badge variant="muted">{plainLogSummary.nonEmptyLineCount.toLocaleString()}有効行</Badge>
             <Badge
               variant={hasNoSpeakerLines ? "destructive" : "muted"}
             >
-              {speakerLineCount.toLocaleString()}発話候補
-              {speakerLineCount > 0 && ` / ${speakerLineRatio}%`}
+              {plainLogSummary.speakerLineCount.toLocaleString()}発話候補
+              {plainLogSummary.speakerLineCount > 0 && ` / ${plainLogSummary.speakerLineRatio}%`}
             </Badge>
             {hasNoSpeakerLines && (
               <Badge className="gap-1" variant="destructive">

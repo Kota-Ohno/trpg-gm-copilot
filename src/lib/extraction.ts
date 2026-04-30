@@ -54,6 +54,13 @@ export type SpeakerSegmentExport = {
   }>;
 };
 
+export type PlainLogSummary = {
+  characterCount: number;
+  nonEmptyLineCount: number;
+  speakerLineCount: number;
+  speakerLineRatio: number;
+};
+
 const npcNamePattern = /(?:女将|村長|灯台守|船長|医師|司祭|娘|甥|少女|少年|老人|男|女)(?:の)?([ァ-ヶー一-龠々]{1,8})|([ァ-ヶー一-龠々]{1,8})(?:は|が).*(?:話|言|証言)/;
 const plainLogLinePattern = /^(?:\[\s*([0-9０-９:.：\s]+)\s*\]\s*)?([^:：]{1,32})[:：]\s*(.+)$/;
 
@@ -95,6 +102,18 @@ export function formatReviewItemsMarkdown(items: ExtractionItem[], title: string
         ])
       : ["- 表示中の抽出候補はありません。"]),
   ].join("\n").trimEnd();
+}
+
+export function summarizePlainLog(log: string): PlainLogSummary {
+  const nonEmptyLines = log.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  const speakerLineCount = nonEmptyLines.filter((line) => plainLogLinePattern.test(line.trim())).length;
+
+  return {
+    characterCount: log.length,
+    nonEmptyLineCount: nonEmptyLines.length,
+    speakerLineCount,
+    speakerLineRatio: nonEmptyLines.length > 0 ? Math.round((speakerLineCount / nonEmptyLines.length) * 100) : 0,
+  };
 }
 
 export function summarizeLiveLog(liveLog: LiveLogSession): LiveLogSummary {
