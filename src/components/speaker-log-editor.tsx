@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import type { LiveLogSession, SpeakerRole, TranscriptSegment } from "../types";
-import { lowConfidenceThreshold, summarizeLiveLog } from "../lib/extraction";
+import { lowConfidenceThreshold, summarizeLiveLog, summarizeSpeakerUsage } from "../lib/extraction";
 
 const speakerRoleLabels: Record<SpeakerRole, string> = {
   GM: "GM",
@@ -83,6 +83,7 @@ export function SpeakerLogEditor({
   );
   const emptySegmentCount = isExtracting ? 0 : liveLogSummary.emptySegmentCount;
   const lowConfidenceCount = liveLogSummary.lowConfidenceCount;
+  const speakerUsageById = new Map(summarizeSpeakerUsage(liveLog).map((usage) => [usage.speakerId, usage]));
   const visibleSegments = sortedSegments.filter((segment) => {
     const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
     if (
@@ -184,6 +185,9 @@ export function SpeakerLogEditor({
                   <label className="text-xs font-medium text-muted-foreground" htmlFor={speakerNameInputId}>
                     名前
                   </label>
+                  <Badge variant={isSpeakerUsed ? "muted" : "outline"}>
+                    {speakerUsageById.get(speaker.id)?.segmentCount ?? 0}発話
+                  </Badge>
                   <Button
                     aria-label="話者を削除"
                     disabled={isExtracting || isSpeakerUsed || liveLog.speakers.length <= 1}
