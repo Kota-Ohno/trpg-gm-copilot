@@ -1170,6 +1170,7 @@ export function App() {
   };
 
   const appendTranscriptionDraftJson = async (): Promise<void> => {
+    const targetSession = currentSession;
     const providerResult = await runTranscriptionProvider({
       draftJson: transcriptionDraftJson,
       secrets: providerSecrets,
@@ -1182,14 +1183,14 @@ export function App() {
       return;
     }
 
-    const appendedLiveLog = appendTranscriptionDraftsToLiveLog(currentSession.liveLog, providerResult.drafts);
+    const appendedLiveLog = appendTranscriptionDraftsToLiveLog(targetSession.liveLog, providerResult.drafts);
     if (!appendedLiveLog) {
       setTranscriptionImportError("追記できる発話本文がありません。");
       setTranscriptionImportMessage(null);
       return;
     }
 
-    updateCurrentSession({
+    updateSessionById(targetSession.id, {
       liveLog: appendedLiveLog,
       transcriptionRun: {
         executedAt: new Date().toISOString(),
@@ -1199,6 +1200,11 @@ export function App() {
         sourceType: "manual-json",
       },
     });
+    setActiveCampaignState((current) =>
+      current.activeSessionId === targetSession.id || !current.sessions.some((session) => session.id === targetSession.id)
+        ? current
+        : { ...current, activeSessionId: targetSession.id },
+    );
     setTranscriptionDraftJson("");
     setTranscriptionImportError(null);
     setTranscriptionImportMessage(providerResult.message);
@@ -1206,6 +1212,7 @@ export function App() {
   };
 
   const importTranscriptionDraftJson = async (): Promise<void> => {
+    const targetSession = currentSession;
     const providerResult = await runTranscriptionProvider({
       draftJson: transcriptionDraftJson,
       secrets: providerSecrets,
@@ -1223,7 +1230,7 @@ export function App() {
       providerLabel: providerResult.providerLabel,
       segmentCount: providerResult.drafts.length,
       sourceType: "manual-json",
-    });
+    }, targetSession);
   };
 
   const transcribeSelectedAudioFile = async (): Promise<void> => {
