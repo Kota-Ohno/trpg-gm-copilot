@@ -738,10 +738,44 @@ export function App() {
     try {
       const fileText = await file.text();
       const parsedState = JSON.parse(fileText);
+      const maybeSession = (parsedState as { session?: unknown }).session;
+      const isSessionImport =
+        typeof parsedState === "object" &&
+        parsedState !== null &&
+        maybeSession &&
+        typeof maybeSession === "object" &&
+        !Array.isArray(maybeSession);
       const isLibraryImport =
         typeof parsedState === "object" &&
         parsedState !== null &&
         Array.isArray((parsedState as { campaigns?: unknown }).campaigns);
+
+      if (isSessionImport) {
+        const importedCampaign = normalizeCampaignState({
+          sessions: [maybeSession],
+        });
+        const importedSession = {
+          ...importedCampaign.sessions[0],
+          id: createId("session"),
+        };
+        setConfirmation({
+          title: "セッションを追加しますか",
+          message: `${importedSession.title}を現在のキャンペーンに追加します。`,
+          confirmLabel: "追加する",
+          onConfirm: () => {
+            setActiveCampaignState((current) => ({
+              ...current,
+              sessions: [...current.sessions, importedSession],
+              activeSessionId: importedSession.id,
+            }));
+            setStorageError(null);
+            setSessionQuery("");
+            setLogInputMode("speaker");
+            setActiveTab("log");
+          },
+        });
+        return;
+      }
 
       if (isLibraryImport) {
         const importedLibrary = normalizeCampaignLibraryState(parsedState);
