@@ -37,6 +37,7 @@ type SpeakerLogEditorProps = {
   onDeleteSegment: (segmentId: string) => void;
   onDuplicateSegment: (segmentId: string) => void;
   onExtract: () => void | Promise<void>;
+  onExportIssues: () => void;
   onExportVisibleSegments: (segments: TranscriptSegment[], filters: Record<string, string | boolean>) => void;
   onMergeAdjacentSegments: () => void;
   onNormalizeText: () => void;
@@ -63,6 +64,7 @@ export function SpeakerLogEditor({
   onDeleteSegment,
   onDuplicateSegment,
   onExtract,
+  onExportIssues,
   onExportVisibleSegments,
   onMergeAdjacentSegments,
   onNormalizeText,
@@ -169,6 +171,10 @@ export function SpeakerLogEditor({
           <Button disabled={isExtracting || !hasSegmentText} onClick={onNormalizeText} variant="outline">
             <RotateCcw className="h-4 w-4" />
             本文を整える
+          </Button>
+          <Button disabled={isExtracting || speakerLogIssues.length === 0} onClick={onExportIssues} variant="outline">
+            <Download className="h-4 w-4" />
+            確認項目
           </Button>
           <Button disabled={isExtracting || !canExtract} onClick={onExtract}>
             <Wand2 className="h-4 w-4" />

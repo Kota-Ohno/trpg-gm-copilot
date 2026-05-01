@@ -706,6 +706,19 @@ export function App() {
     );
   };
 
+  const exportSpeakerLogIssues = (): void => {
+    const issues = getSpeakerLogIssues(currentSession.liveLog);
+
+    downloadJsonFile({
+      exportedAt: new Date().toISOString(),
+      campaignName,
+      sessionId: currentSession.id,
+      sessionTitle: currentSession.title,
+      issueCount: issues.length,
+      issues,
+    }, createExportFileName(`${currentSession.title}-speaker-log-issues`));
+  };
+
   const exportVisibleSpeakerSegments = (
     segments: TranscriptSegment[],
     filters: Record<string, string | boolean> = {},
@@ -2063,6 +2076,7 @@ export function App() {
                         onDeleteSegment={deleteSegment}
                         onDuplicateSegment={duplicateSegment}
                         onExtract={runExtractionPreview}
+                        onExportIssues={exportSpeakerLogIssues}
                         onExportVisibleSegments={exportVisibleSpeakerSegments}
                         onMergeAdjacentSegments={mergeAdjacentSpeakerLogSegments}
                         onNormalizeText={normalizeSpeakerLogText}
