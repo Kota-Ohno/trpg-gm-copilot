@@ -359,6 +359,8 @@ export function App() {
   const approvedCount = approvedIds.length;
   const remainingCount = items.length - approvedCount;
   const invalidReviewItemCount = items.filter((item) => !item.title.trim() || !item.detail.trim()).length;
+  const duplicateReviewItemIds = findDuplicateExtractionItemIds(items, approvedIds);
+  const duplicateReviewItemCount = duplicateReviewItemIds.length;
   const approvableRemainingCount = items.filter(
     (item) => !approvedIds.includes(item.id) && item.title.trim() && item.detail.trim(),
   ).length;
@@ -1418,17 +1420,16 @@ export function App() {
   };
 
   const rejectDuplicateReviewItems = (): void => {
-    const duplicateIds = findDuplicateExtractionItemIds(items, approvedIds);
-    if (duplicateIds.length === 0) {
+    if (duplicateReviewItemIds.length === 0) {
       return;
     }
 
     setConfirmation({
       title: "重複候補を破棄しますか",
-      message: `${duplicateIds.length}件の未採用の重複候補を削除します。`,
+      message: `${duplicateReviewItemIds.length}件の未採用の重複候補を削除します。`,
       confirmLabel: "破棄する",
       onConfirm: () => {
-        const duplicateIdSet = new Set(duplicateIds);
+        const duplicateIdSet = new Set(duplicateReviewItemIds);
         updateActiveSession((session) => ({
           ...session,
           extractionItems: session.extractionItems.filter((item) => !duplicateIdSet.has(item.id)),
@@ -2117,6 +2118,9 @@ export function App() {
                           {invalidReviewItemCount > 0 && (
                             <Badge variant="destructive">未入力 {invalidReviewItemCount}</Badge>
                           )}
+                          {duplicateReviewItemCount > 0 && (
+                            <Badge variant="destructive">重複 {duplicateReviewItemCount}</Badge>
+                          )}
                           {hasReviewFilter && (
                             <Badge variant="outline">{reviewItems.length}件を表示中</Badge>
                           )}
@@ -2186,7 +2190,7 @@ export function App() {
                             未入力を破棄
                           </Button>
                           <Button
-                            disabled={findDuplicateExtractionItemIds(items, approvedIds).length === 0}
+                            disabled={duplicateReviewItemCount === 0}
                             onClick={rejectDuplicateReviewItems}
                             size="sm"
                             variant="outline"
