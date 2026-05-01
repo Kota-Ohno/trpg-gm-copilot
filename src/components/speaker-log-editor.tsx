@@ -238,6 +238,7 @@ export function SpeakerLogEditor({
           <div className="flex items-center gap-2">
             <MessageSquareText className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-sm font-semibold">発話ログ</h2>
+            <Badge variant="muted">{visibleSegments.length}/{sortedSegments.length}</Badge>
             {normalizedSegmentQuery && <Badge variant="secondary">検索: {segmentQuery.trim()}</Badge>}
             {speakerFilterId !== "all" && (
               <Badge variant="secondary">
