@@ -377,6 +377,7 @@ export function App() {
     extractionRun,
     liveLog,
     log,
+    transcriptionRun,
   } = currentSession;
   const {
     campaignName,
@@ -2036,6 +2037,16 @@ export function App() {
                     <CardDescription className="mt-2">
                       Provider実装前の検証用に、発話配列JSONまたはsegments配列を持つJSONを話者付きログへ変換します。
                     </CardDescription>
+                    {transcriptionRun && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Badge variant="outline">{transcriptionRun.providerLabel}</Badge>
+                        <Badge variant="muted">{transcriptionRun.segmentCount}発話</Badge>
+                        <Badge variant="muted">
+                          {transcriptionRun.sourceType === "audio-file" ? "音声ファイル" : "手動JSON"}
+                        </Badge>
+                        {transcriptionRun.fileName && <Badge variant="muted">{transcriptionRun.fileName}</Badge>}
+                      </div>
+                    )}
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex flex-wrap items-center gap-2 rounded-md border bg-background p-3">
