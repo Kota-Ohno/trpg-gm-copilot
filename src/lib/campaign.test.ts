@@ -295,6 +295,13 @@ describe("getCampaignSummaryStats", () => {
           extractionItems: [
             { id: "item-1", kind: "出来事", title: "開始", detail: "始まった", visibility: "PL既知" },
           ],
+          transcriptionRun: {
+            executedAt: "2026-04-30T12:00:00.000Z",
+            providerId: "openai",
+            providerLabel: "OpenAI",
+            segmentCount: 1,
+            sourceType: "audio-file",
+          },
           approvedIds: ["item-1"],
         },
       ],
@@ -307,6 +314,7 @@ describe("getCampaignSummaryStats", () => {
       memoryCount: 1,
       nonEmptySegmentCount: 1,
       sessionCount: 1,
+      transcribedSessionCount: 1,
     });
   });
 });
@@ -321,6 +329,13 @@ describe("formatCampaignMarkdown", () => {
           date: "2026-04-30",
           log: "",
           extractionItems: [{ id: "item-1", kind: "出来事", title: "開始", detail: "始まった", visibility: "PL既知" }],
+          transcriptionRun: {
+            executedAt: "2026-04-30T12:00:00.000Z",
+            providerId: "openai",
+            providerLabel: "OpenAI",
+            segmentCount: 3,
+            sourceType: "audio-file",
+          },
           approvedIds: ["item-1"],
         },
       ],
@@ -335,6 +350,7 @@ describe("formatCampaignMarkdown", () => {
 
     expect(formatCampaignMarkdown(campaign)).toContain("# 灰ヶ浦");
     expect(formatCampaignMarkdown(campaign)).toContain("### 第1夜");
+    expect(formatCampaignMarkdown(campaign)).toContain("- 文字起こし: OpenAI / 3発話");
     expect(formatCampaignMarkdown(campaign)).toContain("## キャンペーン記憶");
     expect(formatCampaignMarkdown(campaign)).toContain("- 港に到着");
   });

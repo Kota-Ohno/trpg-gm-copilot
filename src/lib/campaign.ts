@@ -80,6 +80,7 @@ export type CampaignSummaryStats = {
   memoryCount: number;
   nonEmptySegmentCount: number;
   sessionCount: number;
+  transcribedSessionCount: number;
 };
 
 export function getCampaignSummaryStats(campaign: CampaignState): CampaignSummaryStats {
@@ -100,6 +101,7 @@ export function getCampaignSummaryStats(campaign: CampaignState): CampaignSummar
       0,
     ),
     sessionCount: campaign.sessions.length,
+    transcribedSessionCount: campaign.sessions.filter((session) => session.transcriptionRun !== null).length,
   };
 }
 
@@ -505,6 +507,7 @@ export function formatCampaignLibraryMarkdown(campaignLibrary: CampaignLibrarySt
         `- 記憶: ${stats.memoryCount}`,
         `- 候補: ${stats.candidateCount}`,
         `- 採用済み: ${stats.approvedCount}`,
+        `- 文字起こし済み: ${stats.transcribedSessionCount}`,
         "",
         ...sessionLines,
         "",
@@ -523,6 +526,7 @@ export function formatCampaignMarkdown(campaign: CampaignState): string {
     `- 記憶: ${stats.memoryCount}`,
     `- 候補: ${stats.candidateCount}`,
     `- 採用済み: ${stats.approvedCount}`,
+    `- 文字起こし済み: ${stats.transcribedSessionCount}`,
     `- 話者付き発話: ${stats.nonEmptySegmentCount}`,
     `- 要確認発話: ${stats.lowConfidenceSegmentCount}`,
     "",
@@ -534,6 +538,7 @@ export function formatCampaignMarkdown(campaign: CampaignState): string {
       `- 日付: ${session.date}`,
       `- 抽出候補: ${session.extractionItems.length}`,
       `- 採用済み: ${session.approvedIds.length}`,
+      ...(session.transcriptionRun ? [`- 文字起こし: ${session.transcriptionRun.providerLabel} / ${session.transcriptionRun.segmentCount}発話`] : []),
       "",
     ]),
     formatChronicleMarkdown(campaign.chronicle, "キャンペーン記憶").replace(/^# /m, "## "),
