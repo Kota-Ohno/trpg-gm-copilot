@@ -739,6 +739,17 @@ export function App() {
     );
   };
 
+  const exportPrepNoteJson = (): void => {
+    downloadJsonFile({
+      exportedAt: new Date().toISOString(),
+      campaignId: campaignState.id,
+      campaignName,
+      sessionId: currentSession.id,
+      sessionTitle: currentSession.title,
+      prepNote: dynamicPrepNote,
+    }, createExportFileName(`${currentSession.title}-prep-note`));
+  };
+
   const exportCurrentSessionMarkdown = (): void => {
     exportSessionMarkdown(currentSession);
   };
@@ -2379,6 +2390,10 @@ export function App() {
                       <Button onClick={exportPrepNoteMarkdown} size="sm" variant="outline">
                         <Download className="h-4 w-4" />
                         Markdown
+                      </Button>
+                      <Button onClick={exportPrepNoteJson} size="sm" variant="outline">
+                        <Download className="h-4 w-4" />
+                        JSON
                       </Button>
                       <Button onClick={exportCurrentSessionMarkdown} size="sm" variant="outline">
                         <FileText className="h-4 w-4" />
