@@ -87,7 +87,6 @@ import {
 import { runExtractionProvider } from "./lib/extraction-providers";
 import {
   checkTranscriptionProviderReadiness,
-  maxTranscriptionAudioFileSizeBytes,
   runTranscriptionProvider,
   validateTranscriptionAudioFile,
 } from "./lib/transcription-providers";
@@ -2144,7 +2143,7 @@ export function App() {
                         <>
                           <Badge
                             variant={
-                              transcriptionAudioFile.size > maxTranscriptionAudioFileSizeBytes ? "destructive" : "muted"
+                              transcriptionAudioFileValidation?.ok === false ? "destructive" : "muted"
                             }
                           >
                             {transcriptionAudioFile.name} / {formatFileSize(transcriptionAudioFile.size)}
