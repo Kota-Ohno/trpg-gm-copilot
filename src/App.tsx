@@ -59,6 +59,7 @@ import {
 import {
   appendTranscriptionDraftsToLiveLog,
   buildSpeakerSegmentExport,
+  findDuplicateExtractionItemIds,
   formatReviewItemsMarkdown,
   formatSessionMarkdown,
   formatSpeakerLogMarkdown,
@@ -1416,6 +1417,26 @@ export function App() {
     });
   };
 
+  const rejectDuplicateReviewItems = (): void => {
+    const duplicateIds = findDuplicateExtractionItemIds(items, approvedIds);
+    if (duplicateIds.length === 0) {
+      return;
+    }
+
+    setConfirmation({
+      title: "重複候補を破棄しますか",
+      message: `${duplicateIds.length}件の未採用の重複候補を削除します。`,
+      confirmLabel: "破棄する",
+      onConfirm: () => {
+        const duplicateIdSet = new Set(duplicateIds);
+        updateActiveSession((session) => ({
+          ...session,
+          extractionItems: session.extractionItems.filter((item) => !duplicateIdSet.has(item.id)),
+        }));
+      },
+    });
+  };
+
   const updateExtractionItem = (itemId: string, updates: Partial<ExtractionItem>): void => {
     updateActiveSession((session) => ({
       ...session,
@@ -2163,6 +2184,15 @@ export function App() {
                           >
                             <Trash2 className="h-4 w-4" />
                             未入力を破棄
+                          </Button>
+                          <Button
+                            disabled={findDuplicateExtractionItemIds(items, approvedIds).length === 0}
+                            onClick={rejectDuplicateReviewItems}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            重複を破棄
                           </Button>
                           <Button
                             disabled={!hasReviewFilter}

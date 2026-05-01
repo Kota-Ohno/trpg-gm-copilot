@@ -3,6 +3,7 @@ import {
   appendTranscriptionDraftsToLiveLog,
   buildSpeakerSegmentExport,
   buildExtractionInput,
+  findDuplicateExtractionItemIds,
   formatReviewItemsMarkdown,
   formatSessionMarkdown,
   formatSpeakerLogMarkdown,
@@ -367,6 +368,16 @@ describe("formatSessionMarkdown", () => {
     expect(markdown).toContain("### 1. 港へ向かう");
     expect(markdown).toContain("- 状態: 採用済み");
     expect(markdown).toContain("## 3行あらすじ");
+  });
+});
+
+describe("findDuplicateExtractionItemIds", () => {
+  it("returns later duplicate extraction ids while preserving protected items", () => {
+    expect(findDuplicateExtractionItemIds([
+      { id: "a", kind: "手がかり", title: "鍵", detail: "古い", visibility: "PL既知" },
+      { id: "b", kind: "手がかり", title: " 鍵 ", detail: "古い", visibility: "PL既知" },
+      { id: "c", kind: "手がかり", title: "鍵", detail: "古い", visibility: "PL既知" },
+    ], ["b"])).toEqual(["c"]);
   });
 });
 

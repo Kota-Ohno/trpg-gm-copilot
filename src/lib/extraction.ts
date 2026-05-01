@@ -162,6 +162,28 @@ export function formatReviewItemsMarkdown(items: ExtractionItem[], title: string
   ].join("\n").trimEnd();
 }
 
+export function findDuplicateExtractionItemIds(items: ExtractionItem[], protectedIds: string[] = []): string[] {
+  const protectedIdSet = new Set(protectedIds);
+  const seenKeys = new Set<string>();
+  const duplicateIds: string[] = [];
+
+  items.forEach((item) => {
+    const key = [item.kind, item.title.trim(), item.detail.trim(), item.visibility].join("\u0000");
+    if (!key.trim()) {
+      return;
+    }
+
+    if (seenKeys.has(key) && !protectedIdSet.has(item.id)) {
+      duplicateIds.push(item.id);
+      return;
+    }
+
+    seenKeys.add(key);
+  });
+
+  return duplicateIds;
+}
+
 export function formatSessionMarkdown(session: SessionState, prepNote?: PrepNote): string {
   const speakerLogText = liveLogToPlainText(session.liveLog);
   const reviewMarkdown = formatReviewItemsMarkdown(session.extractionItems, "抽出候補", session.approvedIds)
