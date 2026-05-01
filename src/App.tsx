@@ -360,6 +360,7 @@ export function App() {
   const [transcriptionAudioFile, setTranscriptionAudioFile] = useState<File | null>(null);
   const [transcriptionDraftJson, setTranscriptionDraftJson] = useState("");
   const [transcriptionImportError, setTranscriptionImportError] = useState<string | null>(null);
+  const [transcriptionImportMessage, setTranscriptionImportMessage] = useState<string | null>(null);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [providerSecrets, setProviderSecrets] = useState<ProviderSecretSettings>(loadProviderSecrets);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
@@ -1103,21 +1104,26 @@ export function App() {
     setActiveTab("log");
   };
 
-  const applyImportedTranscriptionDraftLog = (liveLogFromDrafts: LiveLogSession): void => {
+  const applyImportedTranscriptionDraftLog = (liveLogFromDrafts: LiveLogSession, message = "話者付きログへ取り込みました。"): void => {
     updateCurrentSession({ liveLog: liveLogFromDrafts });
     setTranscriptionAudioFile(null);
     setTranscriptionDraftJson("");
     setTranscriptionImportError(null);
+    setTranscriptionImportMessage(message);
     setLogInputMode("speaker");
   };
 
-  const importTranscriptionDraftsToLiveLog = (drafts: Parameters<typeof transcriptionDraftsToLiveLog>[0]): void => {
+  const importTranscriptionDraftsToLiveLog = (
+    drafts: Parameters<typeof transcriptionDraftsToLiveLog>[0],
+    message?: string,
+  ): void => {
     const liveLogFromDrafts = transcriptionDraftsToLiveLog(
       drafts,
       `${currentSession.title} 文字起こし`,
     );
     if (!liveLogFromDrafts) {
       setTranscriptionImportError("取り込める発話本文がありません。");
+      setTranscriptionImportMessage(null);
       return;
     }
 
@@ -1126,12 +1132,12 @@ export function App() {
         title: "話者ログを置き換えますか",
         message: "現在の話者ログを、文字起こしドラフトから作成したログで置き換えます。",
         confirmLabel: "置き換える",
-        onConfirm: () => applyImportedTranscriptionDraftLog(liveLogFromDrafts),
+        onConfirm: () => applyImportedTranscriptionDraftLog(liveLogFromDrafts, message),
       });
       return;
     }
 
-    applyImportedTranscriptionDraftLog(liveLogFromDrafts);
+    applyImportedTranscriptionDraftLog(liveLogFromDrafts, message);
   };
 
   const appendTranscriptionDraftJson = async (): Promise<void> => {
@@ -1143,18 +1149,21 @@ export function App() {
 
     if (!providerResult.ok) {
       setTranscriptionImportError(providerResult.message || "追記できる発話ドラフトがありません。");
+      setTranscriptionImportMessage(null);
       return;
     }
 
     const appendedLiveLog = appendTranscriptionDraftsToLiveLog(currentSession.liveLog, providerResult.drafts);
     if (!appendedLiveLog) {
       setTranscriptionImportError("追記できる発話本文がありません。");
+      setTranscriptionImportMessage(null);
       return;
     }
 
     updateCurrentSession({ liveLog: appendedLiveLog });
     setTranscriptionDraftJson("");
     setTranscriptionImportError(null);
+    setTranscriptionImportMessage(providerResult.message);
     setLogInputMode("speaker");
   };
 
@@ -1170,12 +1179,13 @@ export function App() {
       return;
     }
 
-    importTranscriptionDraftsToLiveLog(providerResult.drafts);
+    importTranscriptionDraftsToLiveLog(providerResult.drafts, providerResult.message);
   };
 
   const transcribeSelectedAudioFile = async (): Promise<void> => {
     if (!transcriptionAudioFile) {
       setTranscriptionImportError("音声ファイルを選択してください。");
+      setTranscriptionImportMessage(null);
       return;
     }
 
@@ -1189,10 +1199,11 @@ export function App() {
 
       if (!providerResult.ok) {
         setTranscriptionImportError(providerResult.message || "音声ファイルを文字起こしできません。");
+        setTranscriptionImportMessage(null);
         return;
       }
 
-      importTranscriptionDraftsToLiveLog(providerResult.drafts);
+      importTranscriptionDraftsToLiveLog(providerResult.drafts, providerResult.message);
     } finally {
       setIsExtracting(false);
     }
@@ -2019,6 +2030,7 @@ export function App() {
                           onChange={(event) => {
                             setTranscriptionAudioFile(event.target.files?.[0] ?? null);
                             setTranscriptionImportError(null);
+                            setTranscriptionImportMessage(null);
                             event.target.value = "";
                           }}
                         />
@@ -2037,6 +2049,7 @@ export function App() {
                             onClick={() => {
                               setTranscriptionAudioFile(null);
                               setTranscriptionImportError(null);
+                              setTranscriptionImportMessage(null);
                             }}
                             size="sm"
                             variant="ghost"
@@ -2093,6 +2106,11 @@ export function App() {
                         {transcriptionImportError}
                       </p>
                     )}
+                    {transcriptionImportMessage && (
+                      <p className="text-xs text-muted-foreground" role="status">
+                        {transcriptionImportMessage}
+                      </p>
+                    )}
                     <div className="flex flex-wrap gap-2">
                       <label
                         className={
@@ -2123,6 +2141,7 @@ export function App() {
                         onClick={() => {
                           setTranscriptionDraftJson(sampleTranscriptionDraftJson);
                           setTranscriptionImportError(null);
+                          setTranscriptionImportMessage(null);
                         }}
                         size="sm"
                         variant="ghost"
@@ -2135,6 +2154,7 @@ export function App() {
                         onClick={() => {
                           setTranscriptionDraftJson("");
                           setTranscriptionImportError(null);
+                          setTranscriptionImportMessage(null);
                         }}
                         size="sm"
                         variant="ghost"
