@@ -11,6 +11,7 @@ import {
   formatPrepNoteMarkdown,
   generatePrepNote,
   getCampaignSearchText,
+  getCampaignSummaryStats,
   getSessionSearchText,
   normalizeCampaignLibraryState,
   normalizeCampaignState,
@@ -266,6 +267,47 @@ describe("formatCampaignLibraryMarkdown", () => {
 
     expect(formatCampaignLibraryMarkdown(library)).toContain("## 1. 灰ヶ浦 [選択中]");
     expect(formatCampaignLibraryMarkdown(library)).toContain("- 第1夜 (2026-04-30) / 候補 1 / 採用 1");
+  });
+});
+
+describe("getCampaignSummaryStats", () => {
+  it("summarizes campaign sessions, memory, review, and transcript counts", () => {
+    const campaign = normalizeCampaignState({
+      chronicle: {
+        events: ["港に到着"],
+        npcs: [],
+        clues: [],
+        locations: [],
+        threads: [],
+      },
+      sessions: [
+        {
+          title: "第1夜",
+          date: "2026-04-30",
+          log: "",
+          liveLog: {
+            speakers: [{ id: "speaker-1", name: "GM", role: "GM" }],
+            segments: [
+              { id: "segment-1", speakerId: "speaker-1", startTimeSec: 0, endTimeSec: 5, text: "開始", confidence: 0.5 },
+              { id: "segment-2", speakerId: "speaker-1", startTimeSec: 6, endTimeSec: 8, text: " " },
+            ],
+          },
+          extractionItems: [
+            { id: "item-1", kind: "出来事", title: "開始", detail: "始まった", visibility: "PL既知" },
+          ],
+          approvedIds: ["item-1"],
+        },
+      ],
+    });
+
+    expect(getCampaignSummaryStats(campaign)).toMatchObject({
+      approvedCount: 1,
+      candidateCount: 1,
+      lowConfidenceSegmentCount: 1,
+      memoryCount: 1,
+      nonEmptySegmentCount: 1,
+      sessionCount: 1,
+    });
   });
 });
 

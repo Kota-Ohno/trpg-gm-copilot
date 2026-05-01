@@ -72,6 +72,36 @@ export function countChronicleItems(chronicle: Chronicle): number {
   );
 }
 
+export type CampaignSummaryStats = {
+  approvedCount: number;
+  candidateCount: number;
+  lowConfidenceSegmentCount: number;
+  memoryCount: number;
+  nonEmptySegmentCount: number;
+  sessionCount: number;
+};
+
+export function getCampaignSummaryStats(campaign: CampaignState): CampaignSummaryStats {
+  return {
+    approvedCount: campaign.sessions.reduce((total, session) => total + session.approvedIds.length, 0),
+    candidateCount: campaign.sessions.reduce((total, session) => total + session.extractionItems.length, 0),
+    lowConfidenceSegmentCount: campaign.sessions.reduce(
+      (total, session) =>
+        total +
+        session.liveLog.segments.filter(
+          (segment) => typeof segment.confidence === "number" && Number.isFinite(segment.confidence) && segment.confidence < 0.85,
+        ).length,
+      0,
+    ),
+    memoryCount: countChronicleItems(campaign.chronicle),
+    nonEmptySegmentCount: campaign.sessions.reduce(
+      (total, session) => total + session.liveLog.segments.filter((segment) => segment.text.trim().length > 0).length,
+      0,
+    ),
+    sessionCount: campaign.sessions.length,
+  };
+}
+
 export function getSessionSearchText(session: SessionState): string {
   return [
     session.title,
@@ -440,7 +470,7 @@ export function formatCampaignLibraryMarkdown(campaignLibrary: CampaignLibrarySt
     "",
     ...campaignLibrary.campaigns.flatMap((campaign, index) => {
       const isActive = campaign.id === campaignLibrary.activeCampaignId;
-      const memoryCount = countChronicleItems(campaign.chronicle);
+      const stats = getCampaignSummaryStats(campaign);
       const sessionLines = campaign.sessions.map(
         (session) =>
           `  - ${session.title} (${session.date}) / 候補 ${session.extractionItems.length} / 採用 ${session.approvedIds.length}`,
@@ -449,8 +479,10 @@ export function formatCampaignLibraryMarkdown(campaignLibrary: CampaignLibrarySt
       return [
         `## ${index + 1}. ${campaign.campaignName}${isActive ? " [選択中]" : ""}`,
         "",
-        `- セッション: ${campaign.sessions.length}`,
-        `- 記憶: ${memoryCount}`,
+        `- セッション: ${stats.sessionCount}`,
+        `- 記憶: ${stats.memoryCount}`,
+        `- 候補: ${stats.candidateCount}`,
+        `- 採用済み: ${stats.approvedCount}`,
         "",
         ...sessionLines,
         "",
@@ -460,11 +492,17 @@ export function formatCampaignLibraryMarkdown(campaignLibrary: CampaignLibrarySt
 }
 
 export function formatCampaignMarkdown(campaign: CampaignState): string {
+  const stats = getCampaignSummaryStats(campaign);
+
   return [
     `# ${campaign.campaignName.trim() || "キャンペーン"}`,
     "",
-    `- セッション: ${campaign.sessions.length}`,
-    `- 記憶: ${countChronicleItems(campaign.chronicle)}`,
+    `- セッション: ${stats.sessionCount}`,
+    `- 記憶: ${stats.memoryCount}`,
+    `- 候補: ${stats.candidateCount}`,
+    `- 採用済み: ${stats.approvedCount}`,
+    `- 話者付き発話: ${stats.nonEmptySegmentCount}`,
+    `- 要確認発話: ${stats.lowConfidenceSegmentCount}`,
     "",
     "## セッション",
     "",
