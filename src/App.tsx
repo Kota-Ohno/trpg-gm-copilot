@@ -117,6 +117,7 @@ const sessionTitleInputId = "active-session-title";
 const sessionDateInputId = "active-session-date";
 
 type LogInputMode = "plain" | "speaker";
+type SessionTranscriptionFilter = "all" | "transcribed" | "untranscribed";
 type ReviewKindFilter = "all" | ExtractionItem["kind"];
 type ReviewVisibilityFilter = "all" | ExtractionItem["visibility"];
 type ConfirmationRequest = {
@@ -359,6 +360,7 @@ export function App() {
   const [showInvalidReviewItemsOnly, setShowInvalidReviewItemsOnly] = useState(false);
   const [campaignQuery, setCampaignQuery] = useState("");
   const [sessionQuery, setSessionQuery] = useState("");
+  const [sessionTranscriptionFilter, setSessionTranscriptionFilter] = useState<SessionTranscriptionFilter>("all");
   const [transcriptionAudioFile, setTranscriptionAudioFile] = useState<File | null>(null);
   const [transcriptionDraftJson, setTranscriptionDraftJson] = useState("");
   const [transcriptionImportError, setTranscriptionImportError] = useState<string | null>(null);
@@ -489,11 +491,17 @@ export function App() {
       )
     : campaignLibrary.campaigns;
   const normalizedSessionQuery = sessionQuery.trim().toLowerCase();
-  const visibleSessions = normalizedSessionQuery
-    ? campaignState.sessions.filter((session) =>
-        getSessionSearchText(session).toLowerCase().includes(normalizedSessionQuery),
-      )
-    : campaignState.sessions;
+  const visibleSessions = campaignState.sessions.filter((session) => {
+    if (sessionTranscriptionFilter === "transcribed" && !session.transcriptionRun) {
+      return false;
+    }
+
+    if (sessionTranscriptionFilter === "untranscribed" && session.transcriptionRun) {
+      return false;
+    }
+
+    return !normalizedSessionQuery || getSessionSearchText(session).toLowerCase().includes(normalizedSessionQuery);
+  });
   const canExtractLog =
     logInputMode === "plain"
       ? summarizePlainLog(log).speakerLineCount > 0
@@ -1790,7 +1798,7 @@ export function App() {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <label className="text-xs font-medium text-muted-foreground">セッション</label>
-                {normalizedSessionQuery && (
+                {(normalizedSessionQuery || sessionTranscriptionFilter !== "all") && (
                   <Badge variant="muted">{visibleSessions.length}/{campaignState.sessions.length}</Badge>
                 )}
               </div>
@@ -1809,6 +1817,23 @@ export function App() {
                 value={sessionQuery}
                 onChange={(event) => setSessionQuery(event.target.value)}
               />
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {[
+                { value: "all", label: "すべて" },
+                { value: "transcribed", label: "文字起こし済み" },
+                { value: "untranscribed", label: "未文字起こし" },
+              ].map((option) => (
+                <Button
+                  disabled={isExtracting}
+                  key={option.value}
+                  onClick={() => setSessionTranscriptionFilter(option.value as SessionTranscriptionFilter)}
+                  size="sm"
+                  variant={sessionTranscriptionFilter === option.value ? "default" : "outline"}
+                >
+                  {option.label}
+                </Button>
+              ))}
             </div>
             <div className="space-y-1">
               {visibleSessions.map((session) => (
