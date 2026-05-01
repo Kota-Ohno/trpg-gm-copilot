@@ -105,6 +105,7 @@ export function liveLogToPlainText(liveLog: LiveLogSession): string {
 export function formatSpeakerLogMarkdown(liveLog: LiveLogSession, title: string): string {
   const summary = summarizeLiveLog(liveLog);
   const speakerUsage = summarizeSpeakerUsage(liveLog);
+  const issues = getSpeakerLogIssues(liveLog);
   const lines = [...liveLog.segments]
     .sort((first, second) => first.startTimeSec - second.startTimeSec)
     .filter((segment) => segment.text.trim().length > 0)
@@ -125,12 +126,19 @@ export function formatSpeakerLogMarkdown(liveLog: LiveLogSession, title: string)
     `- 話者: ${summary.usedSpeakerCount}`,
     `- 合計時間: ${formatTimestamp(summary.totalDurationSec)}`,
     ...(summary.averageConfidence !== null ? [`- 平均信頼度: ${Math.round(summary.averageConfidence * 100)}%`] : []),
+    ...(issues.length > 0 ? [`- 確認項目: ${issues.length}`] : []),
     "",
     "## 話者",
     "",
     ...(speakerUsage.length > 0
       ? speakerUsage.map((speaker) => `- ${speaker.speakerName} (${speaker.speakerRole}): ${speaker.segmentCount}発話`)
       : ["- 話者はありません。"]),
+    "",
+    "## 確認項目",
+    "",
+    ...(issues.length > 0
+      ? issues.map((issue) => `- ${issue.label}: ${issue.detail}`)
+      : ["- 確認項目はありません。"]),
     "",
     "## 発話",
     "",

@@ -288,7 +288,10 @@ describe("formatSpeakerLogMarkdown", () => {
 
     expect(markdown).toContain("# 第1夜 話者ログ");
     expect(markdown).toContain("- 発話: 2");
+    expect(markdown).toContain("- 確認項目: 3");
     expect(markdown).toContain("- GM (GM): 1発話");
+    expect(markdown).toContain("## 確認項目");
+    expect(markdown).toContain("- 低信頼: 信頼度 70% の発話です。");
     expect(markdown).toContain("- [00:00] **GM**: 足音が聞こえる / 信頼度 70%");
   });
 });
