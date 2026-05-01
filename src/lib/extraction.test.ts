@@ -108,6 +108,14 @@ describe("normalizeTranscriptionDrafts", () => {
       { speakerName: "PL", startTimeSec: 5, endTimeSec: 7, text: "調べます", confidence: 0.8 },
     ]);
   });
+
+  it("converts millisecond timing aliases to seconds", () => {
+    expect(normalizeTranscriptionDrafts([
+      { speakerName: "GM", start_ms: 1500, end_ms: 4200, text: "鐘が鳴る" },
+    ])).toEqual([
+      { speakerName: "GM", startTimeSec: 1.5, endTimeSec: 4.2, text: "鐘が鳴る" },
+    ]);
+  });
 });
 
 describe("previewTranscriptionDraftPayload", () => {

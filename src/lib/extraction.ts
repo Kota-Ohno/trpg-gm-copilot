@@ -716,6 +716,16 @@ function readDraftNumber(draft: Record<string, unknown>, keys: string[]): number
   return undefined;
 }
 
+function readDraftSeconds(draft: Record<string, unknown>, secondKeys: string[], millisecondKeys: string[]): number | undefined {
+  const secondValue = readDraftNumber(draft, secondKeys);
+  if (typeof secondValue === "number") {
+    return secondValue;
+  }
+
+  const millisecondValue = readDraftNumber(draft, millisecondKeys);
+  return typeof millisecondValue === "number" ? millisecondValue / 1000 : undefined;
+}
+
 export function normalizeTranscriptionDrafts(value: unknown): TranscriptionSegmentDraft[] | null {
   const draftItems = Array.isArray(value)
     ? value
@@ -740,8 +750,8 @@ export function normalizeTranscriptionDrafts(value: unknown): TranscriptionSegme
       return [];
     }
     const speakerName = readDraftString(draft, ["speakerName", "speaker", "speaker_name", "speakerLabel"]);
-    const startTimeSec = readDraftNumber(draft, ["startTimeSec", "start", "start_time", "startSec"]);
-    const endTimeSec = readDraftNumber(draft, ["endTimeSec", "end", "end_time", "endSec"]);
+    const startTimeSec = readDraftSeconds(draft, ["startTimeSec", "start", "start_time", "startSec"], ["startTimeMs", "start_ms", "startMs"]);
+    const endTimeSec = readDraftSeconds(draft, ["endTimeSec", "end", "end_time", "endSec"], ["endTimeMs", "end_ms", "endMs"]);
     const confidence = readDraftNumber(draft, ["confidence", "probability", "score"]);
 
     return [{
