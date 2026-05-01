@@ -120,4 +120,26 @@ describe("runTranscriptionProvider", () => {
       }),
     );
   });
+
+  it("rejects OpenAI audio files over 25 MB before fetch", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(runTranscriptionProvider({
+      audioFile: new File([new Blob([new Uint8Array(25 * 1024 * 1024 + 1)])], "large.wav"),
+      secrets: { openAiApiKey: "sk-test" },
+      settings: {
+        providerId: "openai",
+        model: "gpt-4o-mini-transcribe",
+        endpoint: "https://api.openai.com/v1",
+        language: "ja",
+      },
+    })).resolves.toMatchObject({
+      drafts: [],
+      message: "OpenAI文字起こしの音声ファイルは25MB以下にしてください。",
+      ok: false,
+      providerLabel: "OpenAI",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

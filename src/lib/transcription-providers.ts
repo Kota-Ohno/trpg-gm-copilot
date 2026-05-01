@@ -3,6 +3,8 @@ import { getTranscriptionProvider } from "./extraction-provider-settings";
 import { normalizeTranscriptionDrafts } from "./extraction";
 import type { TranscriptionSegmentDraft } from "../types";
 
+export const maxTranscriptionAudioFileSizeBytes = 25 * 1024 * 1024;
+
 export type TranscriptionProviderCheckResult = {
   ok: boolean;
   message: string;
@@ -140,6 +142,15 @@ export async function runTranscriptionProvider(
       return {
         drafts: [],
         message: "OpenAI文字起こしには音声ファイルが必要です。",
+        ok: false,
+        providerLabel: provider.label,
+      };
+    }
+
+    if (request.audioFile.size > maxTranscriptionAudioFileSizeBytes) {
+      return {
+        drafts: [],
+        message: "OpenAI文字起こしの音声ファイルは25MB以下にしてください。",
         ok: false,
         providerLabel: provider.label,
       };
