@@ -671,8 +671,10 @@ export function App() {
     downloadJsonFile({
       exportedAt: new Date().toISOString(),
       campaignName,
+      sessionId: currentSession.id,
       sessionTitle: currentSession.title,
       segmentCount: drafts.length,
+      transcriptionRun: currentSession.transcriptionRun,
       segments: drafts,
     }, createExportFileName(`${currentSession.title}-transcription-draft`));
     setTranscriptionImportError(null);
