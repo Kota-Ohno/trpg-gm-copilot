@@ -642,11 +642,15 @@ export function App() {
     );
   };
 
-  const exportVisibleSpeakerSegments = (segments: TranscriptSegment[]): void => {
+  const exportVisibleSpeakerSegments = (
+    segments: TranscriptSegment[],
+    filters: Record<string, string | boolean> = {},
+  ): void => {
     downloadJsonFile({
       exportedAt: new Date().toISOString(),
       campaignName,
       sessionTitle: currentSession.title,
+      filters,
       ...buildSpeakerSegmentExport(currentSession.liveLog, segments),
     }, createExportFileName(`${currentSession.title}-visible-speaker-segments`));
   };

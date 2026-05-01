@@ -36,7 +36,7 @@ type SpeakerLogEditorProps = {
   onDeleteSegment: (segmentId: string) => void;
   onDuplicateSegment: (segmentId: string) => void;
   onExtract: () => void | Promise<void>;
-  onExportVisibleSegments: (segments: TranscriptSegment[]) => void;
+  onExportVisibleSegments: (segments: TranscriptSegment[], filters: Record<string, string | boolean>) => void;
   onMergeAdjacentSegments: () => void;
   onNormalizeTiming: () => void;
   onReset: () => void;
@@ -317,7 +317,17 @@ export function SpeakerLogEditor({
             )}
             <Button
               disabled={isExtracting || visibleSegments.length === 0}
-              onClick={() => onExportVisibleSegments(visibleSegments)}
+              onClick={() =>
+                onExportVisibleSegments(visibleSegments, {
+                  emptyOnly: showEmptySegmentsOnly,
+                  lowConfidenceOnly: showLowConfidenceOnly,
+                  query: segmentQuery.trim(),
+                  speaker:
+                    speakerFilterId === "all"
+                      ? "all"
+                      : liveLog.speakers.find((speaker) => speaker.id === speakerFilterId)?.name ?? "unknown",
+                })
+              }
               size="sm"
               variant="outline"
             >
