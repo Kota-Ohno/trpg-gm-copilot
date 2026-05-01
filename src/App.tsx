@@ -63,6 +63,7 @@ import {
   formatReviewItemsMarkdown,
   formatSessionMarkdown,
   formatSpeakerLogMarkdown,
+  getSpeakerLogIssues,
   liveLogToTranscriptionDrafts,
   liveLogToPlainText,
   normalizeExtractionItemText,
@@ -1710,6 +1711,7 @@ export function App() {
               {visibleSessions.map((session) => (
                 (() => {
                   const liveLogSummary = summarizeLiveLog(session.liveLog);
+                  const speakerIssueCount = getSpeakerLogIssues(session.liveLog).length;
 
                   return (
                     <div
@@ -1735,6 +1737,7 @@ export function App() {
                             ? ` / 平均${Math.round(liveLogSummary.averageConfidence * 100)}%`
                             : ""}
                           {liveLogSummary.lowConfidenceCount > 0 ? ` / 要確認${liveLogSummary.lowConfidenceCount}` : ""}
+                          {speakerIssueCount > 0 ? ` / ログ確認${speakerIssueCount}` : ""}
                         </span>
                       </button>
                       <Button
