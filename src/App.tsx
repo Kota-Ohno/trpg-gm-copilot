@@ -68,7 +68,6 @@ import {
   liveLogToPlainText,
   normalizeExtractionItemText,
   normalizeTranscriptTextSpacing,
-  normalizeTranscriptionDrafts,
   mergeAdjacentTranscriptSegments,
   normalizeTranscriptSegmentTiming,
   parsePlainLogToLiveLog,
@@ -85,7 +84,7 @@ import {
   transcriptionProviders,
 } from "./lib/extraction-provider-settings";
 import { runExtractionProvider } from "./lib/extraction-providers";
-import { checkTranscriptionProviderReadiness } from "./lib/transcription-providers";
+import { checkTranscriptionProviderReadiness, runTranscriptionProvider } from "./lib/transcription-providers";
 import type {
   CampaignState,
   CampaignLibraryState,
@@ -1091,67 +1090,62 @@ export function App() {
     setLogInputMode("speaker");
   };
 
-  const appendTranscriptionDraftJson = (): void => {
-    try {
-      const parsedDrafts = JSON.parse(transcriptionDraftJson) as unknown;
-      const normalizedDrafts = normalizeTranscriptionDrafts(parsedDrafts);
-      if (!normalizedDrafts || normalizedDrafts.length === 0) {
-        setTranscriptionImportError("追記できる発話ドラフトがありません。");
-        return;
-      }
+  const appendTranscriptionDraftJson = async (): Promise<void> => {
+    const providerResult = await runTranscriptionProvider({
+      draftJson: transcriptionDraftJson,
+      secrets: providerSecrets,
+      settings: transcriptionProvider,
+    });
 
-      const appendedLiveLog = appendTranscriptionDraftsToLiveLog(currentSession.liveLog, normalizedDrafts);
-      if (!appendedLiveLog) {
-        setTranscriptionImportError("追記できる発話本文がありません。");
-        return;
-      }
-
-      updateCurrentSession({ liveLog: appendedLiveLog });
-      setTranscriptionDraftJson("");
-      setTranscriptionImportError(null);
-      setLogInputMode("speaker");
-    } catch {
-      setTranscriptionImportError("JSONとして読み込めません。");
+    if (!providerResult.ok) {
+      setTranscriptionImportError(providerResult.message || "追記できる発話ドラフトがありません。");
+      return;
     }
+
+    const appendedLiveLog = appendTranscriptionDraftsToLiveLog(currentSession.liveLog, providerResult.drafts);
+    if (!appendedLiveLog) {
+      setTranscriptionImportError("追記できる発話本文がありません。");
+      return;
+    }
+
+    updateCurrentSession({ liveLog: appendedLiveLog });
+    setTranscriptionDraftJson("");
+    setTranscriptionImportError(null);
+    setLogInputMode("speaker");
   };
 
-  const importTranscriptionDraftJson = (): void => {
-    try {
-      const parsedDrafts = JSON.parse(transcriptionDraftJson) as unknown;
-      const normalizedDrafts = normalizeTranscriptionDrafts(parsedDrafts);
-      if (!normalizedDrafts) {
-        setTranscriptionImportError("文字起こしドラフトは配列JSON、またはsegments配列を持つJSONで入力してください。");
-        return;
-      }
+  const importTranscriptionDraftJson = async (): Promise<void> => {
+    const providerResult = await runTranscriptionProvider({
+      draftJson: transcriptionDraftJson,
+      secrets: providerSecrets,
+      settings: transcriptionProvider,
+    });
 
-      if (normalizedDrafts.length === 0) {
-        setTranscriptionImportError("textを持つ発話ドラフトがありません。");
-        return;
-      }
-
-      const liveLogFromDrafts = transcriptionDraftsToLiveLog(
-        normalizedDrafts,
-        `${currentSession.title} 文字起こし`,
-      );
-      if (!liveLogFromDrafts) {
-        setTranscriptionImportError("取り込める発話本文がありません。");
-        return;
-      }
-
-      if (currentSession.liveLog.segments.some((segment) => segment.text.trim())) {
-        setConfirmation({
-          title: "話者ログを置き換えますか",
-          message: "現在の話者ログを、文字起こしドラフトから作成したログで置き換えます。",
-          confirmLabel: "置き換える",
-          onConfirm: () => applyImportedTranscriptionDraftLog(liveLogFromDrafts),
-        });
-        return;
-      }
-
-      applyImportedTranscriptionDraftLog(liveLogFromDrafts);
-    } catch {
-      setTranscriptionImportError("JSONとして読み込めません。");
+    if (!providerResult.ok) {
+      setTranscriptionImportError(providerResult.message || "文字起こしドラフトを読み込めません。");
+      return;
     }
+
+    const liveLogFromDrafts = transcriptionDraftsToLiveLog(
+      providerResult.drafts,
+      `${currentSession.title} 文字起こし`,
+    );
+    if (!liveLogFromDrafts) {
+      setTranscriptionImportError("取り込める発話本文がありません。");
+      return;
+    }
+
+    if (currentSession.liveLog.segments.some((segment) => segment.text.trim())) {
+      setConfirmation({
+        title: "話者ログを置き換えますか",
+        message: "現在の話者ログを、文字起こしドラフトから作成したログで置き換えます。",
+        confirmLabel: "置き換える",
+        onConfirm: () => applyImportedTranscriptionDraftLog(liveLogFromDrafts),
+      });
+      return;
+    }
+
+    applyImportedTranscriptionDraftLog(liveLogFromDrafts);
   };
 
   const importTranscriptionDraftFile = async (file: File): Promise<void> => {
