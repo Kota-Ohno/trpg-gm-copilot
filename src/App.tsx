@@ -85,7 +85,11 @@ import {
   transcriptionProviders,
 } from "./lib/extraction-provider-settings";
 import { runExtractionProvider } from "./lib/extraction-providers";
-import { checkTranscriptionProviderReadiness, runTranscriptionProvider } from "./lib/transcription-providers";
+import {
+  checkTranscriptionProviderReadiness,
+  maxTranscriptionAudioFileSizeBytes,
+  runTranscriptionProvider,
+} from "./lib/transcription-providers";
 import type {
   CampaignState,
   CampaignLibraryState,
@@ -270,6 +274,14 @@ function readSessionImportPayload(parsedState: unknown): unknown | null {
   }
 
   return null;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  }
+
+  return `${Math.max(1, Math.round(bytes / 1024))}KB`;
 }
 
 function loadProviderSecrets(): ProviderSecretSettings {
@@ -2011,7 +2023,29 @@ export function App() {
                           }}
                         />
                       </label>
-                      {transcriptionAudioFile && <Badge variant="muted">{transcriptionAudioFile.name}</Badge>}
+                      {transcriptionAudioFile && (
+                        <>
+                          <Badge
+                            variant={
+                              transcriptionAudioFile.size > maxTranscriptionAudioFileSizeBytes ? "destructive" : "muted"
+                            }
+                          >
+                            {transcriptionAudioFile.name} / {formatFileSize(transcriptionAudioFile.size)}
+                          </Badge>
+                          <Button
+                            disabled={isExtracting}
+                            onClick={() => {
+                              setTranscriptionAudioFile(null);
+                              setTranscriptionImportError(null);
+                            }}
+                            size="sm"
+                            variant="ghost"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            音声を解除
+                          </Button>
+                        </>
+                      )}
                       <Button
                         disabled={!canRunAudioTranscription}
                         onClick={transcribeSelectedAudioFile}
