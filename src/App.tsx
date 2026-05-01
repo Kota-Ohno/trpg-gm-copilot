@@ -19,6 +19,7 @@ import {
   Swords,
   Trash2,
   UserRound,
+  Wand2,
 } from "lucide-react";
 import { ChronicleView } from "./components/chronicle-view";
 import { ExtractionReviewCard } from "./components/extraction-review-card";
@@ -104,6 +105,7 @@ const CAMPAIGN_LIBRARY_STORAGE_KEY = "chronicle-gm.campaign-library.v1";
 const PROVIDER_SECRETS_STORAGE_KEY = "chronicle-gm.provider-secrets.v1";
 const campaignNameInputId = "campaign-name";
 const campaignImportInputId = "campaign-json-import";
+const transcriptionAudioInputId = "transcription-audio-import";
 const transcriptionDraftImportInputId = "transcription-draft-json-import";
 const sessionTitleInputId = "active-session-title";
 const sessionDateInputId = "active-session-date";
@@ -343,6 +345,7 @@ export function App() {
   const [showInvalidReviewItemsOnly, setShowInvalidReviewItemsOnly] = useState(false);
   const [campaignQuery, setCampaignQuery] = useState("");
   const [sessionQuery, setSessionQuery] = useState("");
+  const [transcriptionAudioFile, setTranscriptionAudioFile] = useState<File | null>(null);
   const [transcriptionDraftJson, setTranscriptionDraftJson] = useState("");
   const [transcriptionImportError, setTranscriptionImportError] = useState<string | null>(null);
   const [storageError, setStorageError] = useState<string | null>(null);
@@ -378,6 +381,11 @@ export function App() {
     () => checkTranscriptionProviderReadiness(transcriptionProvider, providerSecrets),
     [providerSecrets, transcriptionProvider],
   );
+  const canRunAudioTranscription =
+    Boolean(transcriptionAudioFile) &&
+    transcriptionProvider.providerId === "openai" &&
+    transcriptionProviderReadiness.ok &&
+    !isExtracting;
 
   const approvedCount = approvedIds.length;
   const remainingCount = items.length - approvedCount;
@@ -1085,9 +1093,33 @@ export function App() {
 
   const applyImportedTranscriptionDraftLog = (liveLogFromDrafts: LiveLogSession): void => {
     updateCurrentSession({ liveLog: liveLogFromDrafts });
+    setTranscriptionAudioFile(null);
     setTranscriptionDraftJson("");
     setTranscriptionImportError(null);
     setLogInputMode("speaker");
+  };
+
+  const importTranscriptionDraftsToLiveLog = (drafts: Parameters<typeof transcriptionDraftsToLiveLog>[0]): void => {
+    const liveLogFromDrafts = transcriptionDraftsToLiveLog(
+      drafts,
+      `${currentSession.title} 文字起こし`,
+    );
+    if (!liveLogFromDrafts) {
+      setTranscriptionImportError("取り込める発話本文がありません。");
+      return;
+    }
+
+    if (currentSession.liveLog.segments.some((segment) => segment.text.trim())) {
+      setConfirmation({
+        title: "話者ログを置き換えますか",
+        message: "現在の話者ログを、文字起こしドラフトから作成したログで置き換えます。",
+        confirmLabel: "置き換える",
+        onConfirm: () => applyImportedTranscriptionDraftLog(liveLogFromDrafts),
+      });
+      return;
+    }
+
+    applyImportedTranscriptionDraftLog(liveLogFromDrafts);
   };
 
   const appendTranscriptionDraftJson = async (): Promise<void> => {
@@ -1126,26 +1158,32 @@ export function App() {
       return;
     }
 
-    const liveLogFromDrafts = transcriptionDraftsToLiveLog(
-      providerResult.drafts,
-      `${currentSession.title} 文字起こし`,
-    );
-    if (!liveLogFromDrafts) {
-      setTranscriptionImportError("取り込める発話本文がありません。");
+    importTranscriptionDraftsToLiveLog(providerResult.drafts);
+  };
+
+  const transcribeSelectedAudioFile = async (): Promise<void> => {
+    if (!transcriptionAudioFile) {
+      setTranscriptionImportError("音声ファイルを選択してください。");
       return;
     }
 
-    if (currentSession.liveLog.segments.some((segment) => segment.text.trim())) {
-      setConfirmation({
-        title: "話者ログを置き換えますか",
-        message: "現在の話者ログを、文字起こしドラフトから作成したログで置き換えます。",
-        confirmLabel: "置き換える",
-        onConfirm: () => applyImportedTranscriptionDraftLog(liveLogFromDrafts),
+    setIsExtracting(true);
+    try {
+      const providerResult = await runTranscriptionProvider({
+        audioFile: transcriptionAudioFile,
+        secrets: providerSecrets,
+        settings: transcriptionProvider,
       });
-      return;
-    }
 
-    applyImportedTranscriptionDraftLog(liveLogFromDrafts);
+      if (!providerResult.ok) {
+        setTranscriptionImportError(providerResult.message || "音声ファイルを文字起こしできません。");
+        return;
+      }
+
+      importTranscriptionDraftsToLiveLog(providerResult.drafts);
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   const importTranscriptionDraftFile = async (file: File): Promise<void> => {
@@ -1949,6 +1987,41 @@ export function App() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2 rounded-md border bg-background p-3">
+                      <label
+                        className={
+                          isExtracting
+                            ? "inline-flex h-8 cursor-not-allowed items-center justify-center gap-2 rounded-md px-3 text-xs font-medium opacity-50"
+                            : "inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md px-3 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                        }
+                        htmlFor={transcriptionAudioInputId}
+                      >
+                        <Upload className="h-4 w-4" />
+                        音声ファイル
+                        <input
+                          accept="audio/*,.mp3,.mp4,.mpeg,.mpga,.m4a,.wav,.webm"
+                          className="sr-only"
+                          disabled={isExtracting}
+                          id={transcriptionAudioInputId}
+                          type="file"
+                          onChange={(event) => {
+                            setTranscriptionAudioFile(event.target.files?.[0] ?? null);
+                            setTranscriptionImportError(null);
+                            event.target.value = "";
+                          }}
+                        />
+                      </label>
+                      {transcriptionAudioFile && <Badge variant="muted">{transcriptionAudioFile.name}</Badge>}
+                      <Button
+                        disabled={!canRunAudioTranscription}
+                        onClick={transcribeSelectedAudioFile}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Wand2 className="h-4 w-4" />
+                        OpenAIで文字起こし
+                      </Button>
+                    </div>
                     <Textarea
                       aria-label="文字起こしドラフトJSON"
                       className="min-h-[120px] font-mono text-xs"
