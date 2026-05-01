@@ -106,6 +106,7 @@ const sessionDateInputId = "active-session-date";
 
 type LogInputMode = "plain" | "speaker";
 type ReviewKindFilter = "all" | ExtractionItem["kind"];
+type ReviewVisibilityFilter = "all" | ExtractionItem["visibility"];
 type ConfirmationRequest = {
   title: string;
   message: string;
@@ -183,6 +184,13 @@ const reviewKindOptions: Array<{ value: ReviewKindFilter; label: string }> = [
   { value: "手がかり", label: "手がかり" },
   { value: "GM秘密", label: "GM秘密" },
   { value: "伏線", label: "伏線" },
+];
+
+const reviewVisibilityOptions: Array<{ value: ReviewVisibilityFilter; label: string }> = [
+  { value: "all", label: "全公開範囲" },
+  { value: "PL既知", label: "PL既知" },
+  { value: "GMのみ", label: "GMのみ" },
+  { value: "未開示候補", label: "未開示候補" },
 ];
 
 const transcriptionLanguageOptions = [
@@ -305,6 +313,7 @@ export function App() {
   const [campaignLibrary, setCampaignLibrary] = useState<CampaignLibraryState>(loadCampaignLibraryState);
   const [showApprovedReviewItems, setShowApprovedReviewItems] = useState(true);
   const [reviewKindFilter, setReviewKindFilter] = useState<ReviewKindFilter>("all");
+  const [reviewVisibilityFilter, setReviewVisibilityFilter] = useState<ReviewVisibilityFilter>("all");
   const [reviewQuery, setReviewQuery] = useState("");
   const [showInvalidReviewItemsOnly, setShowInvalidReviewItemsOnly] = useState(false);
   const [campaignQuery, setCampaignQuery] = useState("");
@@ -361,6 +370,10 @@ export function App() {
       return false;
     }
 
+    if (reviewVisibilityFilter !== "all" && item.visibility !== reviewVisibilityFilter) {
+      return false;
+    }
+
     if (showInvalidReviewItemsOnly && item.title.trim() && item.detail.trim()) {
       return false;
     }
@@ -374,6 +387,7 @@ export function App() {
   });
   const hasReviewFilter =
     reviewKindFilter !== "all" ||
+    reviewVisibilityFilter !== "all" ||
     !showApprovedReviewItems ||
     showInvalidReviewItemsOnly ||
     normalizedReviewQuery.length > 0;
@@ -396,6 +410,21 @@ export function App() {
       手がかり: 0,
       GM秘密: 0,
       伏線: 0,
+    },
+  );
+  const reviewVisibilityCounts = reviewVisibilityOptions.reduce<Record<ReviewVisibilityFilter, number>>(
+    (counts, option) => ({
+      ...counts,
+      [option.value]:
+        option.value === "all"
+          ? items.length
+          : items.filter((item) => item.visibility === option.value).length,
+    }),
+    {
+      all: 0,
+      PL既知: 0,
+      GMのみ: 0,
+      未開示候補: 0,
     },
   );
   const normalizedCampaignQuery = campaignQuery.trim().toLowerCase();
@@ -620,6 +649,7 @@ export function App() {
       sessionTitle: currentSession.title,
       filters: {
         kind: reviewKindFilter,
+        visibility: reviewVisibilityFilter,
         query: reviewQuery.trim(),
         showApproved: showApprovedReviewItems,
         invalidOnly: showInvalidReviewItemsOnly,
@@ -2001,6 +2031,17 @@ export function App() {
                               </option>
                             ))}
                           </select>
+                          <select
+                            className="h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            value={reviewVisibilityFilter}
+                            onChange={(event) => setReviewVisibilityFilter(event.target.value as ReviewVisibilityFilter)}
+                          >
+                            {reviewVisibilityOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label} ({reviewVisibilityCounts[option.value]})
+                              </option>
+                            ))}
+                          </select>
                           <Button
                             onClick={() => setShowApprovedReviewItems((current) => !current)}
                             size="sm"
@@ -2029,6 +2070,7 @@ export function App() {
                             disabled={!hasReviewFilter}
                             onClick={() => {
                               setReviewKindFilter("all");
+                              setReviewVisibilityFilter("all");
                               setReviewQuery("");
                               setShowApprovedReviewItems(true);
                               setShowInvalidReviewItemsOnly(false);
@@ -2096,6 +2138,11 @@ export function App() {
                             {reviewKindFilter !== "all" && (
                               <Button onClick={() => setReviewKindFilter("all")} size="sm" variant="outline">
                                 種別フィルタを解除
+                              </Button>
+                            )}
+                            {reviewVisibilityFilter !== "all" && (
+                              <Button onClick={() => setReviewVisibilityFilter("all")} size="sm" variant="outline">
+                                公開範囲フィルタを解除
                               </Button>
                             )}
                             {showInvalidReviewItemsOnly && (
