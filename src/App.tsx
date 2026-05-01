@@ -61,6 +61,7 @@ import {
   buildSpeakerSegmentExport,
   formatReviewItemsMarkdown,
   formatSessionMarkdown,
+  formatSpeakerLogMarkdown,
   liveLogToTranscriptionDrafts,
   liveLogToPlainText,
   normalizeTranscriptionDrafts,
@@ -630,6 +631,14 @@ export function App() {
       text,
       `${createExportFileName(`${currentSession.title}-speaker-log`).replace(/\.json$/, "")}.txt`,
       "text/plain;charset=utf-8",
+    );
+  };
+
+  const exportSpeakerLogMarkdown = (): void => {
+    downloadTextFile(
+      formatSpeakerLogMarkdown(currentSession.liveLog, `${currentSession.title} 話者付きログ`),
+      `${createExportFileName(`${currentSession.title}-speaker-log`).replace(/\.json$/, "")}.md`,
+      "text/markdown;charset=utf-8",
     );
   };
 
@@ -1923,6 +1932,15 @@ export function App() {
                       >
                         <FileText className="h-4 w-4" />
                         テキスト書き出し
+                      </Button>
+                      <Button
+                        disabled={isExtracting || currentSession.liveLog.segments.every((segment) => !segment.text.trim())}
+                        onClick={exportSpeakerLogMarkdown}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <FileText className="h-4 w-4" />
+                        Markdown
                       </Button>
                       <Badge variant="muted">draft-v1</Badge>
                     </div>

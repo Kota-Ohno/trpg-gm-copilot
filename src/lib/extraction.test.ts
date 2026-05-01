@@ -5,6 +5,7 @@ import {
   buildExtractionInput,
   formatReviewItemsMarkdown,
   formatSessionMarkdown,
+  formatSpeakerLogMarkdown,
   liveLogToPlainText,
   liveLogToTranscriptionDrafts,
   mergeAdjacentTranscriptSegments,
@@ -273,6 +274,16 @@ describe("liveLogToPlainText", () => {
       "[00:00] GM: 足音が聞こえる",
       "[00:08] アキラ: 調べます",
     ].join("\n"));
+  });
+});
+
+describe("formatSpeakerLogMarkdown", () => {
+  it("formats speaker logs with timestamps and confidence", () => {
+    const markdown = formatSpeakerLogMarkdown(summaryLiveLog, "第1夜 話者ログ");
+
+    expect(markdown).toContain("# 第1夜 話者ログ");
+    expect(markdown).toContain("- 発話: 2");
+    expect(markdown).toContain("- [00:00] **GM**: 足音が聞こえる / 信頼度 70%");
   });
 });
 

@@ -87,6 +87,35 @@ export function liveLogToPlainText(liveLog: LiveLogSession): string {
     .join("\n");
 }
 
+export function formatSpeakerLogMarkdown(liveLog: LiveLogSession, title: string): string {
+  const summary = summarizeLiveLog(liveLog);
+  const lines = [...liveLog.segments]
+    .sort((first, second) => first.startTimeSec - second.startTimeSec)
+    .filter((segment) => segment.text.trim().length > 0)
+    .map((segment) => {
+      const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
+      const confidence =
+        typeof segment.confidence === "number" && Number.isFinite(segment.confidence)
+          ? ` / 信頼度 ${Math.round(Math.max(0, Math.min(1, segment.confidence)) * 100)}%`
+          : "";
+
+      return `- [${formatTimestamp(segment.startTimeSec)}] **${speaker?.name ?? "話者不明"}**: ${segment.text.trim()}${confidence}`;
+    });
+
+  return [
+    `# ${title.trim() || liveLog.title || "話者付きログ"}`,
+    "",
+    `- 発話: ${summary.nonEmptySegmentCount}`,
+    `- 話者: ${summary.usedSpeakerCount}`,
+    `- 合計時間: ${formatTimestamp(summary.totalDurationSec)}`,
+    ...(summary.averageConfidence !== null ? [`- 平均信頼度: ${Math.round(summary.averageConfidence * 100)}%`] : []),
+    "",
+    "## 発話",
+    "",
+    ...(lines.length > 0 ? lines : ["- 発話はありません。"]),
+  ].join("\n").trimEnd();
+}
+
 export function formatReviewItemsMarkdown(items: ExtractionItem[], title: string, approvedIds: string[] = []): string {
   const visibleItems = items.filter((item) => item.title.trim() || item.detail.trim());
   const approvedIdSet = new Set(approvedIds);
