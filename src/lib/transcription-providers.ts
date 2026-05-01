@@ -69,6 +69,31 @@ function normalizeTranscriptionResponse(value: unknown): TranscriptionSegmentDra
   return [];
 }
 
+async function readTranscriptionErrorMessage(response: Response): Promise<string> {
+  const contentType = response.headers.get("content-type") ?? "";
+  const fallbackMessage = `OpenAI文字起こしAPIが失敗しました。status: ${response.status}`;
+
+  if (contentType.includes("application/json")) {
+    try {
+      const payload = await response.json() as unknown;
+      if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+        const error = (payload as { error?: unknown }).error;
+        if (error && typeof error === "object" && !Array.isArray(error)) {
+          const message = (error as { message?: unknown }).message;
+          if (typeof message === "string" && message.trim()) {
+            return message.trim();
+          }
+        }
+      }
+    } catch {
+      return fallbackMessage;
+    }
+  }
+
+  const errorText = await response.text();
+  return errorText.trim() || fallbackMessage;
+}
+
 export function hasWebSpeechRecognitionSupport(value: unknown): boolean {
   return (
     typeof value === "object" &&
@@ -206,10 +231,9 @@ export async function runTranscriptionProvider(
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
         return {
           drafts: [],
-          message: errorText.trim() || `OpenAI文字起こしAPIが失敗しました。status: ${response.status}`,
+          message: await readTranscriptionErrorMessage(response),
           ok: false,
           providerLabel: provider.label,
         };

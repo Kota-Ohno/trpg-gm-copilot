@@ -160,4 +160,27 @@ describe("runTranscriptionProvider", () => {
     });
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("extracts OpenAI error messages from JSON responses", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      JSON.stringify({ error: { message: "音声を読み取れません" } }),
+      { headers: { "content-type": "application/json" }, status: 400 },
+    )));
+
+    await expect(runTranscriptionProvider({
+      audioFile: new File(["audio"], "session.wav", { type: "audio/wav" }),
+      secrets: { openAiApiKey: "sk-test" },
+      settings: {
+        providerId: "openai",
+        model: "gpt-4o-mini-transcribe",
+        endpoint: "https://api.openai.com/v1",
+        language: "ja",
+      },
+    })).resolves.toMatchObject({
+      drafts: [],
+      message: "音声を読み取れません",
+      ok: false,
+      providerLabel: "OpenAI",
+    });
+  });
 });
