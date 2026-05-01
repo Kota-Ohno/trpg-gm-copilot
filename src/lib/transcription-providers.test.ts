@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkTranscriptionProviderReadiness, hasWebSpeechRecognitionSupport } from "./transcription-providers";
+import { checkTranscriptionProviderReadiness, hasWebSpeechRecognitionSupport, runTranscriptionProvider } from "./transcription-providers";
 
 describe("checkTranscriptionProviderReadiness", () => {
   it("marks manual transcription as ready", () => {
@@ -51,5 +51,37 @@ describe("hasWebSpeechRecognitionSupport", () => {
     expect(hasWebSpeechRecognitionSupport({ webkitSpeechRecognition: function SpeechRecognition() {} })).toBe(true);
     expect(hasWebSpeechRecognitionSupport({})).toBe(false);
     expect(hasWebSpeechRecognitionSupport(null)).toBe(false);
+  });
+});
+
+describe("runTranscriptionProvider", () => {
+  it("parses manual draft JSON through the provider interface", async () => {
+    await expect(runTranscriptionProvider({
+      draftJson: JSON.stringify([{ speaker: "GM", start: 0, end: 3, transcript: "導入" }]),
+      secrets: { openAiApiKey: "" },
+      settings: { providerId: "manual", model: "manual-transcript", endpoint: "", language: "ja" },
+    })).resolves.toEqual({
+      drafts: [{ speakerName: "GM", startTimeSec: 0, endTimeSec: 3, text: "導入" }],
+      message: "1件の手動文字起こしを読み取りました。",
+      ok: true,
+      providerLabel: "手動入力",
+    });
+  });
+
+  it("reports unsupported automatic transcription execution without secrets", async () => {
+    await expect(runTranscriptionProvider({
+      secrets: { openAiApiKey: "" },
+      settings: {
+        providerId: "openai",
+        model: "gpt-4o-mini-transcribe",
+        endpoint: "https://api.openai.com/v1",
+        language: "ja",
+      },
+    })).resolves.toMatchObject({
+      drafts: [],
+      message: "OpenAI文字起こしにはAPI keyが必要です。",
+      ok: false,
+      providerLabel: "OpenAI",
+    });
   });
 });
