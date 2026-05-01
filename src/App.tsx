@@ -1122,11 +1122,17 @@ export function App() {
   };
 
   const applyImportedTranscriptionDraftLog = (
+    targetSessionId: string,
     liveLogFromDrafts: LiveLogSession,
     message = "話者付きログへ取り込みました。",
     transcriptionRun?: TranscriptionRun,
   ): void => {
-    updateCurrentSession({ liveLog: liveLogFromDrafts, ...(transcriptionRun ? { transcriptionRun } : {}) });
+    updateSessionById(targetSessionId, { liveLog: liveLogFromDrafts, ...(transcriptionRun ? { transcriptionRun } : {}) });
+    setActiveCampaignState((current) =>
+      current.activeSessionId === targetSessionId || !current.sessions.some((session) => session.id === targetSessionId)
+        ? current
+        : { ...current, activeSessionId: targetSessionId },
+    );
     setTranscriptionAudioFile(null);
     setTranscriptionDraftJson("");
     setTranscriptionImportError(null);
@@ -1138,10 +1144,11 @@ export function App() {
     drafts: Parameters<typeof transcriptionDraftsToLiveLog>[0],
     message?: string,
     transcriptionRun?: TranscriptionRun,
+    targetSession = currentSession,
   ): void => {
     const liveLogFromDrafts = transcriptionDraftsToLiveLog(
       drafts,
-      `${currentSession.title} 文字起こし`,
+      `${targetSession.title} 文字起こし`,
     );
     if (!liveLogFromDrafts) {
       setTranscriptionImportError("取り込める発話本文がありません。");
@@ -1149,17 +1156,17 @@ export function App() {
       return;
     }
 
-    if (currentSession.liveLog.segments.some((segment) => segment.text.trim())) {
+    if (targetSession.liveLog.segments.some((segment) => segment.text.trim())) {
       setConfirmation({
         title: "話者ログを置き換えますか",
         message: "現在の話者ログを、文字起こしドラフトから作成したログで置き換えます。",
         confirmLabel: "置き換える",
-        onConfirm: () => applyImportedTranscriptionDraftLog(liveLogFromDrafts, message, transcriptionRun),
+        onConfirm: () => applyImportedTranscriptionDraftLog(targetSession.id, liveLogFromDrafts, message, transcriptionRun),
       });
       return;
     }
 
-    applyImportedTranscriptionDraftLog(liveLogFromDrafts, message, transcriptionRun);
+    applyImportedTranscriptionDraftLog(targetSession.id, liveLogFromDrafts, message, transcriptionRun);
   };
 
   const appendTranscriptionDraftJson = async (): Promise<void> => {
@@ -1227,9 +1234,11 @@ export function App() {
     }
 
     setIsExtracting(true);
+    const targetSession = currentSession;
+    const audioFile = transcriptionAudioFile;
     try {
       const providerResult = await runTranscriptionProvider({
-        audioFile: transcriptionAudioFile,
+        audioFile,
         secrets: providerSecrets,
         settings: transcriptionProvider,
       });
@@ -1242,12 +1251,12 @@ export function App() {
 
       importTranscriptionDraftsToLiveLog(providerResult.drafts, providerResult.message, {
         executedAt: new Date().toISOString(),
-        fileName: transcriptionAudioFile.name,
+        fileName: audioFile.name,
         providerId: transcriptionProvider.providerId,
         providerLabel: providerResult.providerLabel,
         segmentCount: providerResult.drafts.length,
         sourceType: "audio-file",
-      });
+      }, targetSession);
     } finally {
       setIsExtracting(false);
     }
