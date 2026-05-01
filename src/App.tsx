@@ -397,8 +397,12 @@ export function App() {
     () => checkTranscriptionProviderReadiness(transcriptionProvider, providerSecrets),
     [providerSecrets, transcriptionProvider],
   );
+  const transcriptionAudioFileValidation = useMemo(
+    () => (transcriptionAudioFile ? validateTranscriptionAudioFile(transcriptionAudioFile) : null),
+    [transcriptionAudioFile],
+  );
   const canRunAudioTranscription =
-    Boolean(transcriptionAudioFile) &&
+    Boolean(transcriptionAudioFileValidation?.ok) &&
     transcriptionProvider.providerId === "openai" &&
     transcriptionProviderReadiness.ok &&
     !isExtracting;
@@ -2069,8 +2073,8 @@ export function App() {
                           id={transcriptionAudioInputId}
                           type="file"
                           onChange={(event) => {
-                            setTranscriptionAudioFile(event.target.files?.[0] ?? null);
                             const file = event.target.files?.[0] ?? null;
+                            setTranscriptionAudioFile(file);
                             const validation = file ? validateTranscriptionAudioFile(file) : null;
                             setTranscriptionImportError(validation && !validation.ok ? validation.message : null);
                             setTranscriptionImportMessage(null);
