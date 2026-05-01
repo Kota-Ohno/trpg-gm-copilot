@@ -249,6 +249,27 @@ function readLegacyProviderApiKey(rawState: unknown): string {
   return typeof maybeState.extractionProvider?.apiKey === "string" ? maybeState.extractionProvider.apiKey : "";
 }
 
+function readSessionImportPayload(parsedState: unknown): unknown | null {
+  if (!parsedState || typeof parsedState !== "object" || Array.isArray(parsedState)) {
+    return null;
+  }
+
+  const record = parsedState as Record<string, unknown>;
+  if (Array.isArray(record.campaigns) || Array.isArray(record.sessions)) {
+    return null;
+  }
+
+  if (record.session && typeof record.session === "object" && !Array.isArray(record.session)) {
+    return record.session;
+  }
+
+  if ("log" in record || "liveLog" in record || "extractionItems" in record) {
+    return record;
+  }
+
+  return null;
+}
+
 function loadProviderSecrets(): ProviderSecretSettings {
   if (typeof window === "undefined") {
     return defaultProviderSecretSettings;
@@ -743,19 +764,13 @@ export function App() {
     try {
       const fileText = await file.text();
       const parsedState = JSON.parse(fileText);
-      const maybeSession = (parsedState as { session?: unknown }).session;
-      const isSessionImport =
-        typeof parsedState === "object" &&
-        parsedState !== null &&
-        maybeSession &&
-        typeof maybeSession === "object" &&
-        !Array.isArray(maybeSession);
+      const maybeSession = readSessionImportPayload(parsedState);
       const isLibraryImport =
         typeof parsedState === "object" &&
         parsedState !== null &&
         Array.isArray((parsedState as { campaigns?: unknown }).campaigns);
 
-      if (isSessionImport) {
+      if (maybeSession) {
         const importedCampaign = normalizeCampaignState({
           sessions: [maybeSession],
         });
