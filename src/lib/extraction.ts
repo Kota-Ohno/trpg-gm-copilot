@@ -184,6 +184,14 @@ export function findDuplicateExtractionItemIds(items: ExtractionItem[], protecte
   return duplicateIds;
 }
 
+export function normalizeExtractionItemText(item: ExtractionItem): ExtractionItem {
+  return {
+    ...item,
+    detail: item.detail.trim().replace(/\s+/g, " "),
+    title: item.title.trim().replace(/\s+/g, " "),
+  };
+}
+
 export function formatSessionMarkdown(session: SessionState, prepNote?: PrepNote): string {
   const speakerLogText = liveLogToPlainText(session.liveLog);
   const reviewMarkdown = formatReviewItemsMarkdown(session.extractionItems, "抽出候補", session.approvedIds)

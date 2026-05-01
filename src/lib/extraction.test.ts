@@ -10,6 +10,7 @@ import {
   liveLogToPlainText,
   liveLogToTranscriptionDrafts,
   mergeAdjacentTranscriptSegments,
+  normalizeExtractionItemText,
   normalizeTranscriptSegmentTiming,
   normalizeTranscriptionDrafts,
   parsePlainLogToLiveLog,
@@ -378,6 +379,21 @@ describe("findDuplicateExtractionItemIds", () => {
       { id: "b", kind: "手がかり", title: " 鍵 ", detail: "古い", visibility: "PL既知" },
       { id: "c", kind: "手がかり", title: "鍵", detail: "古い", visibility: "PL既知" },
     ], ["b"])).toEqual(["c"]);
+  });
+});
+
+describe("normalizeExtractionItemText", () => {
+  it("trims and collapses title and detail whitespace", () => {
+    expect(normalizeExtractionItemText({
+      id: "item-1",
+      kind: "出来事",
+      title: " 港   に 到着 ",
+      detail: "  灯台へ   向かう  ",
+      visibility: "PL既知",
+    })).toMatchObject({
+      title: "港 に 到着",
+      detail: "灯台へ 向かう",
+    });
   });
 });
 

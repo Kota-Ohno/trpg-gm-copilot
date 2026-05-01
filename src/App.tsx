@@ -65,6 +65,7 @@ import {
   formatSpeakerLogMarkdown,
   liveLogToTranscriptionDrafts,
   liveLogToPlainText,
+  normalizeExtractionItemText,
   normalizeTranscriptionDrafts,
   mergeAdjacentTranscriptSegments,
   normalizeTranscriptSegmentTiming,
@@ -1438,6 +1439,15 @@ export function App() {
     });
   };
 
+  const normalizeReviewItemText = (): void => {
+    updateActiveSession((session) => ({
+      ...session,
+      extractionItems: session.extractionItems.map((item) =>
+        session.approvedIds.includes(item.id) ? item : normalizeExtractionItemText(item),
+      ),
+    }));
+  };
+
   const updateExtractionItem = (itemId: string, updates: Partial<ExtractionItem>): void => {
     updateActiveSession((session) => ({
       ...session,
@@ -2197,6 +2207,10 @@ export function App() {
                           >
                             <Trash2 className="h-4 w-4" />
                             重複を破棄
+                          </Button>
+                          <Button disabled={items.length === 0} onClick={normalizeReviewItemText} size="sm" variant="outline">
+                            <RotateCcw className="h-4 w-4" />
+                            空白整理
                           </Button>
                           <Button
                             disabled={!hasReviewFilter}
