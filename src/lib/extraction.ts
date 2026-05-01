@@ -70,6 +70,14 @@ export type SpeakerUsageSummary = {
   speakerRole: SpeakerRole;
 };
 
+export type SpeakerLogIssue = {
+  detail: string;
+  id: string;
+  label: string;
+  segmentId?: string;
+  severity: "info" | "warning";
+};
+
 const npcNamePattern = /(?:女将|村長|灯台守|船長|医師|司祭|娘|甥|少女|少年|老人|男|女)(?:の)?([ァ-ヶー一-龠々]{1,8})|([ァ-ヶー一-龠々]{1,8})(?:は|が).*(?:話|言|証言)/;
 const plainLogLinePattern = /^(?:\[\s*([0-9０-９:.：\s]+)\s*\]\s*)?([^:：]{1,32})[:：]\s*(.+)$/;
 
@@ -153,6 +161,74 @@ export function normalizeTranscriptTextSpacing(liveLog: LiveLogSession): LiveLog
         .trim(),
     })),
   };
+}
+
+export function getSpeakerLogIssues(liveLog: LiveLogSession): SpeakerLogIssue[] {
+  const speakerIds = new Set(liveLog.speakers.map((speaker) => speaker.id));
+  const sortedSegments = [...liveLog.segments].sort((first, second) => first.startTimeSec - second.startTimeSec);
+  const issues: SpeakerLogIssue[] = [];
+
+  for (const segment of sortedSegments) {
+    if (!speakerIds.has(segment.speakerId)) {
+      issues.push({
+        detail: "登録済み話者に紐づいていません。",
+        id: `${segment.id}-unknown-speaker`,
+        label: "未登録話者",
+        segmentId: segment.id,
+        severity: "warning",
+      });
+    }
+
+    if (segment.text.trim().length === 0) {
+      issues.push({
+        detail: "抽出対象にならない空の発話です。",
+        id: `${segment.id}-empty-text`,
+        label: "本文なし",
+        segmentId: segment.id,
+        severity: "info",
+      });
+    }
+
+    if (!Number.isFinite(segment.startTimeSec) || !Number.isFinite(segment.endTimeSec) || segment.endTimeSec <= segment.startTimeSec) {
+      issues.push({
+        detail: "開始時刻と終了時刻の前後関係を確認してください。",
+        id: `${segment.id}-invalid-timing`,
+        label: "時刻不正",
+        segmentId: segment.id,
+        severity: "warning",
+      });
+    }
+
+    if (
+      typeof segment.confidence === "number" &&
+      Number.isFinite(segment.confidence) &&
+      segment.confidence < lowConfidenceThreshold
+    ) {
+      issues.push({
+        detail: `信頼度 ${Math.round(Math.max(0, Math.min(1, segment.confidence)) * 100)}% の発話です。`,
+        id: `${segment.id}-low-confidence`,
+        label: "低信頼",
+        segmentId: segment.id,
+        severity: "warning",
+      });
+    }
+  }
+
+  for (let index = 1; index < sortedSegments.length; index += 1) {
+    const previous = sortedSegments[index - 1];
+    const current = sortedSegments[index];
+    if (current.startTimeSec < previous.endTimeSec) {
+      issues.push({
+        detail: `${formatTimestamp(previous.startTimeSec)}-${formatTimestamp(previous.endTimeSec)} と重なっています。`,
+        id: `${current.id}-overlap`,
+        label: "時刻重複",
+        segmentId: current.id,
+        severity: "warning",
+      });
+    }
+  }
+
+  return issues;
 }
 
 export function formatReviewItemsMarkdown(items: ExtractionItem[], title: string, approvedIds: string[] = []): string {

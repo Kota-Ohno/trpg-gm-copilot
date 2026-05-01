@@ -7,6 +7,7 @@ import {
   formatReviewItemsMarkdown,
   formatSessionMarkdown,
   formatSpeakerLogMarkdown,
+  getSpeakerLogIssues,
   liveLogToPlainText,
   liveLogToTranscriptionDrafts,
   mergeAdjacentTranscriptSegments,
@@ -492,6 +493,41 @@ describe("normalizeTranscriptTextSpacing", () => {
       ...summaryLiveLog.segments[0],
       text: "調べます さらに 確認します\n\n続けます",
     });
+  });
+});
+
+describe("getSpeakerLogIssues", () => {
+  it("reports empty, low confidence, invalid timing, overlap, and unknown speaker issues", () => {
+    const issues = getSpeakerLogIssues({
+      ...summaryLiveLog,
+      speakers: [{ id: "speaker-gm", name: "GM", role: "GM" }],
+      segments: [
+        {
+          id: "segment-1",
+          speakerId: "speaker-gm",
+          startTimeSec: 0,
+          endTimeSec: 5,
+          text: "導入",
+          confidence: 0.7,
+        },
+        {
+          id: "segment-2",
+          speakerId: "missing",
+          startTimeSec: 4,
+          endTimeSec: 4,
+          text: " ",
+        },
+      ],
+    });
+
+    expect(issues.map((issue) => issue.label)).toEqual([
+      "低信頼",
+      "未登録話者",
+      "本文なし",
+      "時刻不正",
+      "時刻重複",
+    ]);
+    expect(issues.filter((issue) => issue.severity === "warning")).toHaveLength(4);
   });
 });
 

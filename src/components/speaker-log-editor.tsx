@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Clock3, Copy, Download, FileText, MessageSquareText, Plus, RotateCcw, Split, Trash2, UserRound, Wand2 } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, Clock3, Copy, Download, FileText, MessageSquareText, Plus, RotateCcw, Split, Trash2, UserRound, Wand2 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import type { LiveLogSession, SpeakerRole, TranscriptSegment } from "../types";
-import { lowConfidenceThreshold, summarizeLiveLog, summarizeSpeakerUsage } from "../lib/extraction";
+import { getSpeakerLogIssues, lowConfidenceThreshold, summarizeLiveLog, summarizeSpeakerUsage } from "../lib/extraction";
 
 const speakerRoleLabels: Record<SpeakerRole, string> = {
   GM: "GM",
@@ -88,6 +88,8 @@ export function SpeakerLogEditor({
   );
   const emptySegmentCount = isExtracting ? 0 : liveLogSummary.emptySegmentCount;
   const lowConfidenceCount = liveLogSummary.lowConfidenceCount;
+  const speakerLogIssues = getSpeakerLogIssues(liveLog);
+  const warningIssueCount = speakerLogIssues.filter((issue) => issue.severity === "warning").length;
   const speakerUsageById = new Map(summarizeSpeakerUsage(liveLog).map((usage) => [usage.speakerId, usage]));
   const visibleSegments = sortedSegments.filter((segment) => {
     const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
@@ -174,6 +176,30 @@ export function SpeakerLogEditor({
           </Button>
         </div>
       </div>
+
+      {speakerLogIssues.length > 0 && (
+        <section className="rounded-md border border-border bg-background p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold">ログ確認</h2>
+            {warningIssueCount > 0 && <Badge variant="destructive">警告 {warningIssueCount}</Badge>}
+            {speakerLogIssues.length > warningIssueCount && (
+              <Badge variant="muted">確認 {speakerLogIssues.length - warningIssueCount}</Badge>
+            )}
+          </div>
+          <div className="mt-3 grid gap-2">
+            {speakerLogIssues.slice(0, 5).map((issue) => (
+              <div className="flex flex-wrap items-center gap-2 text-xs" key={issue.id}>
+                <Badge variant={issue.severity === "warning" ? "destructive" : "muted"}>{issue.label}</Badge>
+                <span className="text-muted-foreground">{issue.detail}</span>
+              </div>
+            ))}
+            {speakerLogIssues.length > 5 && (
+              <p className="text-xs text-muted-foreground">ほか {speakerLogIssues.length - 5} 件の確認項目があります。</p>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="grid gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
