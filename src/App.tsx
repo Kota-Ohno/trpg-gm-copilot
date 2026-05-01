@@ -1624,7 +1624,9 @@ export function App() {
                 <p className="mt-1 leading-relaxed">{storageError}</p>
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">この端末のブラウザに保存中。JSONでバックアップできます。</p>
+              <p className="text-xs text-muted-foreground">
+                この端末のブラウザに保存中。キャンペーン、ライブラリ、セッションJSONを読み込めます。
+              </p>
             )}
           </div>
 
