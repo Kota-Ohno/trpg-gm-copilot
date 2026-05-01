@@ -1092,6 +1092,12 @@ export function App() {
     updateLiveLog(normalizeTranscriptTextSpacing);
   };
 
+  const clearTranscriptionRun = (): void => {
+    updateCurrentSession({ transcriptionRun: null });
+    setTranscriptionImportMessage("文字起こし履歴を解除しました。");
+    setTranscriptionImportError(null);
+  };
+
   const appendQuickResultToLog = (): void => {
     const text = quickResult.trim();
     if (!text) {
@@ -2101,13 +2107,17 @@ export function App() {
                       Provider実装前の検証用に、発話配列JSONまたはsegments配列を持つJSONを話者付きログへ変換します。
                     </CardDescription>
                     {transcriptionRun && (
-                      <div className="mt-3 flex flex-wrap gap-2">
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
                         <Badge variant="outline">{transcriptionRun.providerLabel}</Badge>
                         <Badge variant="muted">{transcriptionRun.segmentCount}発話</Badge>
                         <Badge variant="muted">
                           {transcriptionRun.sourceType === "audio-file" ? "音声ファイル" : "手動JSON"}
                         </Badge>
                         {transcriptionRun.fileName && <Badge variant="muted">{transcriptionRun.fileName}</Badge>}
+                        <Button disabled={isExtracting} onClick={clearTranscriptionRun} size="sm" variant="ghost">
+                          <Trash2 className="h-4 w-4" />
+                          履歴解除
+                        </Button>
                       </div>
                     )}
                   </CardHeader>
