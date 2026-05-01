@@ -1833,6 +1833,7 @@ export function App() {
                             : ""}
                           {liveLogSummary.lowConfidenceCount > 0 ? ` / 要確認${liveLogSummary.lowConfidenceCount}` : ""}
                           {speakerIssueCount > 0 ? ` / ログ確認${speakerIssueCount}` : ""}
+                          {session.transcriptionRun ? ` / 文字起こし${session.transcriptionRun.segmentCount}` : ""}
                         </span>
                       </button>
                       <Button
