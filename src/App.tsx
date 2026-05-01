@@ -1679,6 +1679,7 @@ export function App() {
                         >
                           {stats.sessionCount}セッション / {stats.memoryCount}記憶 / {stats.candidateCount}候補 /{" "}
                           {stats.approvedCount}採用
+                          {stats.transcribedSessionCount > 0 ? ` / 文字起こし${stats.transcribedSessionCount}` : ""}
                           {stats.lowConfidenceSegmentCount > 0 ? ` / 要確認${stats.lowConfidenceSegmentCount}` : ""}
                         </span>
                       </button>
