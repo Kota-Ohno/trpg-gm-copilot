@@ -286,6 +286,24 @@ function formatFileSize(bytes: number): string {
   return `${Math.max(1, Math.round(bytes / 1024))}KB`;
 }
 
+function formatRunTimestamp(value: string): string {
+  if (!value.trim()) {
+    return "日時不明";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString("ja-JP", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+  });
+}
+
 function loadProviderSecrets(): ProviderSecretSettings {
   if (typeof window === "undefined") {
     return defaultProviderSecretSettings;
@@ -2113,6 +2131,7 @@ export function App() {
                         <Badge variant="muted">
                           {transcriptionRun.sourceType === "audio-file" ? "音声ファイル" : "手動JSON"}
                         </Badge>
+                        <Badge variant="muted">{formatRunTimestamp(transcriptionRun.executedAt)}</Badge>
                         {transcriptionRun.fileName && <Badge variant="muted">{transcriptionRun.fileName}</Badge>}
                         <Button disabled={isExtracting} onClick={clearTranscriptionRun} size="sm" variant="ghost">
                           <Trash2 className="h-4 w-4" />
