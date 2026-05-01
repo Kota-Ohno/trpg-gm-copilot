@@ -73,6 +73,7 @@ export function SpeakerLogEditor({
 }: SpeakerLogEditorProps) {
   const [showLowConfidenceOnly, setShowLowConfidenceOnly] = useState(false);
   const [showEmptySegmentsOnly, setShowEmptySegmentsOnly] = useState(false);
+  const [speakerFilterId, setSpeakerFilterId] = useState("all");
   const [segmentQuery, setSegmentQuery] = useState("");
   const normalizedSegmentQuery = segmentQuery.trim().toLowerCase();
   const sortedSegments = [...liveLog.segments].sort((first, second) => first.startTimeSec - second.startTimeSec);
@@ -86,6 +87,10 @@ export function SpeakerLogEditor({
   const speakerUsageById = new Map(summarizeSpeakerUsage(liveLog).map((usage) => [usage.speakerId, usage]));
   const visibleSegments = sortedSegments.filter((segment) => {
     const speaker = liveLog.speakers.find((candidate) => candidate.id === segment.speakerId);
+    if (speakerFilterId !== "all" && segment.speakerId !== speakerFilterId) {
+      return false;
+    }
+
     if (
       normalizedSegmentQuery &&
       ![segment.text, speaker?.name ?? "", speaker ? speakerRoleLabels[speaker.role] : ""].some((value) =>
@@ -234,6 +239,11 @@ export function SpeakerLogEditor({
             <MessageSquareText className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-sm font-semibold">発話ログ</h2>
             {normalizedSegmentQuery && <Badge variant="secondary">検索: {segmentQuery.trim()}</Badge>}
+            {speakerFilterId !== "all" && (
+              <Badge variant="secondary">
+                話者: {liveLog.speakers.find((speaker) => speaker.id === speakerFilterId)?.name ?? "不明"}
+              </Badge>
+            )}
             {showLowConfidenceOnly && <Badge variant="destructive">要確認のみ</Badge>}
             {showEmptySegmentsOnly && <Badge variant="secondary">未入力のみ</Badge>}
           </div>
@@ -246,6 +256,20 @@ export function SpeakerLogEditor({
               value={segmentQuery}
               onChange={(event) => setSegmentQuery(event.target.value)}
             />
+            <select
+              aria-label="発話ログの話者フィルタ"
+              className="h-8 rounded-md border border-input bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              disabled={isExtracting}
+              value={speakerFilterId}
+              onChange={(event) => setSpeakerFilterId(event.target.value)}
+            >
+              <option value="all">全話者</option>
+              {liveLog.speakers.map((speaker) => (
+                <option key={speaker.id} value={speaker.id}>
+                  {speaker.name}
+                </option>
+              ))}
+            </select>
             {lowConfidenceCount > 0 && (
               <Button
                 aria-pressed={showLowConfidenceOnly}
@@ -274,10 +298,11 @@ export function SpeakerLogEditor({
                 未入力 {emptySegmentCount}
               </Button>
             )}
-            {(normalizedSegmentQuery || showLowConfidenceOnly || showEmptySegmentsOnly) && (
+            {(speakerFilterId !== "all" || normalizedSegmentQuery || showLowConfidenceOnly || showEmptySegmentsOnly) && (
               <Button
                 disabled={isExtracting}
                 onClick={() => {
+                  setSpeakerFilterId("all");
                   setSegmentQuery("");
                   setShowLowConfidenceOnly(false);
                   setShowEmptySegmentsOnly(false);
@@ -327,6 +352,7 @@ export function SpeakerLogEditor({
                 <Button
                   className="mt-3"
                   onClick={() => {
+                    setSpeakerFilterId("all");
                     setSegmentQuery("");
                     setShowLowConfidenceOnly(false);
                     setShowEmptySegmentsOnly(false);
