@@ -367,6 +367,14 @@ describe("formatSessionMarkdown", () => {
         note: "OpenAIからフォールバック",
         promptLength: 1200,
       },
+      transcriptionRun: {
+        executedAt: "2026-04-30T12:00:00.000Z",
+        providerId: "openai",
+        providerLabel: "OpenAI",
+        segmentCount: 2,
+        sourceType: "audio-file",
+        fileName: "session.webm",
+      },
       approvedIds: ["item-1"],
     }, {
       shortRecap: ["港へ向かった"],
@@ -376,6 +384,8 @@ describe("formatSessionMarkdown", () => {
     });
 
     expect(markdown).toContain("# 第1夜");
+    expect(markdown).toContain("- 文字起こしProvider: OpenAI");
+    expect(markdown).toContain("- 音声ファイル: session.webm");
     expect(markdown).toContain("- 抽出Provider: ルールベース");
     expect(markdown).toContain("- フォールバック: あり");
     expect(markdown).toContain("```text\nGM: 港へ向かう\n```");

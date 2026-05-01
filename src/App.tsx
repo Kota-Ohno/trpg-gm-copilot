@@ -100,6 +100,7 @@ import type {
   SessionState,
   ClueStatus,
   SpeakerRole,
+  TranscriptionRun,
   TranscriptSegment,
   WorkspaceTab,
 } from "./types";
@@ -1104,8 +1105,12 @@ export function App() {
     setActiveTab("log");
   };
 
-  const applyImportedTranscriptionDraftLog = (liveLogFromDrafts: LiveLogSession, message = "話者付きログへ取り込みました。"): void => {
-    updateCurrentSession({ liveLog: liveLogFromDrafts });
+  const applyImportedTranscriptionDraftLog = (
+    liveLogFromDrafts: LiveLogSession,
+    message = "話者付きログへ取り込みました。",
+    transcriptionRun?: TranscriptionRun,
+  ): void => {
+    updateCurrentSession({ liveLog: liveLogFromDrafts, ...(transcriptionRun ? { transcriptionRun } : {}) });
     setTranscriptionAudioFile(null);
     setTranscriptionDraftJson("");
     setTranscriptionImportError(null);
@@ -1116,6 +1121,7 @@ export function App() {
   const importTranscriptionDraftsToLiveLog = (
     drafts: Parameters<typeof transcriptionDraftsToLiveLog>[0],
     message?: string,
+    transcriptionRun?: TranscriptionRun,
   ): void => {
     const liveLogFromDrafts = transcriptionDraftsToLiveLog(
       drafts,
@@ -1132,12 +1138,12 @@ export function App() {
         title: "話者ログを置き換えますか",
         message: "現在の話者ログを、文字起こしドラフトから作成したログで置き換えます。",
         confirmLabel: "置き換える",
-        onConfirm: () => applyImportedTranscriptionDraftLog(liveLogFromDrafts, message),
+        onConfirm: () => applyImportedTranscriptionDraftLog(liveLogFromDrafts, message, transcriptionRun),
       });
       return;
     }
 
-    applyImportedTranscriptionDraftLog(liveLogFromDrafts, message);
+    applyImportedTranscriptionDraftLog(liveLogFromDrafts, message, transcriptionRun);
   };
 
   const appendTranscriptionDraftJson = async (): Promise<void> => {
@@ -1160,7 +1166,16 @@ export function App() {
       return;
     }
 
-    updateCurrentSession({ liveLog: appendedLiveLog });
+    updateCurrentSession({
+      liveLog: appendedLiveLog,
+      transcriptionRun: {
+        executedAt: new Date().toISOString(),
+        providerId: transcriptionProvider.providerId,
+        providerLabel: providerResult.providerLabel,
+        segmentCount: providerResult.drafts.length,
+        sourceType: "manual-json",
+      },
+    });
     setTranscriptionDraftJson("");
     setTranscriptionImportError(null);
     setTranscriptionImportMessage(providerResult.message);
@@ -1179,7 +1194,13 @@ export function App() {
       return;
     }
 
-    importTranscriptionDraftsToLiveLog(providerResult.drafts, providerResult.message);
+    importTranscriptionDraftsToLiveLog(providerResult.drafts, providerResult.message, {
+      executedAt: new Date().toISOString(),
+      providerId: transcriptionProvider.providerId,
+      providerLabel: providerResult.providerLabel,
+      segmentCount: providerResult.drafts.length,
+      sourceType: "manual-json",
+    });
   };
 
   const transcribeSelectedAudioFile = async (): Promise<void> => {
@@ -1203,7 +1224,14 @@ export function App() {
         return;
       }
 
-      importTranscriptionDraftsToLiveLog(providerResult.drafts, providerResult.message);
+      importTranscriptionDraftsToLiveLog(providerResult.drafts, providerResult.message, {
+        executedAt: new Date().toISOString(),
+        fileName: transcriptionAudioFile.name,
+        providerId: transcriptionProvider.providerId,
+        providerLabel: providerResult.providerLabel,
+        segmentCount: providerResult.drafts.length,
+        sourceType: "audio-file",
+      });
     } finally {
       setIsExtracting(false);
     }

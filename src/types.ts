@@ -87,6 +87,15 @@ export type ExtractionRun = {
   validationErrors?: string[];
 };
 
+export type TranscriptionRun = {
+  executedAt: string;
+  fileName?: string;
+  providerId: TranscriptionProviderId;
+  providerLabel: string;
+  segmentCount: number;
+  sourceType: "manual-json" | "audio-file";
+};
+
 export type SpeakerRole = "GM" | "PL" | "unknown";
 
 export type TranscriptSourceType = "manual" | "sample" | "imported";
@@ -130,6 +139,7 @@ export type SessionState = {
   liveLog: LiveLogSession;
   extractionItems: ExtractionItem[];
   extractionRun: ExtractionRun | null;
+  transcriptionRun: TranscriptionRun | null;
   approvedIds: string[];
 };
 

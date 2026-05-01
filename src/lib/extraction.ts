@@ -310,6 +310,13 @@ export function formatSessionMarkdown(session: SessionState, prepNote?: PrepNote
     `- 日付: ${session.date}`,
     `- 抽出候補: ${session.extractionItems.length}`,
     `- 採用済み: ${session.approvedIds.length}`,
+    ...(session.transcriptionRun
+      ? [
+          `- 文字起こしProvider: ${session.transcriptionRun.providerLabel}`,
+          `- 文字起こし発話: ${session.transcriptionRun.segmentCount}`,
+          ...(session.transcriptionRun.fileName ? [`- 音声ファイル: ${session.transcriptionRun.fileName}`] : []),
+        ]
+      : []),
     ...(session.extractionRun
       ? [
           `- 抽出Provider: ${session.extractionRun.executedProviderLabel}`,

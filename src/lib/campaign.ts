@@ -16,6 +16,7 @@ import type {
   SpeakerRole,
   SessionState,
   Thread,
+  TranscriptionRun,
   TranscriptionProviderId,
   TranscriptionProviderSettings,
   TranscriptSegment,
@@ -147,6 +148,7 @@ export const initialCampaignState: CampaignState = {
       liveLog: cloneJson(sampleLiveLog),
       extractionItems: [],
       extractionRun: null,
+      transcriptionRun: null,
       approvedIds: [],
     },
   ],
@@ -356,6 +358,24 @@ function normalizeExtractionRun(rawRun: unknown, itemCount: number): ExtractionR
   };
 }
 
+function normalizeTranscriptionRun(rawRun: unknown): TranscriptionRun | null {
+  if (!isRecord(rawRun)) {
+    return null;
+  }
+
+  const provider = getTranscriptionProvider((rawRun.providerId ?? "manual") as TranscriptionProviderId);
+  const sourceType = rawRun.sourceType === "audio-file" ? "audio-file" : "manual-json";
+
+  return {
+    executedAt: readString(rawRun.executedAt, ""),
+    ...(typeof rawRun.fileName === "string" && rawRun.fileName.trim() ? { fileName: rawRun.fileName.trim() } : {}),
+    providerId: provider.id,
+    providerLabel: readString(rawRun.providerLabel, provider.label),
+    segmentCount: readNumber(rawRun.segmentCount, 0),
+    sourceType,
+  };
+}
+
 function normalizeSessionState(
   session: SessionState,
   defaultSession: SessionState,
@@ -385,6 +405,7 @@ function normalizeSessionState(
     extractionItems,
     liveLog: normalizeLiveLog(session.liveLog ?? defaultSession.liveLog, title),
     extractionRun: normalizeExtractionRun(session.extractionRun, extractionItems.length),
+    transcriptionRun: normalizeTranscriptionRun(session.transcriptionRun),
   };
 }
 
@@ -407,6 +428,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
     liveLog: legacyState.liveLog ?? defaultSession.liveLog,
     extractionItems: legacyState.extractionItems ?? defaultSession.extractionItems,
     extractionRun: legacyState.extractionRun ?? defaultSession.extractionRun,
+    transcriptionRun: legacyState.transcriptionRun ?? defaultSession.transcriptionRun,
     approvedIds: legacyState.approvedIds ?? defaultSession.approvedIds,
   };
   const sessions = Array.isArray(parsedState.sessions) && parsedState.sessions.length > 0 ? parsedState.sessions : [migratedSession];
@@ -549,6 +571,7 @@ export function createNewSession(index: number): SessionState {
     },
     extractionItems: [],
     extractionRun: null,
+    transcriptionRun: null,
     approvedIds: [],
   };
 }
@@ -565,6 +588,7 @@ export function duplicateSessionState(sourceSession: SessionState): SessionState
     title,
     approvedIds: [],
     extractionRun: null,
+    transcriptionRun: null,
     liveLog: {
       ...duplicatedSession.liveLog,
       id: createId("live-log"),
