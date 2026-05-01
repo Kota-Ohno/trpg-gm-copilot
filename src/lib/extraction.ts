@@ -141,6 +141,20 @@ export function summarizeSpeakerUsage(liveLog: LiveLogSession): SpeakerUsageSumm
   }));
 }
 
+export function normalizeTranscriptTextSpacing(liveLog: LiveLogSession): LiveLogSession {
+  return {
+    ...liveLog,
+    segments: liveLog.segments.map((segment) => ({
+      ...segment,
+      text: segment.text
+        .split(/\r?\n/)
+        .map((line) => line.trim().replace(/[ \t]+/g, " "))
+        .join("\n")
+        .trim(),
+    })),
+  };
+}
+
 export function formatReviewItemsMarkdown(items: ExtractionItem[], title: string, approvedIds: string[] = []): string {
   const visibleItems = items.filter((item) => item.title.trim() || item.detail.trim());
   const approvedIdSet = new Set(approvedIds);

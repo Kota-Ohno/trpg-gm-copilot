@@ -39,6 +39,7 @@ type SpeakerLogEditorProps = {
   onExtract: () => void | Promise<void>;
   onExportVisibleSegments: (segments: TranscriptSegment[], filters: Record<string, string | boolean>) => void;
   onMergeAdjacentSegments: () => void;
+  onNormalizeText: () => void;
   onNormalizeTiming: () => void;
   onReset: () => void;
   onRestoreSample: () => void;
@@ -64,6 +65,7 @@ export function SpeakerLogEditor({
   onExtract,
   onExportVisibleSegments,
   onMergeAdjacentSegments,
+  onNormalizeText,
   onNormalizeTiming,
   onReset,
   onRestoreSample,
@@ -161,6 +163,10 @@ export function SpeakerLogEditor({
           <Button disabled={isExtracting || liveLog.segments.length < 2} onClick={onNormalizeTiming} variant="outline">
             <Clock3 className="h-4 w-4" />
             時刻を整える
+          </Button>
+          <Button disabled={isExtracting || !hasSegmentText} onClick={onNormalizeText} variant="outline">
+            <RotateCcw className="h-4 w-4" />
+            本文を整える
           </Button>
           <Button disabled={isExtracting || !canExtract} onClick={onExtract}>
             <Wand2 className="h-4 w-4" />

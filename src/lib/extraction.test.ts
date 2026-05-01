@@ -12,6 +12,7 @@ import {
   mergeAdjacentTranscriptSegments,
   normalizeExtractionItemText,
   normalizeTranscriptSegmentTiming,
+  normalizeTranscriptTextSpacing,
   normalizeTranscriptionDrafts,
   parsePlainLogToLiveLog,
   previewTranscriptionDraftPayload,
@@ -472,6 +473,25 @@ describe("normalizeTranscriptSegmentTiming", () => {
       { id: "late", startTimeSec: 5, endTimeSec: 8 },
       { id: "overlap", startTimeSec: 9, endTimeSec: 10 },
     ]);
+  });
+});
+
+describe("normalizeTranscriptTextSpacing", () => {
+  it("trims segment text and collapses repeated spaces without changing metadata", () => {
+    const normalized = normalizeTranscriptTextSpacing({
+      ...summaryLiveLog,
+      segments: [
+        {
+          ...summaryLiveLog.segments[0],
+          text: "  調べます   さらに\t確認します  \n\n  続けます  ",
+        },
+      ],
+    });
+
+    expect(normalized.segments[0]).toEqual({
+      ...summaryLiveLog.segments[0],
+      text: "調べます さらに 確認します\n\n続けます",
+    });
   });
 });
 

@@ -66,6 +66,7 @@ import {
   liveLogToTranscriptionDrafts,
   liveLogToPlainText,
   normalizeExtractionItemText,
+  normalizeTranscriptTextSpacing,
   normalizeTranscriptionDrafts,
   mergeAdjacentTranscriptSegments,
   normalizeTranscriptSegmentTiming,
@@ -1011,6 +1012,10 @@ export function App() {
     updateLiveLog(normalizeTranscriptSegmentTiming);
   };
 
+  const normalizeSpeakerLogText = (): void => {
+    updateLiveLog(normalizeTranscriptTextSpacing);
+  };
+
   const appendQuickResultToLog = (): void => {
     const text = quickResult.trim();
     if (!text) {
@@ -1897,6 +1902,7 @@ export function App() {
                         onExtract={runExtractionPreview}
                         onExportVisibleSegments={exportVisibleSpeakerSegments}
                         onMergeAdjacentSegments={mergeAdjacentSpeakerLogSegments}
+                        onNormalizeText={normalizeSpeakerLogText}
                         onNormalizeTiming={normalizeSpeakerLogTiming}
                         onReset={resetCampaignState}
                         onRestoreSample={restoreSampleLiveLog}
