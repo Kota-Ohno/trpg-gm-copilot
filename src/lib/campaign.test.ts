@@ -184,6 +184,14 @@ describe("search text helpers", () => {
           extractionItems: [
             { id: "item-1", kind: "GM秘密", title: "海底洞窟", detail: "干潮時だけ入れる", visibility: "GMのみ" },
           ],
+          transcriptionRun: {
+            executedAt: "2026-04-30T12:00:00.000Z",
+            providerId: "openai",
+            providerLabel: "OpenAI",
+            segmentCount: 1,
+            sourceType: "audio-file",
+            fileName: "session-03.webm",
+          },
           approvedIds: [],
         },
       ],
@@ -194,6 +202,7 @@ describe("search text helpers", () => {
     expect(getSessionSearchText(session)).toContain("灯台を調べる");
     expect(getSessionSearchText(session)).toContain("海底洞窟");
     expect(getSessionSearchText(session)).toContain("干潮時だけ入れる");
+    expect(getSessionSearchText(session)).toContain("session-03.webm");
   });
 
   it("includes campaign memory content", () => {

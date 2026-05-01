@@ -113,6 +113,13 @@ export function getSessionSearchText(session: SessionState): string {
     ...session.liveLog.speakers.map((speaker) => speaker.name),
     ...session.liveLog.segments.map((segment) => segment.text),
     ...session.extractionItems.flatMap((item) => [item.kind, item.title, item.detail, item.visibility]),
+    ...(session.transcriptionRun
+      ? [
+          session.transcriptionRun.providerLabel,
+          session.transcriptionRun.sourceType,
+          session.transcriptionRun.fileName ?? "",
+        ]
+      : []),
   ].join("\n");
 }
 
