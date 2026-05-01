@@ -89,6 +89,16 @@ describe("normalizeTranscriptionDrafts", () => {
     ]);
   });
 
+  it("accepts diarized segment array aliases", () => {
+    expect(normalizeTranscriptionDrafts({
+      speaker_segments: [
+        { speaker: "GM", start: 0, end: 2, text: "警告する" },
+      ],
+    })).toEqual([
+      { speakerName: "GM", startTimeSec: 0, endTimeSec: 2, text: "警告する" },
+    ]);
+  });
+
   it("accepts common provider aliases for speaker, timing, text, and confidence fields", () => {
     expect(normalizeTranscriptionDrafts([
       { speaker: "KP", start: 1.5, end: 4, transcript: " 開始します ", probability: 0.91 },

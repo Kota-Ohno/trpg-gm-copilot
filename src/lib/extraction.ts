@@ -719,8 +719,10 @@ function readDraftNumber(draft: Record<string, unknown>, keys: string[]): number
 export function normalizeTranscriptionDrafts(value: unknown): TranscriptionSegmentDraft[] | null {
   const draftItems = Array.isArray(value)
     ? value
-    : value && typeof value === "object" && !Array.isArray(value) && Array.isArray((value as { segments?: unknown }).segments)
-      ? (value as { segments: unknown[] }).segments
+    : value && typeof value === "object" && !Array.isArray(value)
+      ? ["segments", "speaker_segments", "speakerSegments", "diarized_segments", "diarizedSegments"]
+          .map((key) => (value as Record<string, unknown>)[key])
+          .find((candidate): candidate is unknown[] => Array.isArray(candidate)) ?? null
       : null;
 
   if (!draftItems) {
