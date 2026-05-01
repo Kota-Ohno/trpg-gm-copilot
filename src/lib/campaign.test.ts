@@ -5,6 +5,7 @@ import {
   duplicateCampaignState,
   duplicateSessionState,
   createExportFileName,
+  formatCampaignMarkdown,
   formatCampaignLibraryMarkdown,
   formatChronicleMarkdown,
   formatPrepNoteMarkdown,
@@ -265,6 +266,35 @@ describe("formatCampaignLibraryMarkdown", () => {
 
     expect(formatCampaignLibraryMarkdown(library)).toContain("## 1. 灰ヶ浦 [選択中]");
     expect(formatCampaignLibraryMarkdown(library)).toContain("- 第1夜 (2026-04-30) / 候補 1 / 採用 1");
+  });
+});
+
+describe("formatCampaignMarkdown", () => {
+  it("formats a full campaign summary with sessions and memory", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "灰ヶ浦",
+      sessions: [
+        {
+          title: "第1夜",
+          date: "2026-04-30",
+          log: "",
+          extractionItems: [{ id: "item-1", kind: "出来事", title: "開始", detail: "始まった", visibility: "PL既知" }],
+          approvedIds: ["item-1"],
+        },
+      ],
+      chronicle: {
+        events: ["港に到着"],
+        npcs: [],
+        clues: [],
+        locations: [],
+        threads: [],
+      },
+    });
+
+    expect(formatCampaignMarkdown(campaign)).toContain("# 灰ヶ浦");
+    expect(formatCampaignMarkdown(campaign)).toContain("### 第1夜");
+    expect(formatCampaignMarkdown(campaign)).toContain("## キャンペーン記憶");
+    expect(formatCampaignMarkdown(campaign)).toContain("- 港に到着");
   });
 });
 

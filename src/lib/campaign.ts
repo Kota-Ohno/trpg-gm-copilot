@@ -459,6 +459,27 @@ export function formatCampaignLibraryMarkdown(campaignLibrary: CampaignLibrarySt
   ].join("\n").trimEnd();
 }
 
+export function formatCampaignMarkdown(campaign: CampaignState): string {
+  return [
+    `# ${campaign.campaignName.trim() || "キャンペーン"}`,
+    "",
+    `- セッション: ${campaign.sessions.length}`,
+    `- 記憶: ${countChronicleItems(campaign.chronicle)}`,
+    "",
+    "## セッション",
+    "",
+    ...campaign.sessions.flatMap((session) => [
+      `### ${session.title}`,
+      "",
+      `- 日付: ${session.date}`,
+      `- 抽出候補: ${session.extractionItems.length}`,
+      `- 採用済み: ${session.approvedIds.length}`,
+      "",
+    ]),
+    formatChronicleMarkdown(campaign.chronicle, "キャンペーン記憶").replace(/^# /m, "## "),
+  ].join("\n").trimEnd();
+}
+
 export function createExportFileName(campaignName: string): string {
   const safeName = campaignName
     .trim()

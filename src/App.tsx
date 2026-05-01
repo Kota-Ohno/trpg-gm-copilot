@@ -44,6 +44,7 @@ import {
   createNewSession,
   duplicateCampaignState,
   duplicateSessionState,
+  formatCampaignMarkdown,
   formatCampaignLibraryMarkdown,
   formatChronicleMarkdown,
   formatPrepNoteMarkdown,
@@ -553,6 +554,15 @@ export function App() {
 
   const exportCampaignState = (): void => {
     downloadJsonFile(sanitizeCampaignStateForExport(campaignState), createExportFileName(campaignName));
+    setStorageError(null);
+  };
+
+  const exportCampaignMarkdown = (): void => {
+    downloadTextFile(
+      formatCampaignMarkdown(campaignState),
+      `${createExportFileName(`${campaignName}-campaign-summary`).replace(/\.json$/, "")}.md`,
+      "text/markdown;charset=utf-8",
+    );
     setStorageError(null);
   };
 
@@ -1460,6 +1470,10 @@ export function App() {
               <Button onClick={exportCampaignState} size="sm" variant="outline">
                 <Download className="h-3.5 w-3.5" />
                 現在を書き出し
+              </Button>
+              <Button onClick={exportCampaignMarkdown} size="sm" variant="outline">
+                <FileText className="h-3.5 w-3.5" />
+                現在の要約
               </Button>
               <Button onClick={exportCampaignLibrary} size="sm" variant="outline">
                 <Download className="h-3.5 w-3.5" />
