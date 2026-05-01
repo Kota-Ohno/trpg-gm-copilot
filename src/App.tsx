@@ -1223,6 +1223,25 @@ export function App() {
     }));
   };
 
+  const deleteEmptySegments = (): void => {
+    const emptyCount = currentSession.liveLog.segments.filter((segment) => segment.text.trim().length === 0).length;
+    if (emptyCount === 0) {
+      return;
+    }
+
+    setConfirmation({
+      title: "未入力の発話を削除しますか",
+      message: `${emptyCount}件の本文が空の発話を削除します。`,
+      confirmLabel: "削除する",
+      onConfirm: () => {
+        updateLiveLog((current) => ({
+          ...current,
+          segments: current.segments.filter((segment) => segment.text.trim().length > 0),
+        }));
+      },
+    });
+  };
+
   const duplicateSegment = (segmentId: string): void => {
     updateLiveLog((current) => {
       const targetIndex = current.segments.findIndex((segment) => segment.id === segmentId);
@@ -1787,6 +1806,7 @@ export function App() {
                         onAddSpeaker={addSpeaker}
                         onApplyToPlainLog={applyLiveLogToPlainLog}
                         onDeleteSpeaker={deleteSpeaker}
+                        onDeleteEmptySegments={deleteEmptySegments}
                         onDeleteSegment={deleteSegment}
                         onDuplicateSegment={duplicateSegment}
                         onExtract={runExtractionPreview}

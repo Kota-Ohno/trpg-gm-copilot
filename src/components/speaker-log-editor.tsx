@@ -33,6 +33,7 @@ type SpeakerLogEditorProps = {
   onAddSpeaker: () => void;
   onApplyToPlainLog: () => void;
   onDeleteSpeaker: (speakerId: string) => void;
+  onDeleteEmptySegments: () => void;
   onDeleteSegment: (segmentId: string) => void;
   onDuplicateSegment: (segmentId: string) => void;
   onExtract: () => void | Promise<void>;
@@ -57,6 +58,7 @@ export function SpeakerLogEditor({
   onAddSpeaker,
   onApplyToPlainLog,
   onDeleteSpeaker,
+  onDeleteEmptySegments,
   onDeleteSegment,
   onDuplicateSegment,
   onExtract,
@@ -297,6 +299,12 @@ export function SpeakerLogEditor({
                 variant={showEmptySegmentsOnly ? "default" : "outline"}
               >
                 未入力 {emptySegmentCount}
+              </Button>
+            )}
+            {emptySegmentCount > 0 && (
+              <Button disabled={isExtracting} onClick={onDeleteEmptySegments} size="sm" variant="outline">
+                <Trash2 className="h-4 w-4" />
+                未入力を削除
               </Button>
             )}
             {(speakerFilterId !== "all" || normalizedSegmentQuery || showLowConfidenceOnly || showEmptySegmentsOnly) && (
