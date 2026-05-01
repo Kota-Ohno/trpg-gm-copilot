@@ -314,6 +314,8 @@ export function formatSessionMarkdown(session: SessionState, prepNote?: PrepNote
       ? [
           `- 文字起こしProvider: ${session.transcriptionRun.providerLabel}`,
           `- 文字起こし発話: ${session.transcriptionRun.segmentCount}`,
+          `- 文字起こし種別: ${session.transcriptionRun.sourceType === "audio-file" ? "音声ファイル" : "手動JSON"}`,
+          ...(session.transcriptionRun.executedAt ? [`- 文字起こし日時: ${session.transcriptionRun.executedAt}`] : []),
           ...(session.transcriptionRun.fileName ? [`- 音声ファイル: ${session.transcriptionRun.fileName}`] : []),
         ]
       : []),

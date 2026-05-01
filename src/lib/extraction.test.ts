@@ -403,6 +403,8 @@ describe("formatSessionMarkdown", () => {
 
     expect(markdown).toContain("# 第1夜");
     expect(markdown).toContain("- 文字起こしProvider: OpenAI");
+    expect(markdown).toContain("- 文字起こし種別: 音声ファイル");
+    expect(markdown).toContain("- 文字起こし日時: 2026-04-30T12:00:00.000Z");
     expect(markdown).toContain("- 音声ファイル: session.webm");
     expect(markdown).toContain("- 抽出Provider: ルールベース");
     expect(markdown).toContain("- フォールバック: あり");
