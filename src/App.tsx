@@ -716,6 +716,14 @@ export function App() {
     exportSessionMarkdown(currentSession);
   };
 
+  const exportSessionJson = (session: SessionState): void => {
+    downloadJsonFile({
+      exportedAt: new Date().toISOString(),
+      campaignName,
+      session,
+    }, createExportFileName(`${session.title}-session`));
+  };
+
   const exportSessionMarkdown = (session: SessionState): void => {
     const sessionPrepNote = generatePrepNote(chronicle, campaignState.sessions, session);
 
@@ -1649,6 +1657,15 @@ export function App() {
                         variant="ghost"
                       >
                         <FileText className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        aria-label={`${session.title}をJSONで書き出し`}
+                        disabled={isExtracting}
+                        onClick={() => exportSessionJson(session)}
+                        size="icon"
+                        variant="ghost"
+                      >
+                        <Download className="h-4 w-4" />
                       </Button>
                       <Button
                         aria-label={`${session.title}を複製`}
