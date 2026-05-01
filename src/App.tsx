@@ -50,6 +50,7 @@ import {
   formatPrepNoteMarkdown,
   generatePrepNote,
   getCampaignSearchText,
+  getCampaignSummaryStats,
   getLocalDateString,
   getSessionSearchText,
   normalizeCampaignLibraryState,
@@ -1397,11 +1398,7 @@ export function App() {
             <div className="space-y-1">
               {visibleCampaigns.map((campaign) => (
                 (() => {
-                  const memoryCount = countChronicleItems(campaign.chronicle);
-                  const lowConfidenceCount = campaign.sessions.reduce(
-                    (total, session) => total + summarizeLiveLog(session.liveLog).lowConfidenceCount,
-                    0,
-                  );
+                  const stats = getCampaignSummaryStats(campaign);
 
                   return (
                     <div
@@ -1421,8 +1418,9 @@ export function App() {
                               : "block text-xs text-muted-foreground"
                           }
                         >
-                          {campaign.sessions.length}セッション / {memoryCount}記憶
-                          {lowConfidenceCount > 0 ? ` / 要確認${lowConfidenceCount}` : ""}
+                          {stats.sessionCount}セッション / {stats.memoryCount}記憶 / {stats.candidateCount}候補 /{" "}
+                          {stats.approvedCount}採用
+                          {stats.lowConfidenceSegmentCount > 0 ? ` / 要確認${stats.lowConfidenceSegmentCount}` : ""}
                         </span>
                       </button>
                       <Button
