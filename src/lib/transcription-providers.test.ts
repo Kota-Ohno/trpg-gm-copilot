@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { checkTranscriptionProviderReadiness, hasWebSpeechRecognitionSupport, runTranscriptionProvider } from "./transcription-providers";
+import {
+  checkTranscriptionProviderReadiness,
+  hasWebSpeechRecognitionSupport,
+  runTranscriptionProvider,
+  validateTranscriptionAudioFile,
+} from "./transcription-providers";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -55,6 +60,19 @@ describe("hasWebSpeechRecognitionSupport", () => {
     expect(hasWebSpeechRecognitionSupport({ webkitSpeechRecognition: function SpeechRecognition() {} })).toBe(true);
     expect(hasWebSpeechRecognitionSupport({})).toBe(false);
     expect(hasWebSpeechRecognitionSupport(null)).toBe(false);
+  });
+});
+
+describe("validateTranscriptionAudioFile", () => {
+  it("accepts common audio extensions and rejects unsupported files", () => {
+    expect(validateTranscriptionAudioFile(new File(["audio"], "session.mp3"))).toEqual({
+      ok: true,
+      message: "音声ファイルを利用できます。",
+    });
+    expect(validateTranscriptionAudioFile(new File(["text"], "notes.txt", { type: "text/plain" }))).toEqual({
+      ok: false,
+      message: "対応形式は flac, m4a, mp3, mp4, mpeg, mpga, oga, ogg, wav, webm です。",
+    });
   });
 });
 

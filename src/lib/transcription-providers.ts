@@ -4,6 +4,7 @@ import { normalizeTranscriptionDrafts } from "./extraction";
 import type { TranscriptionSegmentDraft } from "../types";
 
 export const maxTranscriptionAudioFileSizeBytes = 25 * 1024 * 1024;
+const supportedTranscriptionAudioExtensions = new Set(["flac", "m4a", "mp3", "mp4", "mpeg", "mpga", "oga", "ogg", "wav", "webm"]);
 
 export type TranscriptionProviderCheckResult = {
   ok: boolean;
@@ -23,6 +24,34 @@ export type TranscriptionProviderResult = {
   ok: boolean;
   providerLabel: string;
 };
+
+export type TranscriptionAudioFileValidationResult = {
+  ok: boolean;
+  message: string;
+};
+
+export function validateTranscriptionAudioFile(file: File): TranscriptionAudioFileValidationResult {
+  if (file.size > maxTranscriptionAudioFileSizeBytes) {
+    return {
+      ok: false,
+      message: "OpenAI文字起こしの音声ファイルは25MB以下にしてください。",
+    };
+  }
+
+  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const hasAudioMimeType = file.type.startsWith("audio/");
+  if (!supportedTranscriptionAudioExtensions.has(extension) && !hasAudioMimeType) {
+    return {
+      ok: false,
+      message: "対応形式は flac, m4a, mp3, mp4, mpeg, mpga, oga, ogg, wav, webm です。",
+    };
+  }
+
+  return {
+    ok: true,
+    message: "音声ファイルを利用できます。",
+  };
+}
 
 function normalizeTranscriptionResponse(value: unknown): TranscriptionSegmentDraft[] {
   const normalizedDrafts = normalizeTranscriptionDrafts(value);
@@ -147,10 +176,11 @@ export async function runTranscriptionProvider(
       };
     }
 
-    if (request.audioFile.size > maxTranscriptionAudioFileSizeBytes) {
+    const audioFileValidation = validateTranscriptionAudioFile(request.audioFile);
+    if (!audioFileValidation.ok) {
       return {
         drafts: [],
-        message: "OpenAI文字起こしの音声ファイルは25MB以下にしてください。",
+        message: audioFileValidation.message,
         ok: false,
         providerLabel: provider.label,
       };

@@ -89,6 +89,7 @@ import {
   checkTranscriptionProviderReadiness,
   maxTranscriptionAudioFileSizeBytes,
   runTranscriptionProvider,
+  validateTranscriptionAudioFile,
 } from "./lib/transcription-providers";
 import type {
   CampaignState,
@@ -2069,7 +2070,9 @@ export function App() {
                           type="file"
                           onChange={(event) => {
                             setTranscriptionAudioFile(event.target.files?.[0] ?? null);
-                            setTranscriptionImportError(null);
+                            const file = event.target.files?.[0] ?? null;
+                            const validation = file ? validateTranscriptionAudioFile(file) : null;
+                            setTranscriptionImportError(validation && !validation.ok ? validation.message : null);
                             setTranscriptionImportMessage(null);
                             event.target.value = "";
                           }}
