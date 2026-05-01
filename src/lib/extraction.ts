@@ -63,6 +63,13 @@ export type PlainLogSummary = {
   speakerLineRatio: number;
 };
 
+export type SpeakerUsageSummary = {
+  segmentCount: number;
+  speakerId: string;
+  speakerName: string;
+  speakerRole: SpeakerRole;
+};
+
 const npcNamePattern = /(?:女将|村長|灯台守|船長|医師|司祭|娘|甥|少女|少年|老人|男|女)(?:の)?([ァ-ヶー一-龠々]{1,8})|([ァ-ヶー一-龠々]{1,8})(?:は|が).*(?:話|言|証言)/;
 const plainLogLinePattern = /^(?:\[\s*([0-9０-９:.：\s]+)\s*\]\s*)?([^:：]{1,32})[:：]\s*(.+)$/;
 
@@ -89,6 +96,7 @@ export function liveLogToPlainText(liveLog: LiveLogSession): string {
 
 export function formatSpeakerLogMarkdown(liveLog: LiveLogSession, title: string): string {
   const summary = summarizeLiveLog(liveLog);
+  const speakerUsage = summarizeSpeakerUsage(liveLog);
   const lines = [...liveLog.segments]
     .sort((first, second) => first.startTimeSec - second.startTimeSec)
     .filter((segment) => segment.text.trim().length > 0)
@@ -110,10 +118,27 @@ export function formatSpeakerLogMarkdown(liveLog: LiveLogSession, title: string)
     `- 合計時間: ${formatTimestamp(summary.totalDurationSec)}`,
     ...(summary.averageConfidence !== null ? [`- 平均信頼度: ${Math.round(summary.averageConfidence * 100)}%`] : []),
     "",
+    "## 話者",
+    "",
+    ...(speakerUsage.length > 0
+      ? speakerUsage.map((speaker) => `- ${speaker.speakerName} (${speaker.speakerRole}): ${speaker.segmentCount}発話`)
+      : ["- 話者はありません。"]),
+    "",
     "## 発話",
     "",
     ...(lines.length > 0 ? lines : ["- 発話はありません。"]),
   ].join("\n").trimEnd();
+}
+
+export function summarizeSpeakerUsage(liveLog: LiveLogSession): SpeakerUsageSummary[] {
+  return liveLog.speakers.map((speaker) => ({
+    segmentCount: liveLog.segments.filter(
+      (segment) => segment.speakerId === speaker.id && segment.text.trim().length > 0,
+    ).length,
+    speakerId: speaker.id,
+    speakerName: speaker.name,
+    speakerRole: speaker.role,
+  }));
 }
 
 export function formatReviewItemsMarkdown(items: ExtractionItem[], title: string, approvedIds: string[] = []): string {

@@ -16,6 +16,7 @@ import {
   runRuleBasedExtraction,
   splitTranscriptSegment,
   summarizePlainLog,
+  summarizeSpeakerUsage,
   summarizeLiveLog,
   transcriptionDraftsToLiveLog,
 } from "./extraction";
@@ -283,7 +284,17 @@ describe("formatSpeakerLogMarkdown", () => {
 
     expect(markdown).toContain("# 第1夜 話者ログ");
     expect(markdown).toContain("- 発話: 2");
+    expect(markdown).toContain("- GM (GM): 1発話");
     expect(markdown).toContain("- [00:00] **GM**: 足音が聞こえる / 信頼度 70%");
+  });
+});
+
+describe("summarizeSpeakerUsage", () => {
+  it("counts non-empty transcript segments per speaker", () => {
+    expect(summarizeSpeakerUsage(summaryLiveLog)).toEqual([
+      { segmentCount: 1, speakerId: "speaker-gm", speakerName: "GM", speakerRole: "GM" },
+      { segmentCount: 1, speakerId: "speaker-pl", speakerName: "アキラ", speakerRole: "PL" },
+    ]);
   });
 });
 
