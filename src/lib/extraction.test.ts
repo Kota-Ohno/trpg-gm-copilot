@@ -88,6 +88,16 @@ describe("normalizeTranscriptionDrafts", () => {
       { speakerName: "GM", text: "足音が近づく", confidence: 0.82 },
     ]);
   });
+
+  it("accepts common provider aliases for speaker, timing, text, and confidence fields", () => {
+    expect(normalizeTranscriptionDrafts([
+      { speaker: "KP", start: 1.5, end: 4, transcript: " 開始します ", probability: 0.91 },
+      { speaker_name: "PL", start_time: 5, end_time: 7, content: "調べます", score: 0.8 },
+    ])).toEqual([
+      { speakerName: "KP", startTimeSec: 1.5, endTimeSec: 4, text: "開始します", confidence: 0.91 },
+      { speakerName: "PL", startTimeSec: 5, endTimeSec: 7, text: "調べます", confidence: 0.8 },
+    ]);
+  });
 });
 
 describe("previewTranscriptionDraftPayload", () => {

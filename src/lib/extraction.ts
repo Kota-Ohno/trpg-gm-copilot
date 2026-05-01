@@ -687,6 +687,28 @@ export function runRuleBasedExtraction(lines: ExtractionInputLine[]): Extraction
   return candidates.slice(0, 8);
 }
 
+function readDraftString(draft: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const value = draft[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return "";
+}
+
+function readDraftNumber(draft: Record<string, unknown>, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = draft[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
 export function normalizeTranscriptionDrafts(value: unknown): TranscriptionSegmentDraft[] | null {
   const draftItems = Array.isArray(value)
     ? value
@@ -703,23 +725,22 @@ export function normalizeTranscriptionDrafts(value: unknown): TranscriptionSegme
       return [];
     }
 
-    const draft = item as Partial<Record<keyof TranscriptionSegmentDraft, unknown>>;
-    if (typeof draft.text !== "string") {
-      return [];
-    }
-
-    const text = draft.text.trim();
+    const draft = item as Record<string, unknown>;
+    const text = readDraftString(draft, ["text", "transcript", "content"]);
     if (!text) {
       return [];
     }
-    const speakerName = typeof draft.speakerName === "string" ? draft.speakerName.trim() : "";
+    const speakerName = readDraftString(draft, ["speakerName", "speaker", "speaker_name", "speakerLabel"]);
+    const startTimeSec = readDraftNumber(draft, ["startTimeSec", "start", "start_time", "startSec"]);
+    const endTimeSec = readDraftNumber(draft, ["endTimeSec", "end", "end_time", "endSec"]);
+    const confidence = readDraftNumber(draft, ["confidence", "probability", "score"]);
 
     return [{
       ...(speakerName ? { speakerName } : {}),
-      ...(typeof draft.startTimeSec === "number" ? { startTimeSec: draft.startTimeSec } : {}),
-      ...(typeof draft.endTimeSec === "number" ? { endTimeSec: draft.endTimeSec } : {}),
+      ...(typeof startTimeSec === "number" ? { startTimeSec } : {}),
+      ...(typeof endTimeSec === "number" ? { endTimeSec } : {}),
       text,
-      ...(typeof draft.confidence === "number" ? { confidence: draft.confidence } : {}),
+      ...(typeof confidence === "number" ? { confidence } : {}),
     }];
   });
 }
