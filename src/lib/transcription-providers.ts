@@ -9,6 +9,7 @@ export type TranscriptionProviderCheckResult = {
 };
 
 export type TranscriptionProviderRequest = {
+  audioFile?: File;
   draftJson?: string;
   secrets: ProviderSecretSettings;
   settings: TranscriptionProviderSettings;
@@ -20,6 +21,22 @@ export type TranscriptionProviderResult = {
   ok: boolean;
   providerLabel: string;
 };
+
+function normalizeTranscriptionResponse(value: unknown): TranscriptionSegmentDraft[] {
+  const normalizedDrafts = normalizeTranscriptionDrafts(value);
+  if (normalizedDrafts) {
+    return normalizedDrafts;
+  }
+
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const text = (value as { text?: unknown }).text;
+    if (typeof text === "string" && text.trim()) {
+      return [{ text: text.trim() }];
+    }
+  }
+
+  return [];
+}
 
 export function hasWebSpeechRecognitionSupport(value: unknown): boolean {
   return (
@@ -116,6 +133,74 @@ export async function runTranscriptionProvider(
       ok: false,
       providerLabel: provider.label,
     };
+  }
+
+  if (provider.id === "openai") {
+    if (!request.audioFile) {
+      return {
+        drafts: [],
+        message: "OpenAI文字起こしには音声ファイルが必要です。",
+        ok: false,
+        providerLabel: provider.label,
+      };
+    }
+
+    try {
+      const endpoint = (request.settings.endpoint || provider.defaultEndpoint).replace(/\/+$/, "");
+      const model = request.settings.model.trim() || provider.defaultModel;
+      const formData = new FormData();
+      formData.append("file", request.audioFile);
+      formData.append("model", model);
+      formData.append("response_format", model.includes("diarize") ? "diarized_json" : "json");
+      if (request.settings.language.trim()) {
+        formData.append("language", request.settings.language.trim());
+      }
+
+      const response = await fetch(`${endpoint}/audio/transcriptions`, {
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${request.secrets.openAiApiKey.trim()}`,
+        },
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return {
+          drafts: [],
+          message: errorText.trim() || `OpenAI文字起こしAPIが失敗しました。status: ${response.status}`,
+          ok: false,
+          providerLabel: provider.label,
+        };
+      }
+
+      const contentType = response.headers.get("content-type") ?? "";
+      const responsePayload = contentType.includes("application/json")
+        ? await response.json()
+        : { text: await response.text() };
+      const drafts = normalizeTranscriptionResponse(responsePayload);
+
+      return drafts.length > 0
+        ? {
+            drafts,
+            message: `${drafts.length}件のOpenAI文字起こしを読み取りました。`,
+            ok: true,
+            providerLabel: provider.label,
+          }
+        : {
+            drafts: [],
+            message: "OpenAI文字起こしAPIの応答に有効な発話がありません。",
+            ok: false,
+            providerLabel: provider.label,
+          };
+    } catch (error) {
+      return {
+        drafts: [],
+        message: error instanceof Error ? error.message : "OpenAI文字起こしAPI呼び出しに失敗しました。",
+        ok: false,
+        providerLabel: provider.label,
+      };
+    }
   }
 
   return {

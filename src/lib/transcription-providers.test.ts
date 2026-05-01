@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { checkTranscriptionProviderReadiness, hasWebSpeechRecognitionSupport, runTranscriptionProvider } from "./transcription-providers";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("checkTranscriptionProviderReadiness", () => {
   it("marks manual transcription as ready", () => {
@@ -83,5 +87,37 @@ describe("runTranscriptionProvider", () => {
       ok: false,
       providerLabel: "OpenAI",
     });
+  });
+
+  it("calls OpenAI transcription endpoint and normalizes text responses", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ text: " 灯台へ向かう " }), {
+      headers: { "content-type": "application/json" },
+      status: 200,
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(runTranscriptionProvider({
+      audioFile: new File(["audio"], "session.webm", { type: "audio/webm" }),
+      secrets: { openAiApiKey: "sk-test" },
+      settings: {
+        providerId: "openai",
+        model: "gpt-4o-mini-transcribe",
+        endpoint: "https://api.openai.com/v1/",
+        language: "ja",
+      },
+    })).resolves.toEqual({
+      drafts: [{ text: "灯台へ向かう" }],
+      message: "1件のOpenAI文字起こしを読み取りました。",
+      ok: true,
+      providerLabel: "OpenAI",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.openai.com/v1/audio/transcriptions",
+      expect.objectContaining({
+        headers: { Authorization: "Bearer sk-test" },
+        method: "POST",
+      }),
+    );
   });
 });
