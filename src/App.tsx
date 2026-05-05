@@ -1037,6 +1037,57 @@ export function App() {
     setStorageError(null);
   };
 
+  const exportSupportDiagnostics = (): void => {
+    const campaignStats = campaignLibrary.campaigns.map((campaign) => ({
+      campaignId: campaign.id,
+      campaignName: campaign.campaignName,
+      ...getCampaignSummaryStats(campaign),
+    }));
+
+    downloadJsonFile({
+      exportedAt: new Date().toISOString(),
+      app: "chronicle-gm",
+      activeCampaignId: campaignState.id,
+      activeSessionId: currentSession.id,
+      campaignCount: campaignLibrary.campaigns.length,
+      campaignStats,
+      currentSession: {
+        approvedCount,
+        duplicateReviewItemCount,
+        invalidReviewItemCount,
+        reviewItemCount: items.length,
+        speakerIssueCount: currentSpeakerIssueCount,
+      },
+      providers: {
+        extraction: {
+          providerId: extractionProvider.providerId,
+          ready: extractionProviderReady,
+        },
+        transcription: {
+          providerId: transcriptionProvider.providerId,
+          readiness: transcriptionProviderReadiness,
+        },
+      },
+      storage: {
+        ...storageHealth,
+        usagePercent: storageUsagePercent,
+      },
+      ui: {
+        activeTab,
+        chronicleClueStatusFilter,
+        chronicleViewMode,
+        isFocusMode,
+        logInputMode,
+        logWorkspaceMode,
+        navigationPanelMode,
+        prepWorkspaceMode,
+        reviewWorkspaceMode,
+        rightPanelMode,
+        settingsPanelMode,
+      },
+    }, createExportFileName("support-diagnostics"));
+  };
+
   const exportTranscriptionDraftJson = (): void => {
     const drafts = liveLogToTranscriptionDrafts(currentSession.liveLog);
 
@@ -3542,6 +3593,10 @@ export function App() {
             <CardContent className="space-y-2 text-sm text-muted-foreground">
               <p>ファンタジーモードでは、手がかりをクエスト、秘密を勢力事情、伏線を世界変化へ置き換えます。</p>
               <p>AI接続はユーザーAPIキー方式にして、ローカル保存を基本にします。</p>
+              <Button onClick={exportSupportDiagnostics} size="sm" variant="outline">
+                <Download className="h-4 w-4" />
+                診断JSONを書き出し
+              </Button>
             </CardContent>
           </Card>
           )}
