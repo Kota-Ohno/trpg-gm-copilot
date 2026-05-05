@@ -99,7 +99,7 @@ import {
   runTranscriptionProvider,
   validateTranscriptionAudioFile,
 } from "./lib/transcription-providers";
-import { sortReviewItems, type ReviewSortMode } from "./lib/review";
+import { sortReviewItems, summarizeReviewItems, type ReviewSortMode } from "./lib/review";
 import type {
   CampaignState,
   CampaignLibraryState,
@@ -693,9 +693,10 @@ export function App() {
 
   const approvedCount = approvedIds.length;
   const remainingCount = items.length - approvedCount;
-  const invalidReviewItemCount = items.filter((item) => !item.title.trim() || !item.detail.trim()).length;
   const duplicateReviewItemIds = findDuplicateExtractionItemIds(items, approvedIds);
-  const duplicateReviewItemCount = duplicateReviewItemIds.length;
+  const reviewSummary = summarizeReviewItems(items, approvedIds, duplicateReviewItemIds);
+  const invalidReviewItemCount = reviewSummary.invalid;
+  const duplicateReviewItemCount = reviewSummary.duplicate;
   const approvableRemainingCount = items.filter(
     (item) => !approvedIds.includes(item.id) && item.title.trim() && item.detail.trim(),
   ).length;
@@ -730,6 +731,7 @@ export function App() {
     );
   });
   const reviewItems = sortReviewItems(filteredReviewItems, approvedIds, reviewSortMode);
+  const visibleReviewSummary = summarizeReviewItems(reviewItems, approvedIds, duplicateReviewItemIds);
   const hasReviewFilter =
     reviewKindFilter !== "all" ||
     reviewVisibilityFilter !== "all" ||
@@ -737,10 +739,8 @@ export function App() {
     showDuplicateReviewItemsOnly ||
     showInvalidReviewItemsOnly ||
     normalizedReviewQuery.length > 0;
-  const approvableVisibleReviewCount = reviewItems.filter(
-    (item) => !approvedIds.includes(item.id) && item.title.trim() && item.detail.trim(),
-  ).length;
-  const rejectableVisibleReviewCount = reviewItems.filter((item) => !approvedIds.includes(item.id)).length;
+  const approvableVisibleReviewCount = visibleReviewSummary.approvable;
+  const rejectableVisibleReviewCount = visibleReviewSummary.pending;
   const reviewKindCounts = reviewKindOptions.reduce<Record<ReviewKindFilter, number>>(
     (counts, option) => ({
       ...counts,
@@ -1215,10 +1215,15 @@ export function App() {
         sort: reviewSortMode,
       },
       counts: {
-        total: reviewItems.length,
-        approved: reviewItems.filter((item) => approvedIds.includes(item.id)).length,
-        approvable: approvableVisibleReviewCount,
-        rejectable: rejectableVisibleReviewCount,
+        total: visibleReviewSummary.total,
+        approved: visibleReviewSummary.approved,
+        pending: visibleReviewSummary.pending,
+        rejectable: visibleReviewSummary.pending,
+        approvable: visibleReviewSummary.approvable,
+        invalid: visibleReviewSummary.invalid,
+        duplicate: visibleReviewSummary.duplicate,
+        byKind: visibleReviewSummary.byKind,
+        byVisibility: visibleReviewSummary.byVisibility,
       },
       items: reviewItems,
     }, createExportFileName(`${currentSession.title}-review-items`));
@@ -3293,6 +3298,32 @@ export function App() {
                         )}
                       </CardContent>
                     </Card>
+                    {reviewItems.length > 0 && (
+                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-md border border-border bg-muted/20 p-3">
+                          <p className="text-xs text-muted-foreground">表示中</p>
+                          <p className="mt-1 text-lg font-semibold">{visibleReviewSummary.total}件</p>
+                        </div>
+                        <div className="rounded-md border border-border bg-muted/20 p-3">
+                          <p className="text-xs text-muted-foreground">未承認 / 採用可能</p>
+                          <p className="mt-1 text-lg font-semibold">
+                            {visibleReviewSummary.pending} / {visibleReviewSummary.approvable}
+                          </p>
+                        </div>
+                        <div className="rounded-md border border-border bg-muted/20 p-3">
+                          <p className="text-xs text-muted-foreground">要整理</p>
+                          <p className="mt-1 text-lg font-semibold">
+                            {visibleReviewSummary.invalid}未入力 / {visibleReviewSummary.duplicate}重複
+                          </p>
+                        </div>
+                        <div className="rounded-md border border-border bg-muted/20 p-3">
+                          <p className="text-xs text-muted-foreground">GM向け非公開</p>
+                          <p className="mt-1 text-lg font-semibold">
+                            {visibleReviewSummary.byVisibility.GMのみ + visibleReviewSummary.byVisibility.未開示候補}件
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     {reviewItems.length === 0 ? (
                       <Card>
                         <CardContent className="space-y-3 py-6 text-center">

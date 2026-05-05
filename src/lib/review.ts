@@ -5,9 +5,73 @@ export type ReviewSortMode = "original" | "status" | "kind" | "visibility";
 const kindOrder: ExtractionItem["kind"][] = ["出来事", "NPC", "手がかり", "GM秘密", "伏線"];
 const visibilityOrder: ExtractionItem["visibility"][] = ["PL既知", "未開示候補", "GMのみ"];
 
+export type ReviewItemSummary = {
+  total: number;
+  approved: number;
+  pending: number;
+  approvable: number;
+  invalid: number;
+  duplicate: number;
+  byKind: Record<ExtractionItem["kind"], number>;
+  byVisibility: Record<ExtractionItem["visibility"], number>;
+};
+
 function indexInOrder<T extends string>(order: T[], value: T): number {
   const index = order.indexOf(value);
   return index === -1 ? order.length : index;
+}
+
+export function summarizeReviewItems(
+  items: ExtractionItem[],
+  approvedIds: string[],
+  duplicateIds: string[] = [],
+): ReviewItemSummary {
+  const approvedIdSet = new Set(approvedIds);
+  const duplicateIdSet = new Set(duplicateIds);
+
+  return items.reduce<ReviewItemSummary>(
+    (summary, item) => {
+      const isApproved = approvedIdSet.has(item.id);
+      const isValid = Boolean(item.title.trim() && item.detail.trim());
+
+      return {
+        total: summary.total + 1,
+        approved: summary.approved + (isApproved ? 1 : 0),
+        pending: summary.pending + (isApproved ? 0 : 1),
+        approvable: summary.approvable + (!isApproved && isValid ? 1 : 0),
+        invalid: summary.invalid + (isValid ? 0 : 1),
+        duplicate: summary.duplicate + (duplicateIdSet.has(item.id) ? 1 : 0),
+        byKind: {
+          ...summary.byKind,
+          [item.kind]: summary.byKind[item.kind] + 1,
+        },
+        byVisibility: {
+          ...summary.byVisibility,
+          [item.visibility]: summary.byVisibility[item.visibility] + 1,
+        },
+      };
+    },
+    {
+      total: 0,
+      approved: 0,
+      pending: 0,
+      approvable: 0,
+      invalid: 0,
+      duplicate: 0,
+      byKind: {
+        出来事: 0,
+        NPC: 0,
+        手がかり: 0,
+        GM秘密: 0,
+        伏線: 0,
+      },
+      byVisibility: {
+        PL既知: 0,
+        GMのみ: 0,
+        未開示候補: 0,
+      },
+    },
+  );
 }
 
 export function sortReviewItems(

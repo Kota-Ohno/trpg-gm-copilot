@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ExtractionItem } from "../types";
-import { sortReviewItems } from "./review";
+import { sortReviewItems, summarizeReviewItems } from "./review";
 
 const item = (
   id: string,
@@ -61,5 +61,41 @@ describe("sortReviewItems", () => {
       "thread",
       "secret",
     ]);
+  });
+});
+
+describe("summarizeReviewItems", () => {
+  it("counts approval, validity, duplicate, kind, and visibility totals", () => {
+    const summary = summarizeReviewItems(
+      [
+        reviewItems[0],
+        { ...reviewItems[1], detail: " " },
+        reviewItems[2],
+        reviewItems[3],
+      ],
+      ["npc"],
+      ["thread", "secret"],
+    );
+
+    expect(summary).toEqual({
+      total: 4,
+      approved: 1,
+      pending: 3,
+      approvable: 2,
+      invalid: 1,
+      duplicate: 2,
+      byKind: {
+        出来事: 1,
+        NPC: 1,
+        手がかり: 0,
+        GM秘密: 1,
+        伏線: 1,
+      },
+      byVisibility: {
+        PL既知: 1,
+        GMのみ: 2,
+        未開示候補: 1,
+      },
+    });
   });
 });
