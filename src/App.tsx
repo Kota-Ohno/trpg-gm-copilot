@@ -2923,6 +2923,7 @@ export function App() {
               <HomeDashboard
                 approvedCount={approvedCount}
                 canExtractLog={canExtractLog}
+                campaignMode={campaignMode}
                 currentLiveLogSummary={currentLiveLogSummary}
                 currentSession={currentSession}
                 currentSpeakerIssueCount={currentSpeakerIssueCount}
@@ -4140,6 +4141,7 @@ export function App() {
 function HomeDashboard({
   approvedCount,
   canExtractLog,
+  campaignMode,
   backupStatus,
   currentLiveLogSummary,
   currentSession,
@@ -4179,6 +4181,7 @@ function HomeDashboard({
   approvedCount: number;
   backupStatus: ReturnType<typeof getBackupStatus>;
   canExtractLog: boolean;
+  campaignMode: CampaignMode;
   currentLiveLogSummary: ReturnType<typeof summarizeLiveLog>;
   currentSession: SessionState;
   currentSpeakerIssueCount: number;
@@ -4219,6 +4222,8 @@ function HomeDashboard({
   const memoryReady = memoryItemCount > 0;
   const prepReady = hasPrepContent;
   const needsFirstLog = !logReady && reviewItemCount === 0 && memoryItemCount === 0;
+  const extractionTargetLabel =
+    campaignMode === "fantasy" ? "クエスト、勢力事情、世界変化" : "手がかり、秘密、伏線";
   const priorityAlerts = [
     invalidReviewItemCount > 0
       ? { label: `${invalidReviewItemCount}件の未入力候補`, onOpen: onOpenInvalidReviewItems }
@@ -4304,7 +4309,7 @@ function HomeDashboard({
   const recommendedAction = !logReady
     ? { label: "ログ入力を完了", detail: "通常ログか話者付きログを入れると抽出プレビューへ進めます。", onOpen: onOpenLogEditor }
     : reviewItemCount === 0
-      ? { label: "抽出プレビューを実行", detail: "ログから手がかり、秘密、伏線の候補を作ります。", onOpen: onExtract }
+      ? { label: "抽出プレビューを実行", detail: `ログから${extractionTargetLabel}の候補を作ります。`, onOpen: onExtract }
       : remainingCount > 0
         ? { label: "未承認候補を確認", detail: `${remainingCount}件の候補がGM承認待ちです。`, onOpen: onOpenReviewInspect }
         : memoryItemCount === 0
