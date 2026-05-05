@@ -387,6 +387,7 @@ describe("formatSessionMarkdown", () => {
         { id: "item-1", kind: "出来事", title: "港へ向かう", detail: "探索者が移動した", visibility: "PL既知" },
       ],
       extractionRun: {
+        campaignMode: "fantasy",
         sourceType: "plain",
         providerId: "openai",
         providerLabel: "OpenAI",
@@ -419,6 +420,7 @@ describe("formatSessionMarkdown", () => {
     expect(markdown).toContain("- 文字起こし日時: 2026-04-30T12:00:00.000Z");
     expect(markdown).toContain("- 音声ファイル: session.webm");
     expect(markdown).toContain("- 抽出Provider: ルールベース");
+    expect(markdown).toContain("- 抽出モード: ファンタジー");
     expect(markdown).toContain("- フォールバック: あり");
     expect(markdown).toContain("```text\nGM: 港へ向かう\n```");
     expect(markdown).toContain("[00:00] GM: 足音が聞こえる");

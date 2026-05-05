@@ -291,6 +291,11 @@ export function normalizeExtractionItemText(item: ExtractionItem): ExtractionIte
   };
 }
 
+const campaignModeLabels: Record<CampaignMode, string> = {
+  investigation: "調査",
+  fantasy: "ファンタジー",
+};
+
 export function formatSessionMarkdown(session: SessionState, prepNote?: PrepNote): string {
   const speakerLogText = liveLogToPlainText(session.liveLog);
   const reviewMarkdown = formatReviewItemsMarkdown(session.extractionItems, "抽出候補", session.approvedIds)
@@ -323,6 +328,9 @@ export function formatSessionMarkdown(session: SessionState, prepNote?: PrepNote
     ...(session.extractionRun
       ? [
           `- 抽出Provider: ${session.extractionRun.executedProviderLabel}`,
+          ...(session.extractionRun.campaignMode
+            ? [`- 抽出モード: ${campaignModeLabels[session.extractionRun.campaignMode]}`]
+            : []),
           `- フォールバック: ${session.extractionRun.fallbackUsed ? "あり" : "なし"}`,
           ...(session.extractionRun.note ? [`- 抽出メモ: ${session.extractionRun.note}`] : []),
         ]
