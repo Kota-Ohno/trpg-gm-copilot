@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createInitialCampaignState, normalizeCampaignLibraryState } from "./campaign";
-import { buildSessionStorageDiagnostics, buildSupportDiagnostics } from "./diagnostics";
+import { buildReviewQualityDiagnostics, buildSessionStorageDiagnostics, buildSupportDiagnostics } from "./diagnostics";
 
 describe("buildSupportDiagnostics", () => {
   it("exports support-safe state, provider readiness, storage, and campaign stats", () => {
@@ -74,6 +74,7 @@ describe("buildSupportDiagnostics", () => {
       sessionId: campaign.sessions[0].id,
       sessionTitle: campaign.sessions[0].title,
     });
+    expect(diagnostics.reviewQuality).toEqual([]);
     expect(diagnostics.sessionStorage[0].totalBytes).toBeGreaterThan(0);
   });
 });
@@ -103,5 +104,38 @@ describe("buildSessionStorageDiagnostics", () => {
     expect(diagnostics.map((session) => session.sessionId)).toEqual(["large", "small"]);
     expect(diagnostics[0].logBytes).toBeGreaterThan(diagnostics[1].logBytes);
     expect(diagnostics[0]).not.toHaveProperty("log");
+  });
+});
+
+describe("buildReviewQualityDiagnostics", () => {
+  it("reports invalid and duplicate review debt by approval status", () => {
+    const campaign = createInitialCampaignState();
+    const session = {
+      ...campaign.sessions[0],
+      extractionItems: [
+        { id: "approved-invalid", kind: "手がかり" as const, title: " ", detail: "x", visibility: "PL既知" as const },
+        { id: "duplicate-base", kind: "手がかり" as const, title: "鍵", detail: "古い", visibility: "PL既知" as const },
+        { id: "pending-duplicate", kind: "手がかり" as const, title: "鍵", detail: "古い", visibility: "PL既知" as const },
+        { id: "pending-invalid", kind: "伏線" as const, title: "謎", detail: " ", visibility: "未開示候補" as const },
+      ],
+      approvedIds: ["approved-invalid", "duplicate-base"],
+    };
+    const campaignLibrary = {
+      activeCampaignId: campaign.id,
+      campaigns: [{ ...campaign, sessions: [session] }],
+    };
+
+    expect(buildReviewQualityDiagnostics(campaignLibrary)).toEqual([
+      {
+        campaignId: campaign.id,
+        campaignName: campaign.campaignName,
+        sessionId: session.id,
+        sessionTitle: session.title,
+        approvedInvalidCount: 1,
+        approvedDuplicateCount: 0,
+        pendingInvalidCount: 1,
+        pendingDuplicateCount: 1,
+      },
+    ]);
   });
 });

@@ -8,6 +8,7 @@ import type {
 } from "../types";
 import type { BackupStatus } from "./backup";
 import { getCampaignSummaryStats } from "./campaign";
+import { findDuplicateExtractionItemIds } from "./extraction";
 import type { TranscriptionProviderCheckResult } from "./transcription-providers";
 
 export type SessionStorageDiagnostic = {
@@ -20,6 +21,17 @@ export type SessionStorageDiagnostic = {
   speakerLogBytes: number;
   reviewBytes: number;
   transcriptionBytes: number;
+};
+
+export type ReviewQualityDiagnostic = {
+  campaignId: string;
+  campaignName: string;
+  sessionId: string;
+  sessionTitle: string;
+  approvedInvalidCount: number;
+  approvedDuplicateCount: number;
+  pendingInvalidCount: number;
+  pendingDuplicateCount: number;
 };
 
 export type SupportDiagnosticsInput = {
@@ -87,6 +99,41 @@ export function buildSessionStorageDiagnostics(
     .sort((left, right) => right.totalBytes - left.totalBytes);
 }
 
+export function buildReviewQualityDiagnostics(
+  campaignLibrary: CampaignLibraryState,
+): ReviewQualityDiagnostic[] {
+  return campaignLibrary.campaigns.flatMap((campaign) =>
+    campaign.sessions
+      .map((session) => {
+        const approvedIds = new Set(session.approvedIds);
+        const duplicateIds = new Set(findDuplicateExtractionItemIds(session.extractionItems, session.approvedIds));
+        const invalidIds = new Set(
+          session.extractionItems
+            .filter((item) => !item.title.trim() || !item.detail.trim())
+            .map((item) => item.id),
+        );
+
+        return {
+          campaignId: campaign.id,
+          campaignName: campaign.campaignName,
+          sessionId: session.id,
+          sessionTitle: session.title,
+          approvedInvalidCount: session.approvedIds.filter((id) => invalidIds.has(id)).length,
+          approvedDuplicateCount: session.approvedIds.filter((id) => duplicateIds.has(id)).length,
+          pendingInvalidCount: session.extractionItems.filter((item) => !approvedIds.has(item.id) && invalidIds.has(item.id)).length,
+          pendingDuplicateCount: session.extractionItems.filter((item) => !approvedIds.has(item.id) && duplicateIds.has(item.id)).length,
+        };
+      })
+      .filter(
+        (diagnostic) =>
+          diagnostic.approvedInvalidCount > 0 ||
+          diagnostic.approvedDuplicateCount > 0 ||
+          diagnostic.pendingInvalidCount > 0 ||
+          diagnostic.pendingDuplicateCount > 0,
+      ),
+  );
+}
+
 export function buildSupportDiagnostics(input: SupportDiagnosticsInput, exportedAt = new Date().toISOString()) {
   return {
     exportedAt,
@@ -114,6 +161,7 @@ export function buildSupportDiagnostics(input: SupportDiagnosticsInput, exported
     },
     storage: input.storage,
     sessionStorage: buildSessionStorageDiagnostics(input.campaignLibrary),
+    reviewQuality: buildReviewQualityDiagnostics(input.campaignLibrary),
     ui: {
       activeTab: input.activeTab,
       chronicleClueStatusFilter: input.chronicleClueStatusFilter,
