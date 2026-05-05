@@ -2401,7 +2401,9 @@ export function App() {
             </div>
             <div>
               <p className="text-sm font-semibold">Chronicle GM</p>
-              <p className="text-xs text-muted-foreground">Investigation mode</p>
+              <p className="text-xs text-muted-foreground">
+                {findOptionLabel(campaignModeOptions, campaignMode, "調査")} mode
+              </p>
             </div>
           </div>
 
