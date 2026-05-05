@@ -238,6 +238,24 @@ const campaignModeDescriptions: Record<CampaignMode, string> = {
   fantasy: "セッションログからクエスト、勢力事情、世界変化を抽出して次回準備へつなげます。",
 };
 
+function formatImportPreviewMessage(preview: ReturnType<typeof previewCampaignImport>): string {
+  const storageLabel = `推定サイズ ${formatFileSize(preview.storageBytes)}`;
+
+  if (preview.kind === "library") {
+    return [
+      preview.message,
+      `調査 ${preview.modeCounts.investigation} / ファンタジー ${preview.modeCounts.fantasy}。`,
+      storageLabel,
+    ].join(" ");
+  }
+
+  return [
+    preview.message,
+    `モード: ${findOptionLabel(campaignModeOptions, preview.campaignMode, "調査")}。`,
+    storageLabel,
+  ].join(" ");
+}
+
 const quickPromptSets: Record<
   CampaignMode,
   Array<{ icon: typeof UserRound; title: string; result: string }>
@@ -1547,7 +1565,7 @@ export function App() {
         };
         setConfirmation({
           title: "セッションを追加しますか",
-          message: importPreview.message,
+          message: formatImportPreviewMessage(importPreview),
           confirmLabel: "追加する",
           onConfirm: () => {
             setActiveCampaignState((current) => ({
@@ -1569,7 +1587,7 @@ export function App() {
         const importedLibrary = normalizeCampaignLibraryState(parsedState);
         setConfirmation({
           title: "キャンペーンライブラリを置き換えますか",
-          message: importPreview.message,
+          message: formatImportPreviewMessage(importPreview),
           confirmLabel: "全体を置き換える",
           onConfirm: () => {
             setCampaignLibrary(importedLibrary);
@@ -1588,7 +1606,7 @@ export function App() {
       const importedLegacyApiKey = readLegacyProviderApiKey(parsedState);
       setConfirmation({
         title: "キャンペーンを置き換えますか",
-        message: importPreview.message,
+        message: formatImportPreviewMessage(importPreview),
         confirmLabel: "置き換える",
         onConfirm: () => {
           setActiveCampaignState((current) => ({
