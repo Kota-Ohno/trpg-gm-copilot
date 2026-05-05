@@ -226,6 +226,11 @@ const memoryNavigationLabels: Record<CampaignMode, { clues: string; locations: s
   },
 };
 
+const campaignModeDescriptions: Record<CampaignMode, string> = {
+  investigation: "セッションログから手がかり、秘密、伏線を抽出して次回準備へつなげます。",
+  fantasy: "セッションログからクエスト、勢力事情、世界変化を抽出して次回準備へつなげます。",
+};
+
 const quickPromptSets: Record<
   CampaignMode,
   Array<{ icon: typeof UserRound; title: string; result: string }>
@@ -2858,7 +2863,7 @@ export function App() {
             <div>
               <h1 className="text-2xl font-semibold tracking-normal">{campaignName}</h1>
               <p className="text-sm text-muted-foreground">
-                セッションログから手がかり、秘密、伏線を抽出して次回準備へつなげます。
+                {campaignModeDescriptions[campaignMode]}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <Badge variant="secondary">
