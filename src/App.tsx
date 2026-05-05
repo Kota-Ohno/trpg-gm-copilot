@@ -39,6 +39,7 @@ import { Input } from "./components/ui/input";
 import { Tabs } from "./components/ui/tabs";
 import { Textarea } from "./components/ui/textarea";
 import { sampleLiveLog } from "./data/sample";
+import { getBackupStatus } from "./lib/backup";
 import { buildSupportDiagnostics } from "./lib/diagnostics";
 import {
   applyExtraction,
@@ -115,6 +116,7 @@ import type {
 
 const LEGACY_STORAGE_KEY = "chronicle-gm.campaign-state.v1";
 const CAMPAIGN_LIBRARY_STORAGE_KEY = "chronicle-gm.campaign-library.v1";
+const LAST_BACKUP_STORAGE_KEY = "chronicle-gm.last-backup.v1";
 const PROVIDER_SECRETS_STORAGE_KEY = "chronicle-gm.provider-secrets.v1";
 const UI_PREFERENCES_STORAGE_KEY = "chronicle-gm.ui-preferences.v1";
 const campaignNameInputId = "campaign-name";
@@ -518,6 +520,15 @@ function loadProviderSecrets(): ProviderSecretSettings {
   }
 }
 
+function loadLastBackupAt(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const savedValue = window.localStorage.getItem(LAST_BACKUP_STORAGE_KEY);
+  return savedValue?.trim() || null;
+}
+
 function sanitizeCampaignStateForExport(campaignState: CampaignState): CampaignState {
   return {
     ...campaignState,
@@ -590,6 +601,7 @@ export function App() {
   const [transcriptionDraftJson, setTranscriptionDraftJson] = useState("");
   const [transcriptionImportError, setTranscriptionImportError] = useState<string | null>(null);
   const [transcriptionImportMessage, setTranscriptionImportMessage] = useState<string | null>(null);
+  const [lastBackupAt, setLastBackupAt] = useState<string | null>(loadLastBackupAt);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [storageHealth, setStorageHealth] = useState<StorageHealth>({
     libraryBytes: 0,
@@ -809,7 +821,18 @@ export function App() {
     return Math.round((approvedCount / items.length) * 100);
   }, [approvedCount, items.length]);
   const storageUsagePercent = getStorageUsagePercent(storageHealth);
+  const backupStatus = getBackupStatus(lastBackupAt);
   const activeSessionCount = campaignState.sessions.filter((session) => !session.archivedAt).length;
+
+  const markBackupCreated = (): void => {
+    const timestamp = new Date().toISOString();
+    setLastBackupAt(timestamp);
+    try {
+      window.localStorage.setItem(LAST_BACKUP_STORAGE_KEY, timestamp);
+    } catch {
+      setStorageError("バックアップ日時をブラウザに保存できませんでした。");
+    }
+  };
 
   useEffect(() => {
     try {
@@ -1010,6 +1033,7 @@ export function App() {
 
   const exportCampaignState = (): void => {
     downloadJsonFile(sanitizeCampaignStateForExport(campaignState), createExportFileName(campaignName));
+    markBackupCreated();
     setStorageError(null);
   };
 
@@ -1024,6 +1048,7 @@ export function App() {
 
   const exportCampaignLibrary = (): void => {
     downloadJsonFile(sanitizeCampaignLibraryStateForExport(campaignLibrary), createExportFileName("campaign-library"));
+    markBackupCreated();
     setStorageError(null);
   };
 
@@ -2273,6 +2298,7 @@ export function App() {
                 保存 {formatFileSize(storageHealth.libraryBytes)}
                 {storageUsagePercent !== null ? ` / ${storageUsagePercent}%` : ""}
               </Badge>
+              <Badge variant={backupStatus.needsBackup ? "destructive" : "muted"}>{backupStatus.label}</Badge>
               <Badge variant="outline">APIキーは書き出し対象外</Badge>
             </div>
             {storageError ? (
@@ -2558,6 +2584,7 @@ export function App() {
                 reviewItemCount={items.length}
                 sessionCount={campaignState.sessions.length}
                 storageUsagePercent={storageUsagePercent}
+                backupStatus={backupStatus}
                 transcriptionProviderReady={transcriptionProviderReadiness.ok}
                 onExtract={runExtractionPreview}
                 onExportCurrentSessionMarkdown={exportCurrentSessionMarkdown}
@@ -3658,6 +3685,7 @@ export function App() {
 function HomeDashboard({
   approvedCount,
   canExtractLog,
+  backupStatus,
   currentLiveLogSummary,
   currentSession,
   currentSpeakerIssueCount,
@@ -3691,6 +3719,7 @@ function HomeDashboard({
   transcriptionProviderReady,
 }: {
   approvedCount: number;
+  backupStatus: ReturnType<typeof getBackupStatus>;
   canExtractLog: boolean;
   currentLiveLogSummary: ReturnType<typeof summarizeLiveLog>;
   currentSession: SessionState;
@@ -3750,6 +3779,9 @@ function HomeDashboard({
       : null,
     storageUsagePercent !== null && storageUsagePercent >= 80
       ? { label: `保存容量 ${storageUsagePercent}%`, onOpen: onOpenStorageSettings }
+      : null,
+    backupStatus.needsBackup
+      ? { label: backupStatus.label, onOpen: onOpenStorageSettings }
       : null,
   ].filter((alert): alert is { label: string; onOpen: () => void } => alert !== null);
 
