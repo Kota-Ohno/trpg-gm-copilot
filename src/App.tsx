@@ -192,28 +192,55 @@ const campaignModeOptions: Array<{ value: CampaignMode; label: string; descripti
   { value: "fantasy", label: "ファンタジー", description: "クエスト、勢力、拠点、世界変化を優先" },
 ];
 
-const quickPrompts = [
-  {
-    icon: UserRound,
-    title: "急なNPC",
-    result: "潮見レン。灯台守の甥。怖がりだが、夜だけ灯台の鐘が鳴ることを知っている。",
-  },
-  {
-    icon: KeyRound,
-    title: "別ルートの手がかり",
-    result: "倉庫の泥を水に溶かすと、灯台地下扉と同じ紋章の沈殿が残る。",
-  },
-  {
-    icon: Lightbulb,
-    title: "失敗判定の結果",
-    result: "情報は得られるが、村長の協力者に探索を見られ、次の場面で先回りされる。",
-  },
-  {
-    icon: Compass,
-    title: "場面転換",
-    result: "雨が止み、港の鐘が三度鳴る。岬の灯台だけが青白く明滅している。",
-  },
-];
+const quickPromptSets: Record<
+  CampaignMode,
+  Array<{ icon: typeof UserRound; title: string; result: string }>
+> = {
+  investigation: [
+    {
+      icon: UserRound,
+      title: "急なNPC",
+      result: "潮見レン。灯台守の甥。怖がりだが、夜だけ灯台の鐘が鳴ることを知っている。",
+    },
+    {
+      icon: KeyRound,
+      title: "別ルートの手がかり",
+      result: "倉庫の泥を水に溶かすと、灯台地下扉と同じ紋章の沈殿が残る。",
+    },
+    {
+      icon: Lightbulb,
+      title: "失敗判定の結果",
+      result: "情報は得られるが、村長の協力者に探索を見られ、次の場面で先回りされる。",
+    },
+    {
+      icon: Compass,
+      title: "場面転換",
+      result: "雨が止み、港の鐘が三度鳴る。岬の灯台だけが青白く明滅している。",
+    },
+  ],
+  fantasy: [
+    {
+      icon: Swords,
+      title: "急な依頼",
+      result: "北門の衛兵隊が、夜明けまでに狼煙台へ補給を届ける短い護衛を頼んでくる。",
+    },
+    {
+      icon: MapIcon,
+      title: "別ルートの情報",
+      result: "古い街道碑の裏に、廃鉱へ抜ける巡礼路の印が刻まれている。",
+    },
+    {
+      icon: Lightbulb,
+      title: "失敗判定の結果",
+      result: "目的地には着くが、敵勢力に先回りされ、交渉相手が一時的に身を隠す。",
+    },
+    {
+      icon: Compass,
+      title: "場面転換",
+      result: "遠くの稜線に竜骨のような雲がかかり、砦の鐘が避難を告げる。",
+    },
+  ],
+};
 
 const sampleTranscriptionDraftJson = JSON.stringify(
   [
@@ -691,6 +718,7 @@ export function App() {
     quickResult,
     transcriptionProvider,
   } = campaignState;
+  const quickPrompts = quickPromptSets[campaignMode];
   const selectedTranscriptionProvider = getTranscriptionProvider(transcriptionProvider.providerId);
   const transcriptionDraftPreview = useMemo(
     () => previewTranscriptionDraftPayload(transcriptionDraftJson),
