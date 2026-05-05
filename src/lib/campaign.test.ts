@@ -15,6 +15,8 @@ import {
   getSessionSearchText,
   normalizeCampaignLibraryState,
   normalizeCampaignState,
+  previewCampaignImport,
+  readSessionImportPayload,
 } from "./campaign";
 
 describe("normalizeCampaignState", () => {
@@ -250,6 +252,40 @@ describe("normalizeCampaignLibraryState", () => {
     expect(library.campaigns[0]?.id).toBe("campaign-1");
     expect(library.campaigns[1]?.id).not.toBe("campaign-1");
     expect(library.activeCampaignId).toBe("campaign-1");
+  });
+});
+
+describe("previewCampaignImport", () => {
+  it("previews session, campaign, and library imports", () => {
+    expect(readSessionImportPayload({ session: { title: "第2夜", log: "GM: 開始" } })).toEqual({
+      title: "第2夜",
+      log: "GM: 開始",
+    });
+
+    expect(previewCampaignImport({ session: { title: "第2夜", log: "GM: 開始" } })).toEqual({
+      kind: "session",
+      message: "第2夜を現在のキャンペーンに追加します。",
+      title: "第2夜",
+    });
+
+    expect(previewCampaignImport({ campaignName: "灰ヶ浦", sessions: [{ title: "第1夜" }] })).toMatchObject({
+      kind: "campaign",
+      message: "灰ヶ浦 (1セッション) で現在のキャンペーンを置き換えます。",
+      sessionCount: 1,
+      title: "灰ヶ浦",
+    });
+
+    expect(previewCampaignImport({
+      campaigns: [
+        { campaignName: "A", sessions: [{ title: "第1夜" }] },
+        { campaignName: "B", sessions: [{ title: "第1夜" }, { title: "第2夜" }] },
+      ],
+    })).toMatchObject({
+      campaignCount: 2,
+      kind: "library",
+      message: "2キャンペーン / 3セッションで全体を置き換えます。",
+      sessionCount: 3,
+    });
   });
 });
 

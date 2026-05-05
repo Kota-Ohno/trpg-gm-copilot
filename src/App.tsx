@@ -62,6 +62,8 @@ import {
   getSessionSearchText,
   normalizeCampaignLibraryState,
   normalizeCampaignState,
+  previewCampaignImport,
+  readSessionImportPayload,
 } from "./lib/campaign";
 import {
   appendTranscriptionDraftsToLiveLog,
@@ -452,27 +454,6 @@ function readLegacyProviderApiKey(rawState: unknown): string {
   };
 
   return typeof maybeState.extractionProvider?.apiKey === "string" ? maybeState.extractionProvider.apiKey : "";
-}
-
-function readSessionImportPayload(parsedState: unknown): unknown | null {
-  if (!parsedState || typeof parsedState !== "object" || Array.isArray(parsedState)) {
-    return null;
-  }
-
-  const record = parsedState as Record<string, unknown>;
-  if (Array.isArray(record.campaigns) || Array.isArray(record.sessions)) {
-    return null;
-  }
-
-  if (record.session && typeof record.session === "object" && !Array.isArray(record.session)) {
-    return record.session;
-  }
-
-  if ("log" in record || "liveLog" in record || "extractionItems" in record) {
-    return record;
-  }
-
-  return null;
 }
 
 function formatFileSize(bytes: number): string {
@@ -1243,6 +1224,7 @@ export function App() {
     try {
       const fileText = await file.text();
       const parsedState = JSON.parse(fileText);
+      const importPreview = previewCampaignImport(parsedState);
       const maybeSession = readSessionImportPayload(parsedState);
       const isLibraryImport =
         typeof parsedState === "object" &&
@@ -1259,7 +1241,7 @@ export function App() {
         };
         setConfirmation({
           title: "セッションを追加しますか",
-          message: `${importedSession.title}を現在のキャンペーンに追加します。`,
+          message: importPreview.message,
           confirmLabel: "追加する",
           onConfirm: () => {
             setActiveCampaignState((current) => ({
@@ -1281,7 +1263,7 @@ export function App() {
         const importedLibrary = normalizeCampaignLibraryState(parsedState);
         setConfirmation({
           title: "キャンペーンライブラリを置き換えますか",
-          message: "現在の全キャンペーンをインポート内容で置き換えます。",
+          message: importPreview.message,
           confirmLabel: "全体を置き換える",
           onConfirm: () => {
             setCampaignLibrary(importedLibrary);
@@ -1300,7 +1282,7 @@ export function App() {
       const importedLegacyApiKey = readLegacyProviderApiKey(parsedState);
       setConfirmation({
         title: "キャンペーンを置き換えますか",
-        message: "現在のキャンペーン状態をインポート内容で置き換えます。",
+        message: importPreview.message,
         confirmLabel: "置き換える",
         onConfirm: () => {
           setActiveCampaignState((current) => ({

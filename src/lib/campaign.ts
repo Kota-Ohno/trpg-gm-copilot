@@ -499,6 +499,78 @@ export function normalizeCampaignLibraryState(rawState: unknown): CampaignLibrar
   };
 }
 
+export type ImportPreview =
+  | {
+      kind: "campaign";
+      message: string;
+      sessionCount: number;
+      title: string;
+    }
+  | {
+      campaignCount: number;
+      kind: "library";
+      message: string;
+      sessionCount: number;
+      title: string;
+    }
+  | {
+      kind: "session";
+      message: string;
+      title: string;
+    };
+
+export function readSessionImportPayload(parsedState: unknown): unknown | null {
+  if (!isRecord(parsedState)) {
+    return null;
+  }
+
+  if (Array.isArray(parsedState.campaigns) || Array.isArray(parsedState.sessions)) {
+    return null;
+  }
+
+  if (isRecord(parsedState.session)) {
+    return parsedState.session;
+  }
+
+  if ("log" in parsedState || "liveLog" in parsedState || "extractionItems" in parsedState) {
+    return parsedState;
+  }
+
+  return null;
+}
+
+export function previewCampaignImport(parsedState: unknown): ImportPreview {
+  const sessionPayload = readSessionImportPayload(parsedState);
+  if (sessionPayload) {
+    const importedCampaign = normalizeCampaignState({ sessions: [sessionPayload] });
+    return {
+      kind: "session",
+      message: `${importedCampaign.sessions[0].title}を現在のキャンペーンに追加します。`,
+      title: importedCampaign.sessions[0].title,
+    };
+  }
+
+  if (isRecord(parsedState) && Array.isArray(parsedState.campaigns)) {
+    const importedLibrary = normalizeCampaignLibraryState(parsedState);
+    const sessionCount = importedLibrary.campaigns.reduce((total, campaign) => total + campaign.sessions.length, 0);
+    return {
+      campaignCount: importedLibrary.campaigns.length,
+      kind: "library",
+      message: `${importedLibrary.campaigns.length}キャンペーン / ${sessionCount}セッションで全体を置き換えます。`,
+      sessionCount,
+      title: "キャンペーンライブラリ",
+    };
+  }
+
+  const importedCampaign = normalizeCampaignState(parsedState);
+  return {
+    kind: "campaign",
+    message: `${importedCampaign.campaignName} (${importedCampaign.sessions.length}セッション) で現在のキャンペーンを置き換えます。`,
+    sessionCount: importedCampaign.sessions.length,
+    title: importedCampaign.campaignName,
+  };
+}
+
 export function formatCampaignLibraryMarkdown(campaignLibrary: CampaignLibraryState): string {
   return [
     "# キャンペーンライブラリ",
