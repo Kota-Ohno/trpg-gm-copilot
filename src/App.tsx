@@ -2810,6 +2810,7 @@ export function App() {
                 currentSpeakerIssueCount={currentSpeakerIssueCount}
                 duplicateReviewItemCount={duplicateReviewItemCount}
                 extractionProviderReady={extractionProviderReady}
+                extractionPromptLength={extractionPromptLength}
                 hasPrepContent={hasPrepContent}
                 hiddenClueCount={hiddenClueCount}
                 invalidReviewItemCount={invalidReviewItemCount}
@@ -4027,6 +4028,7 @@ function HomeDashboard({
   currentSpeakerIssueCount,
   duplicateReviewItemCount,
   extractionProviderReady,
+  extractionPromptLength,
   hasPrepContent,
   hiddenClueCount,
   invalidReviewItemCount,
@@ -4064,6 +4066,7 @@ function HomeDashboard({
   currentSpeakerIssueCount: number;
   duplicateReviewItemCount: number;
   extractionProviderReady: boolean;
+  extractionPromptLength: number;
   hasPrepContent: boolean;
   hiddenClueCount: number;
   invalidReviewItemCount: number;
@@ -4110,6 +4113,9 @@ function HomeDashboard({
       : null,
     currentSpeakerIssueCount > 0
       ? { label: `${currentSpeakerIssueCount}件のログ確認`, onOpen: onOpenSpeakerLogIssues }
+      : null,
+    extractionPromptLength > 30000
+      ? { label: `抽出prompt ${extractionPromptLength.toLocaleString()}文字`, onOpen: onOpenLogEditor }
       : null,
     hiddenClueCount > 0
       ? { label: `${hiddenClueCount}件の未開示手がかり`, onOpen: onOpenHiddenClues }
