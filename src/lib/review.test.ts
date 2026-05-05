@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ExtractionItem } from "../types";
-import { sortReviewItems, summarizeReviewItems } from "./review";
+import { buildReviewRemovalBatch, restoreReviewItems, sortReviewItems, summarizeReviewItems } from "./review";
 
 const item = (
   id: string,
@@ -97,5 +97,35 @@ describe("summarizeReviewItems", () => {
         未開示候補: 1,
       },
     });
+  });
+});
+
+describe("review removal restore helpers", () => {
+  it("records removed items with their original index", () => {
+    expect(buildReviewRemovalBatch(reviewItems, new Set(["event", "secret"]))).toEqual([
+      { item: reviewItems[1], index: 1 },
+      { item: reviewItems[3], index: 3 },
+    ]);
+  });
+
+  it("restores removed items near their original positions without duplicating existing ids", () => {
+    const removedItems = buildReviewRemovalBatch(reviewItems, new Set(["event", "secret"]));
+    const remainingItems = reviewItems.filter((candidate) => !["event", "secret"].includes(candidate.id));
+
+    expect(restoreReviewItems(remainingItems, removedItems).map((candidate) => candidate.id)).toEqual([
+      "thread",
+      "event",
+      "npc",
+      "secret",
+      "clue",
+    ]);
+
+    expect(restoreReviewItems(reviewItems, removedItems).map((candidate) => candidate.id)).toEqual([
+      "thread",
+      "event",
+      "npc",
+      "secret",
+      "clue",
+    ]);
   });
 });

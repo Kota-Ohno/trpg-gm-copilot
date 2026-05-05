@@ -16,9 +16,44 @@ export type ReviewItemSummary = {
   byVisibility: Record<ExtractionItem["visibility"], number>;
 };
 
+export type RemovedReviewItem = {
+  item: ExtractionItem;
+  index: number;
+};
+
 function indexInOrder<T extends string>(order: T[], value: T): number {
   const index = order.indexOf(value);
   return index === -1 ? order.length : index;
+}
+
+export function buildReviewRemovalBatch(
+  items: ExtractionItem[],
+  targetIds: Set<string>,
+): RemovedReviewItem[] {
+  return items
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => targetIds.has(item.id));
+}
+
+export function restoreReviewItems(
+  items: ExtractionItem[],
+  removedItems: RemovedReviewItem[],
+): ExtractionItem[] {
+  const existingIds = new Set(items.map((item) => item.id));
+  const restoredItems = [...items];
+
+  [...removedItems]
+    .sort((left, right) => left.index - right.index)
+    .forEach(({ item, index }) => {
+      if (existingIds.has(item.id)) {
+        return;
+      }
+
+      restoredItems.splice(Math.min(index, restoredItems.length), 0, item);
+      existingIds.add(item.id);
+    });
+
+  return restoredItems;
 }
 
 export function summarizeReviewItems(

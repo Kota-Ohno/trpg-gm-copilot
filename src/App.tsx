@@ -99,7 +99,14 @@ import {
   runTranscriptionProvider,
   validateTranscriptionAudioFile,
 } from "./lib/transcription-providers";
-import { sortReviewItems, summarizeReviewItems, type ReviewSortMode } from "./lib/review";
+import {
+  buildReviewRemovalBatch,
+  restoreReviewItems,
+  sortReviewItems,
+  summarizeReviewItems,
+  type RemovedReviewItem,
+  type ReviewSortMode,
+} from "./lib/review";
 import type {
   CampaignState,
   CampaignLibraryState,
@@ -143,6 +150,11 @@ type ConfirmationRequest = {
   message: string;
   confirmLabel: string;
   onConfirm: () => void;
+};
+type RejectedReviewBatch = {
+  sessionId: string;
+  label: string;
+  removedItems: RemovedReviewItem[];
 };
 type UiPreferences = {
   activeTab: WorkspaceTab;
@@ -627,6 +639,7 @@ export function App() {
   const [reviewQuery, setReviewQuery] = useState("");
   const [showDuplicateReviewItemsOnly, setShowDuplicateReviewItemsOnly] = useState(false);
   const [showInvalidReviewItemsOnly, setShowInvalidReviewItemsOnly] = useState(false);
+  const [lastRejectedReviewBatch, setLastRejectedReviewBatch] = useState<RejectedReviewBatch | null>(null);
   const [campaignQuery, setCampaignQuery] = useState("");
   const [sessionQuery, setSessionQuery] = useState("");
   const [sessionArchiveFilter, setSessionArchiveFilter] = useState<SessionArchiveFilter>(
@@ -654,6 +667,8 @@ export function App() {
     campaignLibrary.campaigns[0];
   const currentSession =
     campaignState.sessions.find((session) => session.id === campaignState.activeSessionId) ?? campaignState.sessions[0];
+  const activeRejectedReviewBatch =
+    lastRejectedReviewBatch?.sessionId === currentSession.id ? lastRejectedReviewBatch : null;
   const {
     approvedIds,
     extractionItems: items,
@@ -2036,14 +2051,38 @@ export function App() {
     });
   };
 
-  const rejectItem = (itemId: string): void => {
+  const rejectReviewItems = (targetIds: Set<string>, label: string): void => {
+    const removedItems = buildReviewRemovalBatch(items, targetIds);
+    if (removedItems.length === 0) {
+      return;
+    }
+
+    setLastRejectedReviewBatch({ sessionId: currentSession.id, label, removedItems });
     updateActiveSession((session) => ({
       ...session,
       approvedIds: session.approvedIds,
-      extractionItems: session.approvedIds.includes(itemId)
-        ? session.extractionItems
-        : session.extractionItems.filter((item) => item.id !== itemId),
+      extractionItems: session.extractionItems.filter((item) => !targetIds.has(item.id)),
     }));
+  };
+
+  const restoreLastRejectedReviewBatch = (): void => {
+    if (!activeRejectedReviewBatch) {
+      return;
+    }
+
+    updateActiveSession((session) => ({
+      ...session,
+      extractionItems: restoreReviewItems(session.extractionItems, activeRejectedReviewBatch.removedItems),
+    }));
+    setLastRejectedReviewBatch(null);
+  };
+
+  const rejectItem = (itemId: string): void => {
+    if (approvedIds.includes(itemId)) {
+      return;
+    }
+
+    rejectReviewItems(new Set([itemId]), "候補1件");
   };
 
   const rejectVisibleItems = (): void => {
@@ -2057,10 +2096,7 @@ export function App() {
       message: `${targetIds.size}件の未採用候補を抽出候補から削除します。採用済みの候補は残します。`,
       confirmLabel: "破棄する",
       onConfirm: () => {
-        updateActiveSession((session) => ({
-          ...session,
-          extractionItems: session.extractionItems.filter((item) => !targetIds.has(item.id)),
-        }));
+        rejectReviewItems(targetIds, `表示中の候補${targetIds.size}件`);
       },
     });
   };
@@ -2080,10 +2116,7 @@ export function App() {
       message: `${targetIds.size}件のタイトルまたは詳細が未入力の候補を削除します。採用済みの候補は残します。`,
       confirmLabel: "破棄する",
       onConfirm: () => {
-        updateActiveSession((session) => ({
-          ...session,
-          extractionItems: session.extractionItems.filter((item) => !targetIds.has(item.id)),
-        }));
+        rejectReviewItems(targetIds, `未入力候補${targetIds.size}件`);
       },
     });
   };
@@ -2098,11 +2131,7 @@ export function App() {
       message: `${duplicateReviewItemIds.length}件の未採用の重複候補を削除します。`,
       confirmLabel: "破棄する",
       onConfirm: () => {
-        const duplicateIdSet = new Set(duplicateReviewItemIds);
-        updateActiveSession((session) => ({
-          ...session,
-          extractionItems: session.extractionItems.filter((item) => !duplicateIdSet.has(item.id)),
-        }));
+        rejectReviewItems(new Set(duplicateReviewItemIds), `重複候補${duplicateReviewItemIds.length}件`);
       },
     });
   };
@@ -3135,6 +3164,11 @@ export function App() {
                                 並び: {findOptionLabel(reviewSortOptions, reviewSortMode, "抽出順")}
                               </Badge>
                             )}
+                            {activeRejectedReviewBatch && (
+                              <Badge variant="outline">
+                                復元可: {activeRejectedReviewBatch.label}
+                              </Badge>
+                            )}
                             {normalizedReviewQuery && <Badge variant="secondary">検索: {reviewQuery.trim()}</Badge>}
                           </div>
                           <Tabs
@@ -3260,6 +3294,12 @@ export function App() {
                               <RotateCcw className="h-4 w-4" />
                               空白整理
                             </Button>
+                            {activeRejectedReviewBatch && (
+                              <Button onClick={restoreLastRejectedReviewBatch} size="sm" variant="outline">
+                                <RotateCcw className="h-4 w-4" />
+                                直前の破棄を戻す
+                              </Button>
+                            )}
                             <Button
                               disabled={(hasReviewFilter ? approvableVisibleReviewCount : approvableRemainingCount) === 0}
                               onClick={() =>
