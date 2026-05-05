@@ -138,6 +138,7 @@ const CAMPAIGN_LIBRARY_STORAGE_KEY = "chronicle-gm.campaign-library.v1";
 const LAST_BACKUP_STORAGE_KEY = "chronicle-gm.last-backup.v1";
 const PROVIDER_SECRETS_STORAGE_KEY = "chronicle-gm.provider-secrets.v1";
 const UI_PREFERENCES_STORAGE_KEY = "chronicle-gm.ui-preferences.v1";
+const maxJsonImportFileSizeBytes = 8 * 1024 * 1024;
 const campaignNameInputId = "campaign-name";
 const campaignImportInputId = "campaign-json-import";
 const transcriptionAudioInputId = "transcription-audio-import";
@@ -1545,6 +1546,13 @@ export function App() {
   };
 
   const importCampaignState = async (file: File): Promise<void> => {
+    if (file.size > maxJsonImportFileSizeBytes) {
+      setStorageError(
+        `JSONファイルが大きすぎます (${formatFileSize(file.size)})。${formatFileSize(maxJsonImportFileSizeBytes)} 以下に分割して読み込んでください。`,
+      );
+      return;
+    }
+
     try {
       const fileText = await file.text();
       const parsedState = JSON.parse(fileText);
