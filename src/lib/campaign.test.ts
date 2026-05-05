@@ -17,6 +17,7 @@ import {
   normalizeCampaignLibraryState,
   normalizeCampaignState,
   previewCampaignImport,
+  previewExtractionApplication,
   readSessionImportPayload,
 } from "./campaign";
 
@@ -551,6 +552,34 @@ describe("applyExtraction", () => {
     });
 
     expect(withDuplicateEvent).toBe(chronicle);
+  });
+});
+
+describe("previewExtractionApplication", () => {
+  it("summarizes new memory and skipped candidates without mutating the chronicle", () => {
+    const chronicle = {
+      events: ["港へ向かう: 既存"],
+      npcs: [],
+      clues: [{ title: "鍵", detail: "古い", status: "known" as const }],
+      locations: [],
+      threads: [],
+    };
+    const preview = previewExtractionApplication(chronicle, [
+      { id: "event-1", kind: "出来事", title: "鐘", detail: "鳴った", visibility: "PL既知" },
+      { id: "clue-1", kind: "手がかり", title: "鍵", detail: "古い", visibility: "PL既知" },
+      { id: "npc-1", kind: "NPC", title: "レン", detail: "灯台守", visibility: "PL既知" },
+      { id: "invalid", kind: "伏線", title: " ", detail: "未入力", visibility: "未開示候補" },
+    ]);
+
+    expect(preview).toEqual({
+      approvedCandidates: 3,
+      newEvents: 1,
+      newNpcs: 1,
+      newClues: 0,
+      newThreads: 0,
+      skippedCandidates: 2,
+    });
+    expect(chronicle.npcs).toEqual([]);
   });
 });
 

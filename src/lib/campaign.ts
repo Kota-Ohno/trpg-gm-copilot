@@ -1027,3 +1027,52 @@ export function applyExtraction(chronicle: Chronicle, item: ExtractionItem): Chr
     events: [...chronicle.events, event],
   };
 }
+
+export type ExtractionApplicationPreview = {
+  approvedCandidates: number;
+  newEvents: number;
+  newNpcs: number;
+  newClues: number;
+  newThreads: number;
+  skippedCandidates: number;
+};
+
+export function previewExtractionApplication(
+  chronicle: Chronicle,
+  items: ExtractionItem[],
+): ExtractionApplicationPreview {
+  let nextChronicle = chronicle;
+  const startCounts = {
+    events: chronicle.events.length,
+    npcs: chronicle.npcs.length,
+    clues: chronicle.clues.length,
+    threads: chronicle.threads.length,
+  };
+  let approvedCandidates = 0;
+  let skippedCandidates = 0;
+
+  items.forEach((item) => {
+    if (!item.title.trim() || !item.detail.trim()) {
+      skippedCandidates += 1;
+      return;
+    }
+
+    approvedCandidates += 1;
+    nextChronicle = applyExtraction(nextChronicle, item);
+  });
+
+  const createdCount =
+    nextChronicle.events.length - startCounts.events +
+    nextChronicle.npcs.length - startCounts.npcs +
+    nextChronicle.clues.length - startCounts.clues +
+    nextChronicle.threads.length - startCounts.threads;
+
+  return {
+    approvedCandidates,
+    newEvents: nextChronicle.events.length - startCounts.events,
+    newNpcs: nextChronicle.npcs.length - startCounts.npcs,
+    newClues: nextChronicle.clues.length - startCounts.clues,
+    newThreads: nextChronicle.threads.length - startCounts.threads,
+    skippedCandidates: skippedCandidates + approvedCandidates - createdCount,
+  };
+}

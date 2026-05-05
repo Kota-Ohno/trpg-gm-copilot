@@ -65,6 +65,7 @@ import {
   normalizeCampaignLibraryState,
   normalizeCampaignState,
   previewCampaignImport,
+  previewExtractionApplication,
   readSessionImportPayload,
 } from "./lib/campaign";
 import {
@@ -808,6 +809,10 @@ export function App() {
     normalizedReviewQuery.length > 0;
   const approvableVisibleReviewCount = visibleReviewSummary.approvable;
   const rejectableVisibleReviewCount = visibleReviewSummary.pending;
+  const visibleReviewMemoryPreview = previewExtractionApplication(
+    chronicle,
+    reviewItems.filter((item) => !approvedIds.includes(item.id)),
+  );
   const reviewKindCounts = reviewKindOptions.reduce<Record<ReviewKindFilter, number>>(
     (counts, option) => ({
       ...counts,
@@ -3482,6 +3487,20 @@ export function App() {
                           <p className="mt-1 text-lg font-semibold">
                             {visibleReviewSummary.byVisibility.GMのみ + visibleReviewSummary.byVisibility.未開示候補}件
                           </p>
+                        </div>
+                      </div>
+                    )}
+                    {reviewItems.length > 0 && (
+                      <div className="rounded-md border border-border bg-muted/20 p-3">
+                        <p className="text-xs text-muted-foreground">表示中を採用した場合</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Badge variant="outline">出来事 +{visibleReviewMemoryPreview.newEvents}</Badge>
+                          <Badge variant="outline">NPC +{visibleReviewMemoryPreview.newNpcs}</Badge>
+                          <Badge variant="outline">記憶 +{visibleReviewMemoryPreview.newClues}</Badge>
+                          <Badge variant="outline">伏線 +{visibleReviewMemoryPreview.newThreads}</Badge>
+                          {visibleReviewMemoryPreview.skippedCandidates > 0 && (
+                            <Badge variant="secondary">重複/未入力 {visibleReviewMemoryPreview.skippedCandidates}</Badge>
+                          )}
                         </div>
                       </div>
                     )}
