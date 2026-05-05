@@ -41,7 +41,7 @@ import { Tabs } from "./components/ui/tabs";
 import { Textarea } from "./components/ui/textarea";
 import { sampleLiveLog } from "./data/sample";
 import { getBackupStatus } from "./lib/backup";
-import { buildSessionStorageDiagnostics, buildSupportDiagnostics } from "./lib/diagnostics";
+import { buildReviewQualityDiagnostics, buildSessionStorageDiagnostics, buildSupportDiagnostics } from "./lib/diagnostics";
 import {
   applyExtraction,
   cloneJson,
@@ -889,6 +889,22 @@ export function App() {
   const sessionStorageDiagnosticById = useMemo(
     () => new Map(sessionStorageDiagnostics.map((diagnostic) => [diagnostic.sessionId, diagnostic])),
     [sessionStorageDiagnostics],
+  );
+  const reviewQualityDiagnostics = useMemo(
+    () => buildReviewQualityDiagnostics(campaignLibrary),
+    [campaignLibrary],
+  );
+  const currentReviewQualityDiagnostic = reviewQualityDiagnostics.find(
+    (diagnostic) => diagnostic.sessionId === currentSession.id,
+  );
+  const reviewQualityDebtCount = reviewQualityDiagnostics.reduce(
+    (total, diagnostic) =>
+      total +
+      diagnostic.approvedInvalidCount +
+      diagnostic.approvedDuplicateCount +
+      diagnostic.pendingInvalidCount +
+      diagnostic.pendingDuplicateCount,
+    0,
   );
   const memoryItemCount = countChronicleItems(chronicle);
   const hiddenClueCount = chronicle.clues.filter((clue) => clue.status !== "known").length;
@@ -2790,6 +2806,7 @@ export function App() {
                 memoryItemCount={memoryItemCount}
                 remainingCount={remainingCount}
                 reviewItemCount={items.length}
+                reviewQualityDebtCount={reviewQualityDebtCount}
                 sessionCount={campaignState.sessions.length}
                 storageUsagePercent={storageUsagePercent}
                 backupStatus={backupStatus}
@@ -2829,6 +2846,21 @@ export function App() {
                 onOpenReviewInspect={() => {
                   setReviewWorkspaceMode("inspect");
                   setActiveTab("review");
+                }}
+                onOpenReviewQuality={() => {
+                  if (currentReviewQualityDiagnostic) {
+                    setShowInvalidReviewItemsOnly(currentReviewQualityDiagnostic.pendingInvalidCount > 0);
+                    setShowDuplicateReviewItemsOnly(
+                      currentReviewQualityDiagnostic.pendingInvalidCount === 0 &&
+                        currentReviewQualityDiagnostic.pendingDuplicateCount > 0,
+                    );
+                    setReviewWorkspaceMode("manage");
+                    setActiveTab("review");
+                    return;
+                  }
+
+                  setIsFocusMode(false);
+                  setNavigationPanelMode("sessions");
                 }}
                 onOpenDuplicateReviewItems={() => {
                   setShowDuplicateReviewItemsOnly(true);
@@ -3997,6 +4029,7 @@ function HomeDashboard({
   onOpenHiddenClues,
   onOpenInvalidReviewItems,
   onOpenReviewInspect,
+  onOpenReviewQuality,
   onOpenSessionList,
   onOpenSpeakerLogIssues,
   onOpenStorageSettings,
@@ -4004,6 +4037,7 @@ function HomeDashboard({
   onOpenTranscriptionProviderSettings,
   remainingCount,
   reviewItemCount,
+  reviewQualityDebtCount,
   sessionCount,
   storageUsagePercent,
   transcriptionProviderReady,
@@ -4032,6 +4066,7 @@ function HomeDashboard({
   onOpenLogEditor: () => void;
   onOpenPrepHooks: () => void;
   onOpenReviewInspect: () => void;
+  onOpenReviewQuality: () => void;
   onOpenSessionList: () => void;
   onOpenSpeakerLogIssues: () => void;
   onOpenStorageSettings: () => void;
@@ -4039,6 +4074,7 @@ function HomeDashboard({
   onOpenTranscriptionProviderSettings: () => void;
   remainingCount: number;
   reviewItemCount: number;
+  reviewQualityDebtCount: number;
   sessionCount: number;
   storageUsagePercent: number | null;
   transcriptionProviderReady: boolean;
@@ -4054,6 +4090,9 @@ function HomeDashboard({
       : null,
     duplicateReviewItemCount > 0
       ? { label: `${duplicateReviewItemCount}件の重複候補`, onOpen: onOpenDuplicateReviewItems }
+      : null,
+    reviewQualityDebtCount > 0
+      ? { label: `全体でレビュー品質 ${reviewQualityDebtCount}件`, onOpen: onOpenReviewQuality }
       : null,
     currentSpeakerIssueCount > 0
       ? { label: `${currentSpeakerIssueCount}件のログ確認`, onOpen: onOpenSpeakerLogIssues }
