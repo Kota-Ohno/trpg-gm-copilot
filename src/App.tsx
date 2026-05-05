@@ -40,7 +40,7 @@ import { Tabs } from "./components/ui/tabs";
 import { Textarea } from "./components/ui/textarea";
 import { sampleLiveLog } from "./data/sample";
 import { getBackupStatus } from "./lib/backup";
-import { buildSupportDiagnostics } from "./lib/diagnostics";
+import { buildSessionStorageDiagnostics, buildSupportDiagnostics } from "./lib/diagnostics";
 import {
   applyExtraction,
   cloneJson,
@@ -824,6 +824,11 @@ export function App() {
   );
   const currentLiveLogSummary = useMemo(() => summarizeLiveLog(liveLog), [liveLog]);
   const currentSpeakerIssueCount = useMemo(() => getSpeakerLogIssues(liveLog).length, [liveLog]);
+  const sessionStorageDiagnostics = useMemo(
+    () => buildSessionStorageDiagnostics(campaignLibrary),
+    [campaignLibrary],
+  );
+  const largestSessionStorageDiagnostic = sessionStorageDiagnostics[0] ?? null;
   const memoryItemCount = countChronicleItems(chronicle);
   const hiddenClueCount = chronicle.clues.filter((clue) => clue.status !== "known").length;
   const hasPrepContent = dynamicPrepNote.shortRecap.length > 0 || dynamicPrepNote.hooks.length > 0;
@@ -2381,6 +2386,11 @@ export function App() {
                 {storageUsagePercent !== null ? ` / ${storageUsagePercent}%` : ""}
               </Badge>
               <Badge variant={backupStatus.needsBackup ? "destructive" : "muted"}>{backupStatus.label}</Badge>
+              {largestSessionStorageDiagnostic && (
+                <Badge variant="outline">
+                  最大セッション {formatFileSize(largestSessionStorageDiagnostic.totalBytes)}
+                </Badge>
+              )}
               <Badge variant="outline">APIキーは書き出し対象外</Badge>
             </div>
             {storageError ? (
@@ -3792,6 +3802,19 @@ export function App() {
             <CardContent className="space-y-2 text-sm text-muted-foreground">
               <p>ファンタジーモードでは、手がかりをクエスト、秘密を勢力事情、伏線を世界変化へ置き換えます。</p>
               <p>AI接続はユーザーAPIキー方式にして、ローカル保存を基本にします。</p>
+              {largestSessionStorageDiagnostic && (
+                <div className="rounded-md border border-border bg-muted/20 p-3 text-xs">
+                  <p className="font-medium text-foreground">保存サイズ最大セッション</p>
+                  <p className="mt-1">
+                    {largestSessionStorageDiagnostic.campaignName} / {largestSessionStorageDiagnostic.sessionTitle}
+                  </p>
+                  <p className="mt-1">
+                    合計 {formatFileSize(largestSessionStorageDiagnostic.totalBytes)}、ログ{" "}
+                    {formatFileSize(largestSessionStorageDiagnostic.logBytes)}、話者ログ{" "}
+                    {formatFileSize(largestSessionStorageDiagnostic.speakerLogBytes)}
+                  </p>
+                </div>
+              )}
               <Button onClick={exportSupportDiagnostics} size="sm" variant="outline">
                 <Download className="h-4 w-4" />
                 診断JSONを書き出し

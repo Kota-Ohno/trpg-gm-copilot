@@ -10,6 +10,18 @@ import type { BackupStatus } from "./backup";
 import { getCampaignSummaryStats } from "./campaign";
 import type { TranscriptionProviderCheckResult } from "./transcription-providers";
 
+export type SessionStorageDiagnostic = {
+  campaignId: string;
+  campaignName: string;
+  sessionId: string;
+  sessionTitle: string;
+  totalBytes: number;
+  logBytes: number;
+  speakerLogBytes: number;
+  reviewBytes: number;
+  transcriptionBytes: number;
+};
+
 export type SupportDiagnosticsInput = {
   activeTab: WorkspaceTab;
   campaignLibrary: CampaignLibraryState;
@@ -45,6 +57,36 @@ export type SupportDiagnosticsInput = {
   transcriptionProviderReadiness: TranscriptionProviderCheckResult;
 };
 
+function estimateJsonBytes(value: unknown): number {
+  return new TextEncoder().encode(JSON.stringify(value)).length;
+}
+
+export function buildSessionStorageDiagnostics(
+  campaignLibrary: CampaignLibraryState,
+): SessionStorageDiagnostic[] {
+  return campaignLibrary.campaigns
+    .flatMap((campaign) =>
+      campaign.sessions.map((session) => ({
+        campaignId: campaign.id,
+        campaignName: campaign.campaignName,
+        sessionId: session.id,
+        sessionTitle: session.title,
+        totalBytes: estimateJsonBytes(session),
+        logBytes: estimateJsonBytes(session.log),
+        speakerLogBytes: estimateJsonBytes(session.liveLog),
+        reviewBytes: estimateJsonBytes({
+          approvedIds: session.approvedIds,
+          extractionItems: session.extractionItems,
+          extractionRun: session.extractionRun,
+        }),
+        transcriptionBytes: estimateJsonBytes({
+          transcriptionRun: session.transcriptionRun,
+        }),
+      })),
+    )
+    .sort((left, right) => right.totalBytes - left.totalBytes);
+}
+
 export function buildSupportDiagnostics(input: SupportDiagnosticsInput, exportedAt = new Date().toISOString()) {
   return {
     exportedAt,
@@ -70,6 +112,7 @@ export function buildSupportDiagnostics(input: SupportDiagnosticsInput, exported
       },
     },
     storage: input.storage,
+    sessionStorage: buildSessionStorageDiagnostics(input.campaignLibrary),
     ui: {
       activeTab: input.activeTab,
       chronicleClueStatusFilter: input.chronicleClueStatusFilter,

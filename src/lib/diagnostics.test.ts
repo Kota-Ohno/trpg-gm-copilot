@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createInitialCampaignState, normalizeCampaignLibraryState } from "./campaign";
-import { buildSupportDiagnostics } from "./diagnostics";
+import { buildSessionStorageDiagnostics, buildSupportDiagnostics } from "./diagnostics";
 
 describe("buildSupportDiagnostics", () => {
   it("exports support-safe state, provider readiness, storage, and campaign stats", () => {
@@ -69,5 +69,39 @@ describe("buildSupportDiagnostics", () => {
       campaignName: campaign.campaignName,
       sessionCount: 1,
     });
+    expect(diagnostics.sessionStorage[0]).toMatchObject({
+      campaignId: campaign.id,
+      sessionId: campaign.sessions[0].id,
+      sessionTitle: campaign.sessions[0].title,
+    });
+    expect(diagnostics.sessionStorage[0].totalBytes).toBeGreaterThan(0);
+  });
+});
+
+describe("buildSessionStorageDiagnostics", () => {
+  it("sorts session storage estimates by total bytes", () => {
+    const campaign = createInitialCampaignState();
+    const smallSession = {
+      ...campaign.sessions[0],
+      id: "small",
+      title: "small",
+      log: "short",
+    };
+    const largeSession = {
+      ...campaign.sessions[0],
+      id: "large",
+      title: "large",
+      log: "large text ".repeat(200),
+    };
+    const campaignLibrary = normalizeCampaignLibraryState({
+      activeCampaignId: campaign.id,
+      campaigns: [{ ...campaign, sessions: [smallSession, largeSession] }],
+    });
+
+    const diagnostics = buildSessionStorageDiagnostics(campaignLibrary);
+
+    expect(diagnostics.map((session) => session.sessionId)).toEqual(["large", "small"]);
+    expect(diagnostics[0].logBytes).toBeGreaterThan(diagnostics[1].logBytes);
+    expect(diagnostics[0]).not.toHaveProperty("log");
   });
 });
