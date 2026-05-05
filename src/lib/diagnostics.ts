@@ -98,6 +98,7 @@ export function buildSupportDiagnostics(input: SupportDiagnosticsInput, exported
     campaignStats: input.campaignLibrary.campaigns.map((campaign) => ({
       campaignId: campaign.id,
       campaignName: campaign.campaignName,
+      campaignMode: campaign.campaignMode,
       ...getCampaignSummaryStats(campaign),
     })),
     currentSession: input.currentSessionMetrics,

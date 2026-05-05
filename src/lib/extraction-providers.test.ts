@@ -36,6 +36,7 @@ describe("buildLlmExtractionResult", () => {
         },
       ],
     }), {
+      campaignMode: "investigation",
       log: "GM: 古い鍵を見つける",
       liveLog: {
         id: "live-log-1",

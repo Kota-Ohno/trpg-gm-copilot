@@ -49,6 +49,7 @@ export type PrepNote = {
 };
 
 export type WorkspaceTab = "home" | "log" | "review" | "chronicle" | "prep";
+export type CampaignMode = "investigation" | "fantasy";
 
 export type ExtractionSourceType = "plain" | "speaker" | "fallback";
 
@@ -147,6 +148,7 @@ export type SessionState = {
 export type CampaignState = {
   id: string;
   campaignName: string;
+  campaignMode: CampaignMode;
   extractionProvider: ExtractionProviderSettings;
   transcriptionProvider: TranscriptionProviderSettings;
   sessions: SessionState[];

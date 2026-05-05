@@ -110,6 +110,7 @@ import {
 import type {
   CampaignState,
   CampaignLibraryState,
+  CampaignMode,
   ExtractionRun,
   ExtractionItem,
   LiveLogSession,
@@ -184,6 +185,11 @@ const tabOptions: Array<{ value: WorkspaceTab; label: string }> = [
   { value: "review", label: "承認" },
   { value: "chronicle", label: "記憶" },
   { value: "prep", label: "次回準備" },
+];
+
+const campaignModeOptions: Array<{ value: CampaignMode; label: string; description: string }> = [
+  { value: "investigation", label: "調査", description: "謎、手がかり、秘密、未回収の伏線を優先" },
+  { value: "fantasy", label: "ファンタジー", description: "クエスト、勢力、拠点、世界変化を優先" },
 ];
 
 const quickPrompts = [
@@ -678,6 +684,7 @@ export function App() {
     transcriptionRun,
   } = currentSession;
   const {
+    campaignMode,
     campaignName,
     chronicle,
     extractionProvider,
@@ -1556,6 +1563,7 @@ export function App() {
     setIsExtracting(true);
     try {
       const extractionResult = await runExtractionProvider({
+        campaignMode,
         log,
         liveLog,
         secrets: providerSecrets,
@@ -2337,6 +2345,21 @@ export function App() {
               onChange={(event) => updateCampaignState({ campaignName: event.target.value })}
             />
             <div className="grid grid-cols-2 gap-2">
+              {campaignModeOptions.map((option) => (
+                <Button
+                  className="h-auto flex-col items-start gap-1 whitespace-normal px-3 py-2 text-left"
+                  disabled={isExtracting}
+                  key={option.value}
+                  onClick={() => updateCampaignState({ campaignMode: option.value })}
+                  size="sm"
+                  variant={campaignMode === option.value ? "default" : "outline"}
+                >
+                  <span>{option.label}</span>
+                  <span className="text-[11px] font-normal opacity-80">{option.description}</span>
+                </Button>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
               <Button onClick={exportCampaignState} size="sm" variant="outline">
                 <Download className="h-3.5 w-3.5" />
                 現在を書き出し
@@ -2608,6 +2631,9 @@ export function App() {
                 セッションログから手がかり、秘密、伏線を抽出して次回準備へつなげます。
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
+                <Badge variant="secondary">
+                  {findOptionLabel(campaignModeOptions, campaignMode, "調査")}
+                </Badge>
                 <Badge variant="outline">現在: {activeWorkspaceLabel}</Badge>
                 {!isFocusMode && <Badge variant="muted">{sideWorkspaceLabel}</Badge>}
                 {isFocusMode && <Badge variant="muted">集中表示</Badge>}

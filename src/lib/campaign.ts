@@ -1,5 +1,6 @@
 import { initialChronicle, sampleLiveLog, sampleLog } from "../data/sample";
 import type {
+  CampaignMode,
   CampaignLibraryState,
   CampaignState,
   Chronicle,
@@ -129,6 +130,7 @@ export function getSessionSearchText(session: SessionState): string {
 export function getCampaignSearchText(campaign: CampaignState): string {
   return [
     campaign.campaignName,
+    campaign.campaignMode,
     ...campaign.sessions.map(getSessionSearchText),
     ...campaign.chronicle.events,
     ...campaign.chronicle.clues.flatMap((clue) => [clue.title, clue.detail]),
@@ -149,6 +151,7 @@ function getLocalDateTimeString(date = new Date()): string {
 export const initialCampaignState: CampaignState = {
   id: "campaign-haigaura",
   campaignName: "灰ヶ浦異聞",
+  campaignMode: "investigation",
   extractionProvider: defaultExtractionProviderSettings,
   transcriptionProvider: defaultTranscriptionProviderSettings,
   sessions: [
@@ -333,6 +336,10 @@ function normalizeTranscriptionProviderSettings(rawSettings: unknown): Transcrip
   };
 }
 
+function normalizeCampaignMode(value: unknown): CampaignMode {
+  return value === "fantasy" ? "fantasy" : "investigation";
+}
+
 function normalizeExtractionRun(rawRun: unknown, itemCount: number): ExtractionRun | null {
   if (!isRecord(rawRun)) {
     return null;
@@ -455,6 +462,7 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
     ...parsedState,
     id: campaignId,
     campaignName: parsedState.campaignName?.trim() || "無題キャンペーン",
+    campaignMode: normalizeCampaignMode(parsedState.campaignMode),
     chronicle: normalizeChronicle(parsedState.chronicle),
     quickResult: readString(parsedState.quickResult, initialCampaignState.quickResult),
     extractionProvider: normalizeExtractionProviderSettings(parsedState.extractionProvider),
@@ -606,6 +614,7 @@ export function formatCampaignMarkdown(campaign: CampaignState): string {
   return [
     `# ${campaign.campaignName.trim() || "キャンペーン"}`,
     "",
+    `- キャンペーン種別: ${campaign.campaignMode === "fantasy" ? "ファンタジー" : "調査"}`,
     `- セッション: ${stats.sessionCount}`,
     ...(stats.archivedSessionCount > 0 ? [`- アーカイブ: ${stats.archivedSessionCount}`] : []),
     `- 記憶: ${stats.memoryCount}`,

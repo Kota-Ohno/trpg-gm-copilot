@@ -1,4 +1,5 @@
 import type {
+  CampaignMode,
   ExtractionItem,
   ExtractionProviderSettings,
   ExtractionRun,
@@ -15,6 +16,7 @@ import { buildExtractionPrompt } from "./extraction-prompt";
 import { extractionResponseJsonSchema, parseExtractionJson } from "./extraction-schema";
 
 export type ExtractionRequest = {
+  campaignMode: CampaignMode;
   log: string;
   liveLog: LiveLogSession;
   secrets: ProviderSecretSettings;
@@ -225,6 +227,7 @@ export function buildLlmExtractionResult(
   const provider = getExtractionProvider(request.settings.providerId);
   const normalizedResponse = parseExtractionJson(responseText);
   const promptLength = buildExtractionPrompt({
+    campaignMode: request.campaignMode,
     lines: buildExtractionInput(request.log, request.liveLog, request.source),
     source: request.source,
   }).length;
@@ -388,6 +391,7 @@ async function runOllamaExtraction(request: ExtractionRequest, context: Provider
 
 export async function runExtractionProvider({
   log,
+  campaignMode,
   liveLog,
   secrets,
   settings,
@@ -395,8 +399,8 @@ export async function runExtractionProvider({
 }: ExtractionRequest): Promise<ExtractionResult> {
   const provider = getExtractionProvider(settings.providerId);
   const extractionLines = buildExtractionInput(log, liveLog, source);
-  const prompt = buildExtractionPrompt({ lines: extractionLines, source });
-  const request = { log, liveLog, secrets, settings, source };
+  const prompt = buildExtractionPrompt({ campaignMode, lines: extractionLines, source });
+  const request = { campaignMode, log, liveLog, secrets, settings, source };
   const context = {
     extractionLines,
     prompt,
