@@ -2595,6 +2595,13 @@ export function App() {
                 transcriptionProviderReady={transcriptionProviderReadiness.ok}
                 onExtract={runExtractionPreview}
                 onExportCurrentSessionMarkdown={exportCurrentSessionMarkdown}
+                onLoadDemo={() => {
+                  setIsFocusMode(false);
+                  restoreSampleLiveLog();
+                  setLogInputMode("speaker");
+                  setLogWorkspaceMode("editor");
+                  setActiveTab("log");
+                }}
                 onOpenExtractionProviderSettings={() => {
                   setIsFocusMode(false);
                   setRightPanelMode("settings");
@@ -2607,6 +2614,11 @@ export function App() {
                 }}
                 onOpenLogEditor={() => {
                   setLogWorkspaceMode("editor");
+                  setActiveTab("log");
+                }}
+                onOpenTranscriptionImport={() => {
+                  setLogInputMode("speaker");
+                  setLogWorkspaceMode("transcription");
                   setActiveTab("log");
                 }}
                 onOpenPrepHooks={() => {
@@ -3692,6 +3704,7 @@ function HomeDashboard({
   memoryItemCount,
   onExtract,
   onExportCurrentSessionMarkdown,
+  onLoadDemo,
   onOpenChronicleOverview,
   onOpenDuplicateReviewItems,
   onOpenExtractionProviderSettings,
@@ -3703,6 +3716,7 @@ function HomeDashboard({
   onOpenSessionList,
   onOpenSpeakerLogIssues,
   onOpenStorageSettings,
+  onOpenTranscriptionImport,
   onOpenTranscriptionProviderSettings,
   remainingCount,
   reviewItemCount,
@@ -3724,6 +3738,7 @@ function HomeDashboard({
   memoryItemCount: number;
   onExtract: () => void | Promise<void>;
   onExportCurrentSessionMarkdown: () => void;
+  onLoadDemo: () => void;
   onOpenChronicleOverview: () => void;
   onOpenDuplicateReviewItems: () => void;
   onOpenExtractionProviderSettings: () => void;
@@ -3735,6 +3750,7 @@ function HomeDashboard({
   onOpenSessionList: () => void;
   onOpenSpeakerLogIssues: () => void;
   onOpenStorageSettings: () => void;
+  onOpenTranscriptionImport: () => void;
   onOpenTranscriptionProviderSettings: () => void;
   remainingCount: number;
   reviewItemCount: number;
@@ -3746,6 +3762,7 @@ function HomeDashboard({
   const reviewReady = reviewItemCount > 0;
   const memoryReady = memoryItemCount > 0;
   const prepReady = hasPrepContent;
+  const needsFirstLog = !logReady && reviewItemCount === 0 && memoryItemCount === 0;
   const priorityAlerts = [
     invalidReviewItemCount > 0
       ? { label: `${invalidReviewItemCount}件の未入力候補`, onOpen: onOpenInvalidReviewItems }
@@ -3885,6 +3902,31 @@ function HomeDashboard({
                   {alert.label}
                 </Button>
               ))}
+            </div>
+          )}
+
+          {needsFirstLog && (
+            <div className="grid gap-3 rounded-md border border-dashed bg-background p-3">
+              <div>
+                <p className="text-sm font-medium">最初のセッションログを用意</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  サンプルで流れを確認するか、実セッションの文字起こし/ログ入力から始められます。
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={onLoadDemo} size="sm">
+                  <RotateCcw className="h-4 w-4" />
+                  サンプルで試す
+                </Button>
+                <Button onClick={onOpenLogEditor} size="sm" variant="outline">
+                  <FileText className="h-4 w-4" />
+                  ログを入力
+                </Button>
+                <Button onClick={onOpenTranscriptionImport} size="sm" variant="outline">
+                  <Upload className="h-4 w-4" />
+                  文字起こしを取り込む
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
