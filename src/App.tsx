@@ -3836,6 +3836,15 @@ function HomeDashboard({
       onOpen: onOpenPrepHooks,
     },
   ];
+  const recommendedAction = !logReady
+    ? { label: "ログ入力を完了", detail: "通常ログか話者付きログを入れると抽出プレビューへ進めます。", onOpen: onOpenLogEditor }
+    : reviewItemCount === 0
+      ? { label: "抽出プレビューを実行", detail: "ログから手がかり、秘密、伏線の候補を作ります。", onOpen: onExtract }
+      : remainingCount > 0
+        ? { label: "未承認候補を確認", detail: `${remainingCount}件の候補がGM承認待ちです。`, onOpen: onOpenReviewInspect }
+        : memoryItemCount === 0
+          ? { label: "採用候補を記憶化", detail: "承認した候補をキャンペーン記憶へ反映します。", onOpen: onOpenReviewInspect }
+          : { label: "次回準備を確認", detail: "承認済み記憶から次回導入案を確認します。", onOpen: onOpenPrepHooks };
 
   return (
     <div className="grid gap-4">
@@ -3927,6 +3936,18 @@ function HomeDashboard({
                   文字起こしを取り込む
                 </Button>
               </div>
+            </div>
+          )}
+
+          {!needsFirstLog && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background px-3 py-2">
+              <div>
+                <p className="text-sm font-medium">おすすめの次アクション: {recommendedAction.label}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{recommendedAction.detail}</p>
+              </div>
+              <Button disabled={isExtracting} onClick={recommendedAction.onOpen} size="sm">
+                開く
+              </Button>
             </div>
           )}
         </CardContent>
