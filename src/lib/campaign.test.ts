@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyExtraction,
   countChronicleItems,
+  createInitialCampaignState,
   duplicateCampaignState,
   duplicateSessionState,
   createExportFileName,
@@ -591,6 +592,29 @@ describe("generatePrepNote", () => {
       "月の鐘をどこまで開示するか決める。",
       "月の鐘はPLに出す前に意図を確認する。",
     ]));
+  });
+
+  it("uses fantasy fallback language for empty prep notes", () => {
+    const campaign = createInitialCampaignState();
+    const session = {
+      ...campaign.sessions[0],
+      extractionItems: [],
+      approvedIds: [],
+    };
+    const prep = generatePrepNote({
+      events: [],
+      npcs: [],
+      clues: [],
+      locations: [],
+      threads: [],
+    }, [session], session, "fantasy");
+
+    expect(prep.hooks).toEqual([
+      "承認済みのクエスト、勢力事情、世界変化が増えると、次のクエスト候補がここに出ます。",
+    ]);
+    expect(prep.openQuestions).toEqual([
+      "未解決の依頼や勢力事情は、伏線や一部既知/GM秘密の情報から生成されます。",
+    ]);
   });
 });
 

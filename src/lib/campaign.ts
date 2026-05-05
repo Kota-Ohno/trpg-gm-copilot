@@ -812,7 +812,12 @@ function normalizeExtractionSourceType(sourceType: unknown): "plain" | "speaker"
   return sourceType === "plain" || sourceType === "speaker" || sourceType === "fallback" ? sourceType : "fallback";
 }
 
-export function generatePrepNote(chronicle: Chronicle, sessions: SessionState[], activeSession: SessionState): PrepNote {
+export function generatePrepNote(
+  chronicle: Chronicle,
+  sessions: SessionState[],
+  activeSession: SessionState,
+  campaignMode: CampaignMode = "investigation",
+): PrepNote {
   const approvedItems = getApprovedItems(activeSession);
   const latestEvents = uniqueItems([
     ...approvedItems.filter((item) => item.kind === "出来事").map((item) => item.detail),
@@ -845,11 +850,21 @@ export function generatePrepNote(chronicle: Chronicle, sessions: SessionState[],
       latestEvents.length > 0
         ? latestEvents
         : [`${activeSession.title}のログを整理して、採用する出来事を承認してください。`],
-    hooks: hooks.length > 0 ? hooks : ["承認済みの手がかりや伏線が増えると、次回導入案がここに出ます。"],
+    hooks: hooks.length > 0
+      ? hooks
+      : [
+          campaignMode === "fantasy"
+            ? "承認済みのクエスト、勢力事情、世界変化が増えると、次のクエスト候補がここに出ます。"
+            : "承認済みの手がかりや伏線が増えると、次回導入案がここに出ます。",
+        ],
     openQuestions:
       openQuestions.length > 0
         ? openQuestions
-        : ["未解決の問いは、伏線や一部既知/GM秘密の手がかりから生成されます。"],
+        : [
+            campaignMode === "fantasy"
+              ? "未解決の依頼や勢力事情は、伏線や一部既知/GM秘密の情報から生成されます。"
+              : "未解決の問いは、伏線や一部既知/GM秘密の手がかりから生成されます。",
+          ],
     reminders: uniqueItems([
       `${sessions.length}セッション分のログをキャンペーン記憶に積み上げ中。`,
       ...hiddenClues,

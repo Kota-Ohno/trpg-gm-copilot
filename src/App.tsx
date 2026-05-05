@@ -192,6 +192,21 @@ const campaignModeOptions: Array<{ value: CampaignMode; label: string; descripti
   { value: "fantasy", label: "ファンタジー", description: "クエスト、勢力、拠点、世界変化を優先" },
 ];
 
+const prepSectionLabels: Record<CampaignMode, Record<PrepWorkspaceMode, string>> = {
+  investigation: {
+    recap: "3行あらすじ",
+    hooks: "次回導入案",
+    questions: "未解決の問い",
+    reminders: "GM確認メモ",
+  },
+  fantasy: {
+    recap: "前回の戦況",
+    hooks: "次のクエスト候補",
+    questions: "未解決の依頼/勢力",
+    reminders: "GM確認メモ",
+  },
+};
+
 const quickPromptSets: Record<
   CampaignMode,
   Array<{ icon: typeof UserRound; title: string; result: string }>
@@ -719,6 +734,7 @@ export function App() {
     transcriptionProvider,
   } = campaignState;
   const quickPrompts = quickPromptSets[campaignMode];
+  const prepLabels = prepSectionLabels[campaignMode];
   const selectedTranscriptionProvider = getTranscriptionProvider(transcriptionProvider.providerId);
   const transcriptionDraftPreview = useMemo(
     () => previewTranscriptionDraftPayload(transcriptionDraftJson),
@@ -854,8 +870,8 @@ export function App() {
       ? summarizePlainLog(log).speakerLineCount > 0
       : liveLog.segments.some((segment) => segment.text.trim().length > 0);
   const dynamicPrepNote = useMemo(
-    () => generatePrepNote(chronicle, campaignState.sessions, currentSession),
-    [campaignState.sessions, chronicle, currentSession],
+    () => generatePrepNote(chronicle, campaignState.sessions, currentSession, campaignMode),
+    [campaignMode, campaignState.sessions, chronicle, currentSession],
   );
   const currentLiveLogSummary = useMemo(() => summarizeLiveLog(liveLog), [liveLog]);
   const currentSpeakerIssueCount = useMemo(() => getSpeakerLogIssues(liveLog).length, [liveLog]);
@@ -1343,7 +1359,7 @@ export function App() {
   };
 
   const exportSessionMarkdown = (session: SessionState): void => {
-    const sessionPrepNote = generatePrepNote(chronicle, campaignState.sessions, session);
+    const sessionPrepNote = generatePrepNote(chronicle, campaignState.sessions, session, campaignMode);
 
     downloadTextFile(
       formatSessionMarkdown(session, sessionPrepNote),
@@ -3546,10 +3562,10 @@ export function App() {
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex flex-wrap gap-2">
-                        <Badge variant="muted">要約 {dynamicPrepNote.shortRecap.length}</Badge>
-                        <Badge variant="muted">導入 {dynamicPrepNote.hooks.length}</Badge>
-                        <Badge variant="muted">未解決 {dynamicPrepNote.openQuestions.length}</Badge>
-                        <Badge variant="muted">GMメモ {dynamicPrepNote.reminders.length}</Badge>
+                        <Badge variant="muted">{prepLabels.recap} {dynamicPrepNote.shortRecap.length}</Badge>
+                        <Badge variant="muted">{prepLabels.hooks} {dynamicPrepNote.hooks.length}</Badge>
+                        <Badge variant="muted">{prepLabels.questions} {dynamicPrepNote.openQuestions.length}</Badge>
+                        <Badge variant="muted">{prepLabels.reminders} {dynamicPrepNote.reminders.length}</Badge>
                       </div>
                       <Tabs
                         ariaLabel="次回準備カテゴリ"
@@ -3561,16 +3577,16 @@ export function App() {
                   </CardContent>
                 </Card>
                 {prepWorkspaceMode === "recap" && (
-                  <PrepSection title="3行あらすじ" items={dynamicPrepNote.shortRecap} icon={FileText} />
+                  <PrepSection title={prepLabels.recap} items={dynamicPrepNote.shortRecap} icon={FileText} />
                 )}
                 {prepWorkspaceMode === "hooks" && (
-                  <PrepSection title="次回導入案" items={dynamicPrepNote.hooks} icon={Compass} />
+                  <PrepSection title={prepLabels.hooks} items={dynamicPrepNote.hooks} icon={Compass} />
                 )}
                 {prepWorkspaceMode === "questions" && (
-                  <PrepSection title="未解決の問い" items={dynamicPrepNote.openQuestions} icon={Search} />
+                  <PrepSection title={prepLabels.questions} items={dynamicPrepNote.openQuestions} icon={Search} />
                 )}
                 {prepWorkspaceMode === "reminders" && (
-                  <PrepSection title="GM確認メモ" items={dynamicPrepNote.reminders} icon={KeyRound} />
+                  <PrepSection title={prepLabels.reminders} items={dynamicPrepNote.reminders} icon={KeyRound} />
                 )}
               </div>
             )}
