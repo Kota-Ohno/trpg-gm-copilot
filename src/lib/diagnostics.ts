@@ -34,6 +34,12 @@ export type ReviewQualityDiagnostic = {
   pendingDuplicateCount: number;
 };
 
+export type CampaignOperationalRisk = {
+  campaignId: string;
+  reviewDebt: number;
+  storageBytes: number;
+};
+
 export type SupportDiagnosticsInput = {
   activeTab: WorkspaceTab;
   campaignLibrary: CampaignLibraryState;
@@ -137,6 +143,46 @@ export function buildReviewQualityDiagnostics(
           diagnostic.pendingDuplicateCount > 0,
       ),
   );
+}
+
+export function buildCampaignOperationalRisks(
+  storageDiagnostics: SessionStorageDiagnostic[],
+  reviewQualityDiagnostics: ReviewQualityDiagnostic[],
+): Map<string, CampaignOperationalRisk> {
+  const risks = new Map<string, CampaignOperationalRisk>();
+
+  storageDiagnostics.forEach((diagnostic) => {
+    const current = risks.get(diagnostic.campaignId) ?? {
+      campaignId: diagnostic.campaignId,
+      reviewDebt: 0,
+      storageBytes: 0,
+    };
+
+    risks.set(diagnostic.campaignId, {
+      ...current,
+      storageBytes: current.storageBytes + diagnostic.totalBytes,
+    });
+  });
+
+  reviewQualityDiagnostics.forEach((diagnostic) => {
+    const current = risks.get(diagnostic.campaignId) ?? {
+      campaignId: diagnostic.campaignId,
+      reviewDebt: 0,
+      storageBytes: 0,
+    };
+
+    risks.set(diagnostic.campaignId, {
+      ...current,
+      reviewDebt:
+        current.reviewDebt +
+        diagnostic.approvedInvalidCount +
+        diagnostic.approvedDuplicateCount +
+        diagnostic.pendingInvalidCount +
+        diagnostic.pendingDuplicateCount,
+    });
+  });
+
+  return risks;
 }
 
 export function buildSupportDiagnostics(input: SupportDiagnosticsInput, exportedAt = new Date().toISOString()) {

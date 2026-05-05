@@ -41,7 +41,12 @@ import { Tabs } from "./components/ui/tabs";
 import { Textarea } from "./components/ui/textarea";
 import { sampleLiveLog } from "./data/sample";
 import { getBackupStatus } from "./lib/backup";
-import { buildReviewQualityDiagnostics, buildSessionStorageDiagnostics, buildSupportDiagnostics } from "./lib/diagnostics";
+import {
+  buildCampaignOperationalRisks,
+  buildReviewQualityDiagnostics,
+  buildSessionStorageDiagnostics,
+  buildSupportDiagnostics,
+} from "./lib/diagnostics";
 import { sortSessions, type SessionSortMode } from "./lib/session-list";
 import {
   applyExtraction,
@@ -952,21 +957,10 @@ export function App() {
       diagnostic.pendingDuplicateCount,
     0,
   );
-  const campaignStorageBytesById = sessionStorageDiagnostics.reduce<Map<string, number>>((totals, diagnostic) => {
-    totals.set(diagnostic.campaignId, (totals.get(diagnostic.campaignId) ?? 0) + diagnostic.totalBytes);
-    return totals;
-  }, new Map());
-  const campaignReviewDebtById = reviewQualityDiagnostics.reduce<Map<string, number>>((totals, diagnostic) => {
-    totals.set(
-      diagnostic.campaignId,
-      (totals.get(diagnostic.campaignId) ?? 0) +
-        diagnostic.approvedInvalidCount +
-        diagnostic.approvedDuplicateCount +
-        diagnostic.pendingInvalidCount +
-        diagnostic.pendingDuplicateCount,
-    );
-    return totals;
-  }, new Map());
+  const campaignOperationalRisks = buildCampaignOperationalRisks(
+    sessionStorageDiagnostics,
+    reviewQualityDiagnostics,
+  );
   const sessionReviewDebtById = new Map(
     reviewQualityDiagnostics.map((diagnostic) => [
       diagnostic.sessionId,
@@ -2469,8 +2463,9 @@ export function App() {
               {visibleCampaigns.map((campaign) => (
                 (() => {
                   const stats = getCampaignSummaryStats(campaign);
-                  const campaignStorageBytes = campaignStorageBytesById.get(campaign.id) ?? 0;
-                  const campaignReviewDebt = campaignReviewDebtById.get(campaign.id) ?? 0;
+                  const campaignRisk = campaignOperationalRisks.get(campaign.id);
+                  const campaignStorageBytes = campaignRisk?.storageBytes ?? 0;
+                  const campaignReviewDebt = campaignRisk?.reviewDebt ?? 0;
 
                   return (
                     <div

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { createInitialCampaignState, normalizeCampaignLibraryState } from "./campaign";
-import { buildReviewQualityDiagnostics, buildSessionStorageDiagnostics, buildSupportDiagnostics } from "./diagnostics";
+import {
+  buildCampaignOperationalRisks,
+  buildReviewQualityDiagnostics,
+  buildSessionStorageDiagnostics,
+  buildSupportDiagnostics,
+} from "./diagnostics";
 
 describe("buildSupportDiagnostics", () => {
   it("exports support-safe state, provider readiness, storage, and campaign stats", () => {
@@ -148,5 +153,54 @@ describe("buildReviewQualityDiagnostics", () => {
         pendingDuplicateCount: 1,
       },
     ]);
+  });
+});
+
+describe("buildCampaignOperationalRisks", () => {
+  it("aggregates session storage and review debt per campaign", () => {
+    const risks = buildCampaignOperationalRisks(
+      [
+        {
+          campaignId: "campaign-a",
+          campaignName: "A",
+          sessionId: "session-a",
+          sessionTitle: "A1",
+          totalBytes: 100,
+          logBytes: 0,
+          speakerLogBytes: 0,
+          reviewBytes: 0,
+          transcriptionBytes: 0,
+        },
+        {
+          campaignId: "campaign-a",
+          campaignName: "A",
+          sessionId: "session-b",
+          sessionTitle: "A2",
+          totalBytes: 50,
+          logBytes: 0,
+          speakerLogBytes: 0,
+          reviewBytes: 0,
+          transcriptionBytes: 0,
+        },
+      ],
+      [
+        {
+          campaignId: "campaign-a",
+          campaignName: "A",
+          sessionId: "session-a",
+          sessionTitle: "A1",
+          approvedInvalidCount: 1,
+          approvedDuplicateCount: 2,
+          pendingInvalidCount: 3,
+          pendingDuplicateCount: 4,
+        },
+      ],
+    );
+
+    expect(risks.get("campaign-a")).toEqual({
+      campaignId: "campaign-a",
+      reviewDebt: 10,
+      storageBytes: 150,
+    });
   });
 });
