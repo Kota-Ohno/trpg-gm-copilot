@@ -99,6 +99,7 @@ import {
   runTranscriptionProvider,
   validateTranscriptionAudioFile,
 } from "./lib/transcription-providers";
+import { sortReviewItems, type ReviewSortMode } from "./lib/review";
 import type {
   CampaignState,
   CampaignLibraryState,
@@ -152,6 +153,7 @@ type UiPreferences = {
   logWorkspaceMode: LogWorkspaceMode;
   navigationPanelMode: NavigationPanelMode;
   prepWorkspaceMode: PrepWorkspaceMode;
+  reviewSortMode: ReviewSortMode;
   reviewWorkspaceMode: ReviewWorkspaceMode;
   rightPanelMode: RightPanelMode;
   sessionArchiveFilter: SessionArchiveFilter;
@@ -287,6 +289,13 @@ const reviewWorkspaceOptions: Array<{ value: ReviewWorkspaceMode; label: string 
   { value: "manage", label: "管理" },
 ];
 
+const reviewSortOptions: Array<{ value: ReviewSortMode; label: string }> = [
+  { value: "original", label: "抽出順" },
+  { value: "status", label: "未承認優先" },
+  { value: "kind", label: "種別" },
+  { value: "visibility", label: "公開範囲" },
+];
+
 const transcriptionLanguageOptions = [
   { value: "ja", label: "日本語" },
   { value: "en", label: "English" },
@@ -319,6 +328,7 @@ const defaultUiPreferences: UiPreferences = {
   logWorkspaceMode: "editor",
   navigationPanelMode: "sessions",
   prepWorkspaceMode: "recap",
+  reviewSortMode: "original",
   reviewWorkspaceMode: "inspect",
   rightPanelMode: "rescue",
   sessionArchiveFilter: "active",
@@ -400,6 +410,11 @@ function loadUiPreferences(): UiPreferences {
         parsedPreferences.prepWorkspaceMode,
         prepWorkspaceOptions,
         defaultUiPreferences.prepWorkspaceMode,
+      ),
+      reviewSortMode: readOptionValue(
+        parsedPreferences.reviewSortMode,
+        reviewSortOptions,
+        defaultUiPreferences.reviewSortMode,
       ),
       reviewWorkspaceMode: readOptionValue(
         parsedPreferences.reviewWorkspaceMode,
@@ -595,6 +610,7 @@ export function App() {
     initialUiPreferences.navigationPanelMode,
   );
   const [prepWorkspaceMode, setPrepWorkspaceMode] = useState<PrepWorkspaceMode>(initialUiPreferences.prepWorkspaceMode);
+  const [reviewSortMode, setReviewSortMode] = useState<ReviewSortMode>(initialUiPreferences.reviewSortMode);
   const [reviewWorkspaceMode, setReviewWorkspaceMode] = useState<ReviewWorkspaceMode>(
     initialUiPreferences.reviewWorkspaceMode,
   );
@@ -685,7 +701,7 @@ export function App() {
   ).length;
   const normalizedReviewQuery = reviewQuery.trim().toLowerCase();
   const duplicateReviewItemIdSet = new Set(duplicateReviewItemIds);
-  const reviewItems = items.filter((item) => {
+  const filteredReviewItems = items.filter((item) => {
     if (!showApprovedReviewItems && approvedIds.includes(item.id)) {
       return false;
     }
@@ -713,6 +729,7 @@ export function App() {
       )
     );
   });
+  const reviewItems = sortReviewItems(filteredReviewItems, approvedIds, reviewSortMode);
   const hasReviewFilter =
     reviewKindFilter !== "all" ||
     reviewVisibilityFilter !== "all" ||
@@ -920,6 +937,7 @@ export function App() {
           logWorkspaceMode,
           navigationPanelMode,
           prepWorkspaceMode,
+          reviewSortMode,
           reviewWorkspaceMode,
           rightPanelMode,
           sessionArchiveFilter,
@@ -939,6 +957,7 @@ export function App() {
     logWorkspaceMode,
     navigationPanelMode,
     prepWorkspaceMode,
+    reviewSortMode,
     reviewWorkspaceMode,
     rightPanelMode,
     sessionArchiveFilter,
@@ -1193,6 +1212,7 @@ export function App() {
         showApproved: showApprovedReviewItems,
         invalidOnly: showInvalidReviewItemsOnly,
         duplicateOnly: showDuplicateReviewItemsOnly,
+        sort: reviewSortMode,
       },
       counts: {
         total: reviewItems.length,
@@ -2145,6 +2165,7 @@ export function App() {
     setLogWorkspaceMode(defaultUiPreferences.logWorkspaceMode);
     setNavigationPanelMode(defaultUiPreferences.navigationPanelMode);
     setPrepWorkspaceMode(defaultUiPreferences.prepWorkspaceMode);
+    setReviewSortMode(defaultUiPreferences.reviewSortMode);
     setReviewWorkspaceMode(defaultUiPreferences.reviewWorkspaceMode);
     setRightPanelMode(defaultUiPreferences.rightPanelMode);
     setSettingsPanelMode(defaultUiPreferences.settingsPanelMode);
@@ -3104,6 +3125,11 @@ export function App() {
                             {reviewVisibilityFilter !== "all" && (
                               <Badge variant="secondary">公開範囲: {reviewVisibilityFilter}</Badge>
                             )}
+                            {reviewSortMode !== "original" && (
+                              <Badge variant="secondary">
+                                並び: {findOptionLabel(reviewSortOptions, reviewSortMode, "抽出順")}
+                              </Badge>
+                            )}
                             {normalizedReviewQuery && <Badge variant="secondary">検索: {reviewQuery.trim()}</Badge>}
                           </div>
                           <Tabs
@@ -3145,6 +3171,17 @@ export function App() {
                                 </option>
                               ))}
                             </select>
+                            <select
+                              className="h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              value={reviewSortMode}
+                              onChange={(event) => setReviewSortMode(event.target.value as ReviewSortMode)}
+                            >
+                              {reviewSortOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  並び: {option.label}
+                                </option>
+                              ))}
+                            </select>
                             <Button
                               onClick={() => setShowApprovedReviewItems((current) => !current)}
                               size="sm"
@@ -3183,6 +3220,7 @@ export function App() {
                                 setShowDuplicateReviewItemsOnly(false);
                                 setShowApprovedReviewItems(true);
                                 setShowInvalidReviewItemsOnly(false);
+                                setReviewSortMode(defaultUiPreferences.reviewSortMode);
                               }}
                               size="sm"
                               variant="ghost"
