@@ -257,6 +257,10 @@ function formatImportPreviewMessage(preview: ReturnType<typeof previewCampaignIm
   ].join(" ");
 }
 
+function formatOversizedJsonImportMessage(fileSize: number): string {
+  return `JSONファイルが大きすぎます (${formatFileSize(fileSize)})。${formatFileSize(maxJsonImportFileSizeBytes)} 以下に分割して読み込んでください。`;
+}
+
 const quickPromptSets: Record<
   CampaignMode,
   Array<{ icon: typeof UserRound; title: string; result: string }>
@@ -1547,9 +1551,7 @@ export function App() {
 
   const importCampaignState = async (file: File): Promise<void> => {
     if (file.size > maxJsonImportFileSizeBytes) {
-      setStorageError(
-        `JSONファイルが大きすぎます (${formatFileSize(file.size)})。${formatFileSize(maxJsonImportFileSizeBytes)} 以下に分割して読み込んでください。`,
-      );
+      setStorageError(formatOversizedJsonImportMessage(file.size));
       return;
     }
 
@@ -2048,9 +2050,7 @@ export function App() {
 
   const importTranscriptionDraftFile = async (file: File): Promise<void> => {
     if (file.size > maxJsonImportFileSizeBytes) {
-      setTranscriptionImportError(
-        `JSONファイルが大きすぎます (${formatFileSize(file.size)})。${formatFileSize(maxJsonImportFileSizeBytes)} 以下に分割して読み込んでください。`,
-      );
+      setTranscriptionImportError(formatOversizedJsonImportMessage(file.size));
       return;
     }
 
