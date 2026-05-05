@@ -933,6 +933,21 @@ export function App() {
       diagnostic.pendingDuplicateCount,
     0,
   );
+  const campaignStorageBytesById = sessionStorageDiagnostics.reduce<Map<string, number>>((totals, diagnostic) => {
+    totals.set(diagnostic.campaignId, (totals.get(diagnostic.campaignId) ?? 0) + diagnostic.totalBytes);
+    return totals;
+  }, new Map());
+  const campaignReviewDebtById = reviewQualityDiagnostics.reduce<Map<string, number>>((totals, diagnostic) => {
+    totals.set(
+      diagnostic.campaignId,
+      (totals.get(diagnostic.campaignId) ?? 0) +
+        diagnostic.approvedInvalidCount +
+        diagnostic.approvedDuplicateCount +
+        diagnostic.pendingInvalidCount +
+        diagnostic.pendingDuplicateCount,
+    );
+    return totals;
+  }, new Map());
   const sessionReviewDebtById = new Map(
     reviewQualityDiagnostics.map((diagnostic) => [
       diagnostic.sessionId,
@@ -2429,6 +2444,8 @@ export function App() {
               {visibleCampaigns.map((campaign) => (
                 (() => {
                   const stats = getCampaignSummaryStats(campaign);
+                  const campaignStorageBytes = campaignStorageBytesById.get(campaign.id) ?? 0;
+                  const campaignReviewDebt = campaignReviewDebtById.get(campaign.id) ?? 0;
 
                   return (
                     <div
@@ -2450,8 +2467,12 @@ export function App() {
                         >
                           {stats.sessionCount}セッション / {stats.memoryCount}記憶 / {stats.candidateCount}候補 /{" "}
                           {stats.approvedCount}採用
+                          {campaign.campaignMode === "fantasy" ? " / ファンタジー" : " / 調査"}
+                          {stats.archivedSessionCount > 0 ? ` / アーカイブ${stats.archivedSessionCount}` : ""}
                           {stats.transcribedSessionCount > 0 ? ` / 文字起こし${stats.transcribedSessionCount}` : ""}
                           {stats.lowConfidenceSegmentCount > 0 ? ` / 要確認${stats.lowConfidenceSegmentCount}` : ""}
+                          {campaignReviewDebt > 0 ? ` / レビュー品質${campaignReviewDebt}` : ""}
+                          {campaignStorageBytes > 0 ? ` / ${formatFileSize(campaignStorageBytes)}` : ""}
                         </span>
                       </button>
                       <Button
