@@ -128,6 +128,7 @@ type PrepWorkspaceMode = "recap" | "hooks" | "questions" | "reminders";
 type ReviewWorkspaceMode = "inspect" | "manage";
 type RightPanelMode = "rescue" | "settings";
 type SettingsPanelMode = "extraction" | "transcription" | "roadmap";
+type SessionArchiveFilter = "active" | "all" | "archived";
 type SessionTranscriptionFilter = "all" | "transcribed" | "untranscribed";
 type ReviewKindFilter = "all" | ExtractionItem["kind"];
 type ReviewVisibilityFilter = "all" | ExtractionItem["visibility"];
@@ -228,6 +229,12 @@ const logWorkspaceOptions: Array<{ value: LogWorkspaceMode; label: string }> = [
 const navigationPanelOptions: Array<{ value: NavigationPanelMode; label: string }> = [
   { value: "campaigns", label: "キャンペーン" },
   { value: "sessions", label: "セッション" },
+];
+
+const sessionArchiveOptions: Array<{ value: SessionArchiveFilter; label: string }> = [
+  { value: "active", label: "有効" },
+  { value: "all", label: "すべて" },
+  { value: "archived", label: "アーカイブ" },
 ];
 
 const prepWorkspaceOptions: Array<{ value: PrepWorkspaceMode; label: string }> = [
@@ -595,6 +602,7 @@ export function App() {
   const [showInvalidReviewItemsOnly, setShowInvalidReviewItemsOnly] = useState(false);
   const [campaignQuery, setCampaignQuery] = useState("");
   const [sessionQuery, setSessionQuery] = useState("");
+  const [sessionArchiveFilter, setSessionArchiveFilter] = useState<SessionArchiveFilter>("active");
   const [sessionTranscriptionFilter, setSessionTranscriptionFilter] = useState<SessionTranscriptionFilter>("all");
   const [transcriptionAudioFile, setTranscriptionAudioFile] = useState<File | null>(null);
   const [transcriptionDraftJson, setTranscriptionDraftJson] = useState("");
@@ -740,6 +748,14 @@ export function App() {
     : campaignLibrary.campaigns;
   const normalizedSessionQuery = sessionQuery.trim().toLowerCase();
   const visibleSessions = campaignState.sessions.filter((session) => {
+    if (sessionArchiveFilter === "active" && session.archivedAt) {
+      return false;
+    }
+
+    if (sessionArchiveFilter === "archived" && !session.archivedAt) {
+      return false;
+    }
+
     if (sessionTranscriptionFilter === "transcribed" && !session.transcriptionRun) {
       return false;
     }
@@ -1397,6 +1413,19 @@ export function App() {
     setLogInputMode("speaker");
     setLogWorkspaceMode("editor");
     setActiveTab("log");
+  };
+
+  const setSessionArchived = (sessionId: string, archived: boolean): void => {
+    updateSessionById(sessionId, {
+      archivedAt: archived ? new Date().toISOString() : undefined,
+    });
+
+    if (archived && campaignState.activeSessionId === sessionId) {
+      const fallbackSession = campaignState.sessions.find((session) => session.id !== sessionId && !session.archivedAt);
+      if (fallbackSession) {
+        switchSession(fallbackSession.id);
+      }
+    }
   };
 
   const deleteSession = (sessionId: string): void => {
@@ -2302,7 +2331,7 @@ export function App() {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <label className="text-xs font-medium text-muted-foreground">セッション</label>
-                {(normalizedSessionQuery || sessionTranscriptionFilter !== "all") && (
+                {(normalizedSessionQuery || sessionTranscriptionFilter !== "all" || sessionArchiveFilter !== "active") && (
                   <Badge variant="muted">{visibleSessions.length}/{campaignState.sessions.length}</Badge>
                 )}
               </div>
@@ -2323,6 +2352,17 @@ export function App() {
               />
             </div>
             <div className="flex flex-wrap gap-1">
+              {sessionArchiveOptions.map((option) => (
+                <Button
+                  disabled={isExtracting}
+                  key={option.value}
+                  onClick={() => setSessionArchiveFilter(option.value)}
+                  size="sm"
+                  variant={sessionArchiveFilter === option.value ? "default" : "outline"}
+                >
+                  {option.label}
+                </Button>
+              ))}
               {[
                 { value: "all", label: "すべて" },
                 { value: "transcribed", label: "文字起こし済み" },
@@ -2371,6 +2411,7 @@ export function App() {
                           {liveLogSummary.lowConfidenceCount > 0 ? ` / 要確認${liveLogSummary.lowConfidenceCount}` : ""}
                           {speakerIssueCount > 0 ? ` / ログ確認${speakerIssueCount}` : ""}
                           {session.transcriptionRun ? ` / 文字起こし${session.transcriptionRun.segmentCount}` : ""}
+                          {session.archivedAt ? " / アーカイブ" : ""}
                         </span>
                       </button>
                       <Button
@@ -2399,6 +2440,15 @@ export function App() {
                         variant="ghost"
                       >
                         <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        aria-label={session.archivedAt ? `${session.title}を有効化` : `${session.title}をアーカイブ`}
+                        disabled={isExtracting}
+                        onClick={() => setSessionArchived(session.id, !session.archivedAt)}
+                        size="icon"
+                        variant="ghost"
+                      >
+                        {session.archivedAt ? <RotateCcw className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
                       </Button>
                       <Button
                         aria-label={`${session.title}を削除`}

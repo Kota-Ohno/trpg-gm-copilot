@@ -132,6 +132,7 @@ export type LiveLogSession = {
 };
 
 export type SessionState = {
+  archivedAt?: string;
   id: string;
   title: string;
   date: string;

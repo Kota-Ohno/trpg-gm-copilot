@@ -293,6 +293,7 @@ describe("getCampaignSummaryStats", () => {
         {
           title: "第1夜",
           date: "2026-04-30",
+          archivedAt: "2026-05-01T00:00:00.000Z",
           log: "",
           liveLog: {
             speakers: [{ id: "speaker-1", name: "GM", role: "GM" }],
@@ -317,6 +318,7 @@ describe("getCampaignSummaryStats", () => {
     });
 
     expect(getCampaignSummaryStats(campaign)).toMatchObject({
+      archivedSessionCount: 1,
       approvedCount: 1,
       candidateCount: 1,
       lowConfidenceSegmentCount: 1,

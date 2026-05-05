@@ -74,6 +74,7 @@ export function countChronicleItems(chronicle: Chronicle): number {
 }
 
 export type CampaignSummaryStats = {
+  archivedSessionCount: number;
   approvedCount: number;
   candidateCount: number;
   lowConfidenceSegmentCount: number;
@@ -85,6 +86,7 @@ export type CampaignSummaryStats = {
 
 export function getCampaignSummaryStats(campaign: CampaignState): CampaignSummaryStats {
   return {
+    archivedSessionCount: campaign.sessions.filter((session) => Boolean(session.archivedAt)).length,
     approvedCount: campaign.sessions.reduce((total, session) => total + session.approvedIds.length, 0),
     candidateCount: campaign.sessions.reduce((total, session) => total + session.extractionItems.length, 0),
     lowConfidenceSegmentCount: campaign.sessions.reduce(
@@ -109,6 +111,7 @@ export function getSessionSearchText(session: SessionState): string {
   return [
     session.title,
     session.date,
+    session.archivedAt ? "archived アーカイブ" : "active",
     session.log,
     ...session.liveLog.speakers.map((speaker) => speaker.name),
     ...session.liveLog.segments.map((segment) => segment.text),
@@ -410,6 +413,7 @@ function normalizeSessionState(
     id: sessionId,
     title,
     date: normalizeSessionDate(session.date),
+    archivedAt: typeof session.archivedAt === "string" && session.archivedAt.trim() ? session.archivedAt.trim() : undefined,
     approvedIds: approvedIds.filter((id) => extractionItemIds.has(id)),
     extractionItems,
     liveLog: normalizeLiveLog(session.liveLog ?? defaultSession.liveLog, title),
@@ -511,6 +515,7 @@ export function formatCampaignLibraryMarkdown(campaignLibrary: CampaignLibrarySt
         `## ${index + 1}. ${campaign.campaignName}${isActive ? " [選択中]" : ""}`,
         "",
         `- セッション: ${stats.sessionCount}`,
+        ...(stats.archivedSessionCount > 0 ? [`- アーカイブ: ${stats.archivedSessionCount}`] : []),
         `- 記憶: ${stats.memoryCount}`,
         `- 候補: ${stats.candidateCount}`,
         `- 採用済み: ${stats.approvedCount}`,
@@ -530,6 +535,7 @@ export function formatCampaignMarkdown(campaign: CampaignState): string {
     `# ${campaign.campaignName.trim() || "キャンペーン"}`,
     "",
     `- セッション: ${stats.sessionCount}`,
+    ...(stats.archivedSessionCount > 0 ? [`- アーカイブ: ${stats.archivedSessionCount}`] : []),
     `- 記憶: ${stats.memoryCount}`,
     `- 候補: ${stats.candidateCount}`,
     `- 採用済み: ${stats.approvedCount}`,
@@ -543,6 +549,7 @@ export function formatCampaignMarkdown(campaign: CampaignState): string {
       `### ${session.title}`,
       "",
       `- 日付: ${session.date}`,
+      ...(session.archivedAt ? [`- 状態: アーカイブ (${session.archivedAt})`] : []),
       `- 抽出候補: ${session.extractionItems.length}`,
       `- 採用済み: ${session.approvedIds.length}`,
       ...(session.transcriptionRun ? [`- 文字起こし: ${session.transcriptionRun.providerLabel} / ${session.transcriptionRun.segmentCount}発話`] : []),
@@ -569,6 +576,7 @@ export function createNewSession(index: number): SessionState {
 
   return {
     id: sessionId,
+    archivedAt: undefined,
     title: `第${index}夜`,
     date: getLocalDateString(),
     log: "",
@@ -597,6 +605,7 @@ export function duplicateSessionState(sourceSession: SessionState): SessionState
   return {
     ...duplicatedSession,
     id: createId("session"),
+    archivedAt: undefined,
     title,
     approvedIds: [],
     extractionRun: null,
