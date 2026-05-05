@@ -67,6 +67,7 @@ export type SupportDiagnosticsInput = {
   reviewWorkspaceMode: string;
   rightPanelMode: string;
   sessionArchiveFilter: string;
+  sessionListDensity: string;
   sessionSortMode: string;
   sessionTranscriptionFilter: string;
   settingsPanelMode: string;
@@ -226,6 +227,7 @@ export function buildSupportDiagnostics(input: SupportDiagnosticsInput, exported
       reviewWorkspaceMode: input.reviewWorkspaceMode,
       rightPanelMode: input.rightPanelMode,
       sessionArchiveFilter: input.sessionArchiveFilter,
+      sessionListDensity: input.sessionListDensity,
       sessionSortMode: input.sessionSortMode,
       sessionTranscriptionFilter: input.sessionTranscriptionFilter,
       settingsPanelMode: input.settingsPanelMode,

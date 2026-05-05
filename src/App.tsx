@@ -1324,6 +1324,7 @@ export function App() {
       reviewWorkspaceMode,
       rightPanelMode,
       sessionArchiveFilter,
+      sessionListDensity,
       sessionSortMode,
       sessionTranscriptionFilter,
       settingsPanelMode,

@@ -41,6 +41,7 @@ describe("buildSupportDiagnostics", () => {
       reviewWorkspaceMode: "inspect",
       rightPanelMode: "settings",
       sessionArchiveFilter: "active",
+      sessionListDensity: "detailed",
       sessionSortMode: "review-debt",
       sessionTranscriptionFilter: "all",
       settingsPanelMode: "roadmap",
@@ -75,6 +76,7 @@ describe("buildSupportDiagnostics", () => {
       ui: {
         activeTab: "home",
         reviewSortMode: "status",
+        sessionListDensity: "detailed",
         sessionSortMode: "review-debt",
         settingsPanelMode: "roadmap",
       },
