@@ -362,6 +362,7 @@ function normalizeExtractionRun(rawRun: unknown, itemCount: number): ExtractionR
 
   return {
     ...run,
+    campaignMode: normalizeCampaignMode(run.campaignMode),
     sourceType: normalizeExtractionSourceType(run.sourceType),
     providerId: runProvider.id,
     providerLabel: runProvider.label,

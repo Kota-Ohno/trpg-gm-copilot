@@ -74,6 +74,7 @@ export type ProviderSecretSettings = {
 };
 
 export type ExtractionRun = {
+  campaignMode?: CampaignMode;
   sourceType: ExtractionSourceType;
   providerId: ExtractionProviderId;
   providerLabel: string;

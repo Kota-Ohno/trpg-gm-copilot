@@ -204,6 +204,7 @@ function buildRuleBasedFallback(
   return {
     items: generatedItems,
     run: {
+      campaignMode: request.campaignMode,
       sourceType: request.source,
       providerId: request.settings.providerId,
       providerLabel: context.providerLabel,
@@ -235,6 +236,7 @@ export function buildLlmExtractionResult(
   return {
     items: normalizedResponse.items,
     run: {
+      campaignMode: request.campaignMode,
       sourceType: request.source,
       providerId: provider.id,
       providerLabel: provider.label,

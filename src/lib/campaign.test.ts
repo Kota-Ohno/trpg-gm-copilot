@@ -434,6 +434,7 @@ describe("duplicateSessionState", () => {
           },
           extractionItems: [{ id: "item-1", kind: "出来事", title: "開始", detail: "GM: 開始", visibility: "PL既知" }],
           extractionRun: {
+            campaignMode: "fantasy",
             sourceType: "plain",
             providerId: "rule-based",
             providerLabel: "ルールベース",
@@ -456,6 +457,7 @@ describe("duplicateSessionState", () => {
     expect(duplicated.log).toBe(source.log);
     expect(duplicated.approvedIds).toEqual([]);
     expect(duplicated.extractionRun).toBeNull();
+    expect(source.extractionRun?.campaignMode).toBe("fantasy");
     expect(duplicated.liveLog.id).not.toBe(source.liveLog.id);
     expect(duplicated.liveLog.speakers[0]?.id).not.toBe(source.liveLog.speakers[0]?.id);
     expect(duplicated.liveLog.segments[0]?.id).not.toBe(source.liveLog.segments[0]?.id);

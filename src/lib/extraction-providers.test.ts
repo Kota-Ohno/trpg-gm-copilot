@@ -60,6 +60,7 @@ describe("buildLlmExtractionResult", () => {
       },
     ]);
     expect(result.run).toMatchObject({
+      campaignMode: "investigation",
       sourceType: "plain",
       providerId: "openai",
       providerLabel: "OpenAI",

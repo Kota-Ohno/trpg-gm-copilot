@@ -3470,6 +3470,11 @@ export function App() {
                           <Badge variant={extractionRun.sourceType === "fallback" ? "secondary" : "outline"}>
                             {extractionSourceLabels[extractionRun.sourceType]}
                           </Badge>
+                          {extractionRun.campaignMode && (
+                            <Badge variant="outline">
+                              {findOptionLabel(campaignModeOptions, extractionRun.campaignMode, "調査")}
+                            </Badge>
+                          )}
                           <span className="text-sm text-muted-foreground">
                             {extractionRun.itemCount}件の抽出候補を確認中
                           </span>
