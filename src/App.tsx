@@ -948,6 +948,9 @@ export function App() {
   const currentReviewQualityDiagnostic = reviewQualityDiagnostics.find(
     (diagnostic) => diagnostic.sessionId === currentSession.id,
   );
+  const reviewQualityDiagnosticById = new Map(
+    reviewQualityDiagnostics.map((diagnostic) => [diagnostic.sessionId, diagnostic]),
+  );
   const reviewQualityDebtCount = reviewQualityDiagnostics.reduce(
     (total, diagnostic) =>
       total +
@@ -2698,6 +2701,7 @@ export function App() {
                   const liveLogSummary = summarizeLiveLog(session.liveLog);
                   const speakerIssueCount = getSpeakerLogIssues(session.liveLog).length;
                   const sizeDiagnostic = sessionStorageDiagnosticById.get(session.id);
+                  const reviewQualityDiagnostic = reviewQualityDiagnosticById.get(session.id);
 
                   return (
                     <div
@@ -2725,6 +2729,14 @@ export function App() {
                           {liveLogSummary.lowConfidenceCount > 0 ? ` / 要確認${liveLogSummary.lowConfidenceCount}` : ""}
                           {speakerIssueCount > 0 ? ` / ログ確認${speakerIssueCount}` : ""}
                           {session.transcriptionRun ? ` / 文字起こし${session.transcriptionRun.segmentCount}` : ""}
+                          {reviewQualityDiagnostic
+                            ? ` / レビュー品質${
+                                reviewQualityDiagnostic.approvedInvalidCount +
+                                reviewQualityDiagnostic.approvedDuplicateCount +
+                                reviewQualityDiagnostic.pendingInvalidCount +
+                                reviewQualityDiagnostic.pendingDuplicateCount
+                              }`
+                            : ""}
                           {sizeDiagnostic ? ` / ${formatFileSize(sizeDiagnostic.totalBytes)}` : ""}
                           {session.archivedAt ? " / アーカイブ" : ""}
                         </span>
@@ -2740,6 +2752,20 @@ export function App() {
                             {formatFileSize(sizeDiagnostic.speakerLogBytes)} / レビュー{" "}
                             {formatFileSize(sizeDiagnostic.reviewBytes)} / 文字起こし{" "}
                             {formatFileSize(sizeDiagnostic.transcriptionBytes)}
+                          </span>
+                        )}
+                        {reviewQualityDiagnostic && (
+                          <span
+                            className={
+                              session.id === campaignState.activeSessionId
+                                ? "mt-1 block text-[11px] opacity-75"
+                                : "mt-1 block text-[11px] text-muted-foreground"
+                            }
+                          >
+                            品質: 承認済み未入力 {reviewQualityDiagnostic.approvedInvalidCount} / 承認済み重複{" "}
+                            {reviewQualityDiagnostic.approvedDuplicateCount} / 未承認未入力{" "}
+                            {reviewQualityDiagnostic.pendingInvalidCount} / 未承認重複{" "}
+                            {reviewQualityDiagnostic.pendingDuplicateCount}
                           </span>
                         )}
                       </button>
