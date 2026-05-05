@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  AlertTriangle,
   BookOpen,
+  CheckCircle2,
   Clock3,
   Compass,
   Copy,
@@ -11,9 +13,12 @@ import {
   Lightbulb,
   Map as MapIcon,
   MessageSquareText,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   RotateCcw,
   Search,
+  Settings2,
   ShieldCheck,
   Sparkles,
   Swords,
@@ -21,7 +26,7 @@ import {
   UserRound,
   Wand2,
 } from "lucide-react";
-import { ChronicleView } from "./components/chronicle-view";
+import { ChronicleView, type ChronicleViewMode, type ClueStatusFilter } from "./components/chronicle-view";
 import { ExtractionReviewCard } from "./components/extraction-review-card";
 import { PlainLogEditor } from "./components/plain-log-editor";
 import { PrepSection } from "./components/prep-section";
@@ -108,6 +113,7 @@ import type {
 const LEGACY_STORAGE_KEY = "chronicle-gm.campaign-state.v1";
 const CAMPAIGN_LIBRARY_STORAGE_KEY = "chronicle-gm.campaign-library.v1";
 const PROVIDER_SECRETS_STORAGE_KEY = "chronicle-gm.provider-secrets.v1";
+const UI_PREFERENCES_STORAGE_KEY = "chronicle-gm.ui-preferences.v1";
 const campaignNameInputId = "campaign-name";
 const campaignImportInputId = "campaign-json-import";
 const transcriptionAudioInputId = "transcription-audio-import";
@@ -116,6 +122,12 @@ const sessionTitleInputId = "active-session-title";
 const sessionDateInputId = "active-session-date";
 
 type LogInputMode = "plain" | "speaker";
+type LogWorkspaceMode = "editor" | "transcription";
+type NavigationPanelMode = "campaigns" | "sessions";
+type PrepWorkspaceMode = "recap" | "hooks" | "questions" | "reminders";
+type ReviewWorkspaceMode = "inspect" | "manage";
+type RightPanelMode = "rescue" | "settings";
+type SettingsPanelMode = "extraction" | "transcription" | "roadmap";
 type SessionTranscriptionFilter = "all" | "transcribed" | "untranscribed";
 type ReviewKindFilter = "all" | ExtractionItem["kind"];
 type ReviewVisibilityFilter = "all" | ExtractionItem["visibility"];
@@ -125,8 +137,22 @@ type ConfirmationRequest = {
   confirmLabel: string;
   onConfirm: () => void;
 };
+type UiPreferences = {
+  activeTab: WorkspaceTab;
+  chronicleClueStatusFilter: ClueStatusFilter;
+  chronicleViewMode: ChronicleViewMode;
+  isFocusMode: boolean;
+  logInputMode: LogInputMode;
+  logWorkspaceMode: LogWorkspaceMode;
+  navigationPanelMode: NavigationPanelMode;
+  prepWorkspaceMode: PrepWorkspaceMode;
+  reviewWorkspaceMode: ReviewWorkspaceMode;
+  rightPanelMode: RightPanelMode;
+  settingsPanelMode: SettingsPanelMode;
+};
 
 const tabOptions: Array<{ value: WorkspaceTab; label: string }> = [
+  { value: "home", label: "ホーム" },
   { value: "log", label: "ログ" },
   { value: "review", label: "承認" },
   { value: "chronicle", label: "記憶" },
@@ -189,6 +215,38 @@ const logInputOptions: Array<{ value: LogInputMode; label: string }> = [
   { value: "speaker", label: "話者付きログ" },
 ];
 
+const logWorkspaceOptions: Array<{ value: LogWorkspaceMode; label: string }> = [
+  { value: "editor", label: "ログ編集" },
+  { value: "transcription", label: "文字起こし" },
+];
+
+const navigationPanelOptions: Array<{ value: NavigationPanelMode; label: string }> = [
+  { value: "campaigns", label: "キャンペーン" },
+  { value: "sessions", label: "セッション" },
+];
+
+const prepWorkspaceOptions: Array<{ value: PrepWorkspaceMode; label: string }> = [
+  { value: "recap", label: "要約" },
+  { value: "hooks", label: "導入" },
+  { value: "questions", label: "未解決" },
+  { value: "reminders", label: "GMメモ" },
+];
+
+const chronicleViewLabels: Record<ChronicleViewMode, string> = {
+  overview: "概要",
+  clues: "手がかり",
+  npcs: "NPC",
+  locations: "場所",
+  events: "出来事",
+  threads: "伏線",
+};
+
+const settingsPanelLabels: Record<SettingsPanelMode, string> = {
+  extraction: "抽出",
+  transcription: "文字起こし",
+  roadmap: "拡張",
+};
+
 const reviewKindOptions: Array<{ value: ReviewKindFilter; label: string }> = [
   { value: "all", label: "すべて" },
   { value: "出来事", label: "出来事" },
@@ -205,10 +263,26 @@ const reviewVisibilityOptions: Array<{ value: ReviewVisibilityFilter; label: str
   { value: "未開示候補", label: "未開示候補" },
 ];
 
+const reviewWorkspaceOptions: Array<{ value: ReviewWorkspaceMode; label: string }> = [
+  { value: "inspect", label: "確認" },
+  { value: "manage", label: "管理" },
+];
+
 const transcriptionLanguageOptions = [
   { value: "ja", label: "日本語" },
   { value: "en", label: "English" },
   { value: "auto", label: "自動" },
+];
+
+const rightPanelOptions: Array<{ value: RightPanelMode; label: string }> = [
+  { value: "rescue", label: "セッション中" },
+  { value: "settings", label: "設定" },
+];
+
+const settingsPanelOptions: Array<{ value: SettingsPanelMode; label: string }> = [
+  { value: "extraction", label: "抽出" },
+  { value: "transcription", label: "文字起こし" },
+  { value: "roadmap", label: "拡張" },
 ];
 
 const extractionSourceLabels: Record<ExtractionRun["sourceType"], string> = {
@@ -216,6 +290,116 @@ const extractionSourceLabels: Record<ExtractionRun["sourceType"], string> = {
   speaker: "話者付きログ由来",
   fallback: "フォールバック",
 };
+
+const defaultUiPreferences: UiPreferences = {
+  activeTab: "home",
+  chronicleClueStatusFilter: "all",
+  chronicleViewMode: "overview",
+  isFocusMode: false,
+  logInputMode: "plain",
+  logWorkspaceMode: "editor",
+  navigationPanelMode: "sessions",
+  prepWorkspaceMode: "recap",
+  reviewWorkspaceMode: "inspect",
+  rightPanelMode: "rescue",
+  settingsPanelMode: "extraction",
+};
+
+function readOptionValue<T extends string>(
+  value: unknown,
+  options: Array<{ value: T }>,
+  fallback: T,
+): T {
+  return typeof value === "string" && options.some((option) => option.value === value)
+    ? value as T
+    : fallback;
+}
+
+function findOptionLabel<T extends string>(
+  options: Array<{ value: T; label: string }>,
+  value: T,
+  fallback: string,
+): string {
+  return options.find((option) => option.value === value)?.label ?? fallback;
+}
+
+function loadUiPreferences(): UiPreferences {
+  if (typeof window === "undefined") {
+    return defaultUiPreferences;
+  }
+
+  const savedPreferences = window.localStorage.getItem(UI_PREFERENCES_STORAGE_KEY);
+  if (!savedPreferences) {
+    return defaultUiPreferences;
+  }
+
+  try {
+    const parsedPreferences = JSON.parse(savedPreferences) as Record<string, unknown>;
+
+    return {
+      activeTab: readOptionValue(parsedPreferences.activeTab, tabOptions, defaultUiPreferences.activeTab),
+      chronicleClueStatusFilter: readOptionValue(
+        parsedPreferences.chronicleClueStatusFilter,
+        [
+          { value: "all" },
+          { value: "known" },
+          { value: "partial" },
+          { value: "hidden" },
+        ],
+        defaultUiPreferences.chronicleClueStatusFilter,
+      ),
+      chronicleViewMode: readOptionValue(
+        parsedPreferences.chronicleViewMode,
+        [
+          { value: "overview" },
+          { value: "events" },
+          { value: "clues" },
+          { value: "npcs" },
+          { value: "locations" },
+          { value: "threads" },
+        ],
+        defaultUiPreferences.chronicleViewMode,
+      ),
+      isFocusMode:
+        typeof parsedPreferences.isFocusMode === "boolean"
+          ? parsedPreferences.isFocusMode
+          : defaultUiPreferences.isFocusMode,
+      logInputMode: readOptionValue(parsedPreferences.logInputMode, logInputOptions, defaultUiPreferences.logInputMode),
+      logWorkspaceMode: readOptionValue(
+        parsedPreferences.logWorkspaceMode,
+        logWorkspaceOptions,
+        defaultUiPreferences.logWorkspaceMode,
+      ),
+      navigationPanelMode: readOptionValue(
+        parsedPreferences.navigationPanelMode,
+        navigationPanelOptions,
+        defaultUiPreferences.navigationPanelMode,
+      ),
+      prepWorkspaceMode: readOptionValue(
+        parsedPreferences.prepWorkspaceMode,
+        prepWorkspaceOptions,
+        defaultUiPreferences.prepWorkspaceMode,
+      ),
+      reviewWorkspaceMode: readOptionValue(
+        parsedPreferences.reviewWorkspaceMode,
+        reviewWorkspaceOptions,
+        defaultUiPreferences.reviewWorkspaceMode,
+      ),
+      rightPanelMode: readOptionValue(
+        parsedPreferences.rightPanelMode,
+        rightPanelOptions,
+        defaultUiPreferences.rightPanelMode,
+      ),
+      settingsPanelMode: readOptionValue(
+        parsedPreferences.settingsPanelMode,
+        settingsPanelOptions,
+        defaultUiPreferences.settingsPanelMode,
+      ),
+    };
+  } catch {
+    return defaultUiPreferences;
+  }
+}
 
 function loadCampaignLibraryState(): CampaignLibraryState {
   if (typeof window === "undefined") {
@@ -366,14 +550,35 @@ function downloadJsonFile(content: unknown, fileName: string): void {
 }
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>("log");
+  const [initialUiPreferences] = useState(loadUiPreferences);
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialUiPreferences.activeTab);
+  const [chronicleClueStatusFilter, setChronicleClueStatusFilter] = useState<ClueStatusFilter>(
+    initialUiPreferences.chronicleClueStatusFilter,
+  );
+  const [chronicleViewMode, setChronicleViewMode] = useState<ChronicleViewMode>(
+    initialUiPreferences.chronicleViewMode,
+  );
+  const [isFocusMode, setIsFocusMode] = useState(initialUiPreferences.isFocusMode);
+  const [logWorkspaceMode, setLogWorkspaceMode] = useState<LogWorkspaceMode>(initialUiPreferences.logWorkspaceMode);
+  const [navigationPanelMode, setNavigationPanelMode] = useState<NavigationPanelMode>(
+    initialUiPreferences.navigationPanelMode,
+  );
+  const [prepWorkspaceMode, setPrepWorkspaceMode] = useState<PrepWorkspaceMode>(initialUiPreferences.prepWorkspaceMode);
+  const [reviewWorkspaceMode, setReviewWorkspaceMode] = useState<ReviewWorkspaceMode>(
+    initialUiPreferences.reviewWorkspaceMode,
+  );
+  const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>(initialUiPreferences.rightPanelMode);
+  const [settingsPanelMode, setSettingsPanelMode] = useState<SettingsPanelMode>(
+    initialUiPreferences.settingsPanelMode,
+  );
   const [isExtracting, setIsExtracting] = useState(false);
-  const [logInputMode, setLogInputMode] = useState<LogInputMode>("plain");
+  const [logInputMode, setLogInputMode] = useState<LogInputMode>(initialUiPreferences.logInputMode);
   const [campaignLibrary, setCampaignLibrary] = useState<CampaignLibraryState>(loadCampaignLibraryState);
   const [showApprovedReviewItems, setShowApprovedReviewItems] = useState(true);
   const [reviewKindFilter, setReviewKindFilter] = useState<ReviewKindFilter>("all");
   const [reviewVisibilityFilter, setReviewVisibilityFilter] = useState<ReviewVisibilityFilter>("all");
   const [reviewQuery, setReviewQuery] = useState("");
+  const [showDuplicateReviewItemsOnly, setShowDuplicateReviewItemsOnly] = useState(false);
   const [showInvalidReviewItemsOnly, setShowInvalidReviewItemsOnly] = useState(false);
   const [campaignQuery, setCampaignQuery] = useState("");
   const [sessionQuery, setSessionQuery] = useState("");
@@ -416,6 +621,8 @@ export function App() {
     () => checkTranscriptionProviderReadiness(transcriptionProvider, providerSecrets),
     [providerSecrets, transcriptionProvider],
   );
+  const extractionProviderReady =
+    extractionProvider.providerId !== "openai" || providerSecrets.openAiApiKey.trim().length > 0;
   const transcriptionAudioFileValidation = useMemo(
     () => (transcriptionAudioFile ? validateTranscriptionAudioFile(transcriptionAudioFile) : null),
     [transcriptionAudioFile],
@@ -435,6 +642,7 @@ export function App() {
     (item) => !approvedIds.includes(item.id) && item.title.trim() && item.detail.trim(),
   ).length;
   const normalizedReviewQuery = reviewQuery.trim().toLowerCase();
+  const duplicateReviewItemIdSet = new Set(duplicateReviewItemIds);
   const reviewItems = items.filter((item) => {
     if (!showApprovedReviewItems && approvedIds.includes(item.id)) {
       return false;
@@ -452,6 +660,10 @@ export function App() {
       return false;
     }
 
+    if (showDuplicateReviewItemsOnly && !duplicateReviewItemIdSet.has(item.id)) {
+      return false;
+    }
+
     return (
       !normalizedReviewQuery ||
       [item.title, item.detail, item.kind, item.visibility].some((value) =>
@@ -463,6 +675,7 @@ export function App() {
     reviewKindFilter !== "all" ||
     reviewVisibilityFilter !== "all" ||
     !showApprovedReviewItems ||
+    showDuplicateReviewItemsOnly ||
     showInvalidReviewItemsOnly ||
     normalizedReviewQuery.length > 0;
   const approvableVisibleReviewCount = reviewItems.filter(
@@ -527,6 +740,51 @@ export function App() {
     () => generatePrepNote(chronicle, campaignState.sessions, currentSession),
     [campaignState.sessions, chronicle, currentSession],
   );
+  const currentLiveLogSummary = useMemo(() => summarizeLiveLog(liveLog), [liveLog]);
+  const currentSpeakerIssueCount = useMemo(() => getSpeakerLogIssues(liveLog).length, [liveLog]);
+  const memoryItemCount = countChronicleItems(chronicle);
+  const hiddenClueCount = chronicle.clues.filter((clue) => clue.status !== "known").length;
+  const hasPrepContent = dynamicPrepNote.shortRecap.length > 0 || dynamicPrepNote.hooks.length > 0;
+  const sideWorkspaceLabel =
+    rightPanelMode === "settings"
+      ? `補助パネル / 設定 / ${settingsPanelLabels[settingsPanelMode]}`
+      : "補助パネル / セッション中";
+  const activeWorkspaceLabel = useMemo(() => {
+    const tabLabel = findOptionLabel(tabOptions, activeTab, "ホーム");
+
+    if (activeTab === "log") {
+      const workspaceLabel = findOptionLabel(logWorkspaceOptions, logWorkspaceMode, "ログ編集");
+      return logWorkspaceMode === "editor"
+        ? `${tabLabel} / ${workspaceLabel} / ${findOptionLabel(logInputOptions, logInputMode, "通常ログ")}`
+        : `${tabLabel} / ${workspaceLabel}`;
+    }
+
+    if (activeTab === "review") {
+      return `${tabLabel} / ${findOptionLabel(reviewWorkspaceOptions, reviewWorkspaceMode, "確認")}`;
+    }
+
+    if (activeTab === "chronicle") {
+      const filterLabel =
+        chronicleClueStatusFilter === "all"
+          ? ""
+          : ` / ${chronicleClueStatusFilter === "hidden" ? "GM秘密" : chronicleClueStatusFilter === "known" ? "PL既知" : "一部既知"}`;
+      return `${tabLabel} / ${chronicleViewLabels[chronicleViewMode]}${filterLabel}`;
+    }
+
+    if (activeTab === "prep") {
+      return `${tabLabel} / ${findOptionLabel(prepWorkspaceOptions, prepWorkspaceMode, "要約")}`;
+    }
+
+    return tabLabel;
+  }, [
+    activeTab,
+    chronicleClueStatusFilter,
+    chronicleViewMode,
+    logInputMode,
+    logWorkspaceMode,
+    prepWorkspaceMode,
+    reviewWorkspaceMode,
+  ]);
 
   const progress = useMemo(() => {
     if (items.length === 0) {
@@ -554,6 +812,41 @@ export function App() {
       setStorageError("Provider secrets をブラウザに保存できませんでした。");
     }
   }, [providerSecrets]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        UI_PREFERENCES_STORAGE_KEY,
+        JSON.stringify({
+          activeTab,
+          chronicleClueStatusFilter,
+          chronicleViewMode,
+          isFocusMode,
+          logInputMode,
+          logWorkspaceMode,
+          navigationPanelMode,
+          prepWorkspaceMode,
+          reviewWorkspaceMode,
+          rightPanelMode,
+          settingsPanelMode,
+        } satisfies UiPreferences),
+      );
+    } catch {
+      setStorageError("画面設定をブラウザに保存できませんでした。");
+    }
+  }, [
+    activeTab,
+    chronicleClueStatusFilter,
+    chronicleViewMode,
+    isFocusMode,
+    logInputMode,
+    logWorkspaceMode,
+    navigationPanelMode,
+    prepWorkspaceMode,
+    reviewWorkspaceMode,
+    rightPanelMode,
+    settingsPanelMode,
+  ]);
 
   const setActiveCampaignState = (updater: (current: CampaignState) => CampaignState): void => {
     setCampaignLibrary((currentLibrary) => {
@@ -587,6 +880,7 @@ export function App() {
     setCampaignQuery("");
     setSessionQuery("");
     setLogInputMode("plain");
+    setLogWorkspaceMode("editor");
     setActiveTab("log");
   };
 
@@ -602,6 +896,7 @@ export function App() {
     setCampaignQuery("");
     setSessionQuery("");
     setLogInputMode("plain");
+    setLogWorkspaceMode("editor");
     setActiveTab("log");
   };
 
@@ -621,6 +916,7 @@ export function App() {
     setCampaignQuery("");
     setSessionQuery("");
     setLogInputMode("plain");
+    setLogWorkspaceMode("editor");
     setActiveTab("log");
   };
 
@@ -657,6 +953,7 @@ export function App() {
         setCampaignQuery("");
         setSessionQuery("");
         setLogInputMode("plain");
+        setLogWorkspaceMode("editor");
         setActiveTab("log");
       },
     });
@@ -760,6 +1057,7 @@ export function App() {
         query: reviewQuery.trim(),
         showApproved: showApprovedReviewItems,
         invalidOnly: showInvalidReviewItemsOnly,
+        duplicateOnly: showDuplicateReviewItemsOnly,
       },
       counts: {
         total: reviewItems.length,
@@ -870,6 +1168,7 @@ export function App() {
             setStorageError(null);
             setSessionQuery("");
             setLogInputMode("speaker");
+            setLogWorkspaceMode("editor");
             setActiveTab("log");
           },
         });
@@ -888,6 +1187,7 @@ export function App() {
             setCampaignQuery("");
             setSessionQuery("");
             setLogInputMode("plain");
+            setLogWorkspaceMode("editor");
             setActiveTab("log");
           },
         });
@@ -911,6 +1211,7 @@ export function App() {
           setStorageError(null);
           setSessionQuery("");
           setLogInputMode("plain");
+          setLogWorkspaceMode("editor");
           setActiveTab("log");
         },
       });
@@ -956,6 +1257,7 @@ export function App() {
       ...current,
       activeSessionId: sessionId,
     }));
+    setLogWorkspaceMode("editor");
     setActiveTab("log");
   };
 
@@ -971,6 +1273,7 @@ export function App() {
     });
     setSessionQuery("");
     setLogInputMode("plain");
+    setLogWorkspaceMode("editor");
     setActiveTab("log");
   };
 
@@ -991,6 +1294,7 @@ export function App() {
     });
     setSessionQuery("");
     setLogInputMode("speaker");
+    setLogWorkspaceMode("editor");
     setActiveTab("log");
   };
 
@@ -1026,6 +1330,7 @@ export function App() {
         });
         setSessionQuery("");
         setLogInputMode("plain");
+        setLogWorkspaceMode("editor");
         setActiveTab("log");
       },
     });
@@ -1042,6 +1347,7 @@ export function App() {
           ...createInitialCampaignState(),
           id: current.id,
         }));
+        setLogWorkspaceMode("editor");
         setActiveTab("log");
       },
     });
@@ -1073,6 +1379,9 @@ export function App() {
           ? current
           : { ...current, activeSessionId: targetSessionId },
       );
+      setShowInvalidReviewItemsOnly(false);
+      setShowDuplicateReviewItemsOnly(false);
+      setReviewWorkspaceMode("inspect");
       setActiveTab("review");
     } finally {
       setIsExtracting(false);
@@ -1126,6 +1435,7 @@ export function App() {
       log: currentSession.log.trim() ? `${currentSession.log.trim()}\nGM: ${text}` : `GM: ${text}`,
     });
     setLogInputMode("plain");
+    setLogWorkspaceMode("editor");
     setActiveTab("log");
   };
 
@@ -1154,6 +1464,7 @@ export function App() {
       };
     });
     setLogInputMode("speaker");
+    setLogWorkspaceMode("editor");
     setActiveTab("log");
   };
 
@@ -1676,9 +1987,30 @@ export function App() {
     }));
   };
 
+  const resetUiPreferences = (): void => {
+    setActiveTab(defaultUiPreferences.activeTab);
+    setChronicleClueStatusFilter("all");
+    setChronicleViewMode(defaultUiPreferences.chronicleViewMode);
+    setIsFocusMode(defaultUiPreferences.isFocusMode);
+    setLogInputMode(defaultUiPreferences.logInputMode);
+    setLogWorkspaceMode(defaultUiPreferences.logWorkspaceMode);
+    setNavigationPanelMode(defaultUiPreferences.navigationPanelMode);
+    setPrepWorkspaceMode(defaultUiPreferences.prepWorkspaceMode);
+    setReviewWorkspaceMode(defaultUiPreferences.reviewWorkspaceMode);
+    setRightPanelMode(defaultUiPreferences.rightPanelMode);
+    setSettingsPanelMode(defaultUiPreferences.settingsPanelMode);
+  };
+
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <div className="grid min-h-screen grid-cols-[260px_1fr_320px] max-xl:grid-cols-[220px_1fr] max-lg:grid-cols-1">
+      <div
+        className={
+          isFocusMode
+            ? "grid min-h-screen grid-cols-1"
+            : "grid min-h-screen grid-cols-[260px_1fr_320px] max-xl:grid-cols-[220px_1fr] max-lg:grid-cols-1"
+        }
+      >
+        {!isFocusMode && (
         <aside className="border-r bg-sidebar px-4 py-5 max-lg:border-b max-lg:border-r-0">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -1690,6 +2022,17 @@ export function App() {
             </div>
           </div>
 
+          <div className="mt-5">
+            <Tabs
+              ariaLabel="左ナビゲーション"
+              value={navigationPanelMode}
+              options={navigationPanelOptions}
+              onChange={setNavigationPanelMode}
+            />
+          </div>
+
+          {navigationPanelMode === "campaigns" && (
+          <>
           <div className="mt-6 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -1845,7 +2188,11 @@ export function App() {
               </p>
             )}
           </div>
+          </>
+          )}
 
+          {navigationPanelMode === "sessions" && (
+          <>
           <div className="mt-6 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -1971,16 +2318,20 @@ export function App() {
 
           <nav className="mt-6 space-y-1">
             {[
-              { icon: Search, label: "調査ボード", count: chronicle.clues.length },
-              { icon: UserRound, label: "NPC", count: chronicle.npcs.length },
-              { icon: MapIcon, label: "場所", count: chronicle.locations.length },
-              { icon: Clock3, label: "年表", count: chronicle.events.length },
-              { icon: Sparkles, label: "伏線", count: chronicle.threads.length },
+              { icon: Search, label: "調査ボード", count: chronicle.clues.length, viewMode: "clues" },
+              { icon: UserRound, label: "NPC", count: chronicle.npcs.length, viewMode: "npcs" },
+              { icon: MapIcon, label: "場所", count: chronicle.locations.length, viewMode: "locations" },
+              { icon: Clock3, label: "年表", count: chronicle.events.length, viewMode: "events" },
+              { icon: Sparkles, label: "伏線", count: chronicle.threads.length, viewMode: "threads" },
             ].map((item) => (
               <button
                 className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 key={item.label}
-                onClick={() => setActiveTab("chronicle")}
+                onClick={() => {
+                  setChronicleClueStatusFilter("all");
+                  setChronicleViewMode(item.viewMode as ChronicleViewMode);
+                  setActiveTab("chronicle");
+                }}
                 type="button"
               >
                 <span className="flex items-center gap-2">
@@ -2004,7 +2355,10 @@ export function App() {
               {approvedCount}件承認済み、{remainingCount}件が未処理です。
             </p>
           </div>
+          </>
+          )}
         </aside>
+        )}
 
         <section className="min-w-0 px-6 py-5">
           <header className="flex flex-wrap items-center justify-between gap-3">
@@ -2013,6 +2367,11 @@ export function App() {
               <p className="text-sm text-muted-foreground">
                 セッションログから手がかり、秘密、伏線を抽出して次回準備へつなげます。
               </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge variant="outline">現在: {activeWorkspaceLabel}</Badge>
+                {!isFocusMode && <Badge variant="muted">{sideWorkspaceLabel}</Badge>}
+                {isFocusMode && <Badge variant="muted">集中表示</Badge>}
+              </div>
               <div className="mt-3 flex flex-wrap items-end gap-2">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground" htmlFor={sessionTitleInputId}>
@@ -2045,12 +2404,116 @@ export function App() {
                 </div>
               </div>
             </div>
-            <Tabs ariaLabel="ワークスペース" value={activeTab} options={tabOptions} onChange={setActiveTab} />
+            <div className="flex flex-wrap items-center gap-2">
+              <Tabs ariaLabel="ワークスペース" value={activeTab} options={tabOptions} onChange={setActiveTab} />
+              <Button onClick={() => setIsFocusMode((current) => !current)} size="sm" variant="outline">
+                {isFocusMode ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+                {isFocusMode ? "通常表示" : "集中表示"}
+              </Button>
+              <Button onClick={resetUiPreferences} size="sm" variant="ghost">
+                <RotateCcw className="h-4 w-4" />
+                表示初期化
+              </Button>
+            </div>
           </header>
 
           <div className="mt-5">
+            {activeTab === "home" && (
+              <HomeDashboard
+                approvedCount={approvedCount}
+                canExtractLog={canExtractLog}
+                currentLiveLogSummary={currentLiveLogSummary}
+                currentSession={currentSession}
+                currentSpeakerIssueCount={currentSpeakerIssueCount}
+                duplicateReviewItemCount={duplicateReviewItemCount}
+                extractionProviderReady={extractionProviderReady}
+                hasPrepContent={hasPrepContent}
+                hiddenClueCount={hiddenClueCount}
+                invalidReviewItemCount={invalidReviewItemCount}
+                isExtracting={isExtracting}
+                memoryItemCount={memoryItemCount}
+                remainingCount={remainingCount}
+                reviewItemCount={items.length}
+                sessionCount={campaignState.sessions.length}
+                transcriptionProviderReady={transcriptionProviderReadiness.ok}
+                onExtract={runExtractionPreview}
+                onExportCurrentSessionMarkdown={exportCurrentSessionMarkdown}
+                onOpenExtractionProviderSettings={() => {
+                  setIsFocusMode(false);
+                  setRightPanelMode("settings");
+                  setSettingsPanelMode("extraction");
+                }}
+                onOpenTranscriptionProviderSettings={() => {
+                  setIsFocusMode(false);
+                  setRightPanelMode("settings");
+                  setSettingsPanelMode("transcription");
+                }}
+                onOpenLogEditor={() => {
+                  setLogWorkspaceMode("editor");
+                  setActiveTab("log");
+                }}
+                onOpenPrepHooks={() => {
+                  setPrepWorkspaceMode("hooks");
+                  setActiveTab("prep");
+                }}
+                onOpenReviewInspect={() => {
+                  setReviewWorkspaceMode("inspect");
+                  setActiveTab("review");
+                }}
+                onOpenDuplicateReviewItems={() => {
+                  setShowDuplicateReviewItemsOnly(true);
+                  setShowInvalidReviewItemsOnly(false);
+                  setReviewWorkspaceMode("manage");
+                  setActiveTab("review");
+                }}
+                onOpenInvalidReviewItems={() => {
+                  setShowDuplicateReviewItemsOnly(false);
+                  setShowInvalidReviewItemsOnly(true);
+                  setReviewWorkspaceMode("manage");
+                  setActiveTab("review");
+                }}
+                onOpenSpeakerLogIssues={() => {
+                  setLogInputMode("speaker");
+                  setLogWorkspaceMode("editor");
+                  setActiveTab("log");
+                }}
+                onOpenHiddenClues={() => {
+                  setChronicleClueStatusFilter("hidden");
+                  setChronicleViewMode("clues");
+                  setActiveTab("chronicle");
+                }}
+                onOpenChronicleOverview={() => {
+                  setChronicleClueStatusFilter("all");
+                  setChronicleViewMode("overview");
+                  setActiveTab("chronicle");
+                }}
+                onOpenSessionList={() => {
+                  setIsFocusMode(false);
+                  setNavigationPanelMode("sessions");
+                }}
+              />
+            )}
+
             {activeTab === "log" && (
               <div className="grid gap-4">
+                <Card>
+                  <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
+                    <div>
+                      <p className="text-sm font-medium">ログ作業</p>
+                      <p className="text-xs text-muted-foreground">
+                        セッションログの整備と文字起こし取り込みを分けて扱います。
+                      </p>
+                    </div>
+                    <Tabs
+                      ariaLabel="ログ作業"
+                      value={logWorkspaceMode}
+                      options={logWorkspaceOptions}
+                      onChange={setLogWorkspaceMode}
+                    />
+                  </CardContent>
+                </Card>
+
+                {logWorkspaceMode === "editor" && (
                 <Card>
                   <CardHeader>
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -2115,6 +2578,9 @@ export function App() {
                     )}
                   </CardContent>
                 </Card>
+                )}
+
+                {logWorkspaceMode === "transcription" && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -2344,6 +2810,7 @@ export function App() {
                     </div>
                   </CardContent>
                 </Card>
+                )}
               </div>
             )}
 
@@ -2403,154 +2870,194 @@ export function App() {
                   </Card>
                 )}
                 {items.length === 0 ? (
-                  <EmptyState extractionRun={extractionRun} onStart={() => setActiveTab("log")} />
+                  <EmptyState
+                    extractionRun={extractionRun}
+                    onStart={() => {
+                      setLogWorkspaceMode("editor");
+                      setActiveTab("log");
+                    }}
+                  />
                 ) : (
                   <>
                     <Card>
-                      <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="muted">{approvedCount}採用済み</Badge>
-                          <Badge variant="muted">{remainingCount}未確認</Badge>
-                          {approvableRemainingCount !== remainingCount && (
-                            <Badge variant="outline">{approvableRemainingCount}件採用可能</Badge>
-                          )}
-                          {invalidReviewItemCount > 0 && (
-                            <Badge variant="destructive">未入力 {invalidReviewItemCount}</Badge>
-                          )}
-                          {duplicateReviewItemCount > 0 && (
-                            <Badge variant="destructive">重複 {duplicateReviewItemCount}</Badge>
-                          )}
-                          {hasReviewFilter && (
-                            <Badge variant="outline">{reviewItems.length}件を表示中</Badge>
-                          )}
-                          {hasReviewFilter && approvableVisibleReviewCount > 0 && (
-                            <Badge variant="muted">表示中の採用可能 {approvableVisibleReviewCount}</Badge>
-                          )}
-                          {hasReviewFilter && rejectableVisibleReviewCount > 0 && (
-                            <Badge variant="muted">表示中の破棄可能 {rejectableVisibleReviewCount}</Badge>
-                          )}
-                          {reviewVisibilityFilter !== "all" && (
-                            <Badge variant="secondary">公開範囲: {reviewVisibilityFilter}</Badge>
-                          )}
-                          {normalizedReviewQuery && <Badge variant="secondary">検索: {reviewQuery.trim()}</Badge>}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Input
-                            aria-label="抽出候補を検索"
-                            className="h-9 w-48"
-                            placeholder="候補を検索"
-                            value={reviewQuery}
-                            onChange={(event) => setReviewQuery(event.target.value)}
+                      <CardContent className="grid gap-3 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="muted">{approvedCount}採用済み</Badge>
+                            <Badge variant="muted">{remainingCount}未確認</Badge>
+                            {approvableRemainingCount !== remainingCount && (
+                              <Badge variant="outline">{approvableRemainingCount}件採用可能</Badge>
+                            )}
+                            {invalidReviewItemCount > 0 && (
+                              <Badge variant="destructive">未入力 {invalidReviewItemCount}</Badge>
+                            )}
+                            {duplicateReviewItemCount > 0 && (
+                              <Badge variant="destructive">重複 {duplicateReviewItemCount}</Badge>
+                            )}
+                            {showDuplicateReviewItemsOnly && (
+                              <Badge variant="secondary">重複のみ</Badge>
+                            )}
+                            {hasReviewFilter && (
+                              <Badge variant="outline">{reviewItems.length}件を表示中</Badge>
+                            )}
+                            {hasReviewFilter && approvableVisibleReviewCount > 0 && (
+                              <Badge variant="muted">表示中の採用可能 {approvableVisibleReviewCount}</Badge>
+                            )}
+                            {hasReviewFilter && rejectableVisibleReviewCount > 0 && (
+                              <Badge variant="muted">表示中の破棄可能 {rejectableVisibleReviewCount}</Badge>
+                            )}
+                            {reviewVisibilityFilter !== "all" && (
+                              <Badge variant="secondary">公開範囲: {reviewVisibilityFilter}</Badge>
+                            )}
+                            {normalizedReviewQuery && <Badge variant="secondary">検索: {reviewQuery.trim()}</Badge>}
+                          </div>
+                          <Tabs
+                            ariaLabel="承認作業"
+                            value={reviewWorkspaceMode}
+                            options={reviewWorkspaceOptions}
+                            onChange={setReviewWorkspaceMode}
                           />
-                          <select
-                            className="h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            value={reviewKindFilter}
-                            onChange={(event) => setReviewKindFilter(event.target.value as ReviewKindFilter)}
-                          >
-                            {reviewKindOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label} ({reviewKindCounts[option.value]})
-                              </option>
-                            ))}
-                          </select>
-                          <select
-                            className="h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            value={reviewVisibilityFilter}
-                            onChange={(event) => setReviewVisibilityFilter(event.target.value as ReviewVisibilityFilter)}
-                          >
-                            {reviewVisibilityOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label} ({reviewVisibilityCounts[option.value]})
-                              </option>
-                            ))}
-                          </select>
-                          <Button
-                            onClick={() => setShowApprovedReviewItems((current) => !current)}
-                            size="sm"
-                            variant="outline"
-                          >
-                            {showApprovedReviewItems ? "採用済みを隠す" : "採用済みも表示"}
-                          </Button>
-                          <Button
-                            disabled={invalidReviewItemCount === 0}
-                            onClick={() => setShowInvalidReviewItemsOnly((current) => !current)}
-                            size="sm"
-                            variant={showInvalidReviewItemsOnly ? "default" : "outline"}
-                          >
-                            未入力のみ
-                          </Button>
-                          <Button
-                            disabled={invalidReviewItemCount === 0}
-                            onClick={rejectInvalidReviewItems}
-                            size="sm"
-                            variant="outline"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            未入力を破棄
-                          </Button>
-                          <Button
-                            disabled={duplicateReviewItemCount === 0}
-                            onClick={rejectDuplicateReviewItems}
-                            size="sm"
-                            variant="outline"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            重複を破棄
-                          </Button>
-                          <Button disabled={items.length === 0} onClick={normalizeReviewItemText} size="sm" variant="outline">
-                            <RotateCcw className="h-4 w-4" />
-                            空白整理
-                          </Button>
-                          <Button
-                            disabled={!hasReviewFilter}
-                            onClick={() => {
-                              setReviewKindFilter("all");
-                              setReviewVisibilityFilter("all");
-                              setReviewQuery("");
-                              setShowApprovedReviewItems(true);
-                              setShowInvalidReviewItemsOnly(false);
-                            }}
-                            size="sm"
-                            variant="ghost"
-                          >
-                            <RotateCcw className="h-4 w-4" />
-                            条件解除
-                          </Button>
-                          <Button
-                            disabled={(hasReviewFilter ? approvableVisibleReviewCount : approvableRemainingCount) === 0}
-                            onClick={() =>
-                              approveRemainingItems(
-                                hasReviewFilter ? new Set(reviewItems.map((item) => item.id)) : undefined,
-                              )
-                            }
-                            size="sm"
-                          >
-                            <ShieldCheck className="h-4 w-4" />
-                            {hasReviewFilter ? "表示中をまとめて採用" : "残りをまとめて採用"}
-                          </Button>
-                          <Button
-                            disabled={rejectableVisibleReviewCount === 0}
-                            onClick={rejectVisibleItems}
-                            size="sm"
-                            variant="outline"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            表示中を破棄
-                          </Button>
-                          <Button disabled={reviewItems.length === 0} onClick={exportVisibleReviewItems} size="sm" variant="outline">
-                            <Download className="h-4 w-4" />
-                            表示中を書き出し
-                          </Button>
-                          <Button
-                            disabled={reviewItems.length === 0}
-                            onClick={exportVisibleReviewItemsMarkdown}
-                            size="sm"
-                            variant="outline"
-                          >
-                            <FileText className="h-4 w-4" />
-                            Markdown
-                          </Button>
                         </div>
+
+                        {reviewWorkspaceMode === "inspect" && (
+                          <div className="flex flex-wrap gap-2">
+                            <Input
+                              aria-label="抽出候補を検索"
+                              className="h-9 w-48"
+                              placeholder="候補を検索"
+                              value={reviewQuery}
+                              onChange={(event) => setReviewQuery(event.target.value)}
+                            />
+                            <select
+                              className="h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              value={reviewKindFilter}
+                              onChange={(event) => setReviewKindFilter(event.target.value as ReviewKindFilter)}
+                            >
+                              {reviewKindOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label} ({reviewKindCounts[option.value]})
+                                </option>
+                              ))}
+                            </select>
+                            <select
+                              className="h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              value={reviewVisibilityFilter}
+                              onChange={(event) => setReviewVisibilityFilter(event.target.value as ReviewVisibilityFilter)}
+                            >
+                              {reviewVisibilityOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label} ({reviewVisibilityCounts[option.value]})
+                                </option>
+                              ))}
+                            </select>
+                            <Button
+                              onClick={() => setShowApprovedReviewItems((current) => !current)}
+                              size="sm"
+                              variant="outline"
+                            >
+                              {showApprovedReviewItems ? "採用済みを隠す" : "採用済みも表示"}
+                            </Button>
+                            <Button
+                              disabled={invalidReviewItemCount === 0}
+                              onClick={() => {
+                                setShowDuplicateReviewItemsOnly(false);
+                                setShowInvalidReviewItemsOnly((current) => !current);
+                              }}
+                              size="sm"
+                              variant={showInvalidReviewItemsOnly ? "default" : "outline"}
+                            >
+                              未入力のみ
+                            </Button>
+                            <Button
+                              disabled={duplicateReviewItemCount === 0}
+                              onClick={() => {
+                                setShowInvalidReviewItemsOnly(false);
+                                setShowDuplicateReviewItemsOnly((current) => !current);
+                              }}
+                              size="sm"
+                              variant={showDuplicateReviewItemsOnly ? "default" : "outline"}
+                            >
+                              重複のみ
+                            </Button>
+                            <Button
+                              disabled={!hasReviewFilter}
+                              onClick={() => {
+                                setReviewKindFilter("all");
+                                setReviewVisibilityFilter("all");
+                                setReviewQuery("");
+                                setShowDuplicateReviewItemsOnly(false);
+                                setShowApprovedReviewItems(true);
+                                setShowInvalidReviewItemsOnly(false);
+                              }}
+                              size="sm"
+                              variant="ghost"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                              条件解除
+                            </Button>
+                          </div>
+                        )}
+
+                        {reviewWorkspaceMode === "manage" && (
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              disabled={invalidReviewItemCount === 0}
+                              onClick={rejectInvalidReviewItems}
+                              size="sm"
+                              variant="outline"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              未入力を破棄
+                            </Button>
+                            <Button
+                              disabled={duplicateReviewItemCount === 0}
+                              onClick={rejectDuplicateReviewItems}
+                              size="sm"
+                              variant="outline"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              重複を破棄
+                            </Button>
+                            <Button disabled={items.length === 0} onClick={normalizeReviewItemText} size="sm" variant="outline">
+                              <RotateCcw className="h-4 w-4" />
+                              空白整理
+                            </Button>
+                            <Button
+                              disabled={(hasReviewFilter ? approvableVisibleReviewCount : approvableRemainingCount) === 0}
+                              onClick={() =>
+                                approveRemainingItems(
+                                  hasReviewFilter ? new Set(reviewItems.map((item) => item.id)) : undefined,
+                                )
+                              }
+                              size="sm"
+                            >
+                              <ShieldCheck className="h-4 w-4" />
+                              {hasReviewFilter ? "表示中をまとめて採用" : "残りをまとめて採用"}
+                            </Button>
+                            <Button
+                              disabled={rejectableVisibleReviewCount === 0}
+                              onClick={rejectVisibleItems}
+                              size="sm"
+                              variant="outline"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              表示中を破棄
+                            </Button>
+                            <Button disabled={reviewItems.length === 0} onClick={exportVisibleReviewItems} size="sm" variant="outline">
+                              <Download className="h-4 w-4" />
+                              表示中を書き出し
+                            </Button>
+                            <Button
+                              disabled={reviewItems.length === 0}
+                              onClick={exportVisibleReviewItemsMarkdown}
+                              size="sm"
+                              variant="outline"
+                            >
+                              <FileText className="h-4 w-4" />
+                              Markdown
+                            </Button>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                     {reviewItems.length === 0 ? (
@@ -2589,6 +3096,15 @@ export function App() {
                                 未入力フィルタを解除
                               </Button>
                             )}
+                            {showDuplicateReviewItemsOnly && (
+                              <Button
+                                onClick={() => setShowDuplicateReviewItemsOnly(false)}
+                                size="sm"
+                                variant="outline"
+                              >
+                                重複フィルタを解除
+                              </Button>
+                            )}
                             {normalizedReviewQuery && (
                               <Button onClick={() => setReviewQuery("")} size="sm" variant="outline">
                                 検索を解除
@@ -2621,6 +3137,10 @@ export function App() {
             {activeTab === "chronicle" && (
               <ChronicleView
                 chronicle={chronicle}
+                clueStatusFilter={chronicleClueStatusFilter}
+                viewMode={chronicleViewMode}
+                onClueStatusFilterChange={setChronicleClueStatusFilter}
+                onViewModeChange={setChronicleViewMode}
                 onExportFilteredChronicle={exportFilteredChronicle}
                 onExportFilteredChronicleMarkdown={exportFilteredChronicleMarkdown}
                 onUpdateClueStatus={updateClueStatus}
@@ -2632,48 +3152,91 @@ export function App() {
             {activeTab === "prep" && (
               <div className="grid gap-4">
                 <Card>
-                  <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
-                    <div>
-                      <p className="text-sm font-medium">{currentSession.title} から次回準備</p>
-                      <p className="text-xs text-muted-foreground">
-                        承認済み記憶と現在のセッション状態から自動で組み立てています。
-                      </p>
+                  <CardContent className="grid gap-3 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium">{currentSession.title} から次回準備</p>
+                        <p className="text-xs text-muted-foreground">
+                          承認済み記憶と現在のセッション状態から自動で組み立てています。
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline">{campaignState.sessions.length}セッション</Badge>
+                        <Button onClick={exportPrepNoteMarkdown} size="sm" variant="outline">
+                          <Download className="h-4 w-4" />
+                          Markdown
+                        </Button>
+                        <Button onClick={exportPrepNoteJson} size="sm" variant="outline">
+                          <Download className="h-4 w-4" />
+                          JSON
+                        </Button>
+                        <Button onClick={exportCurrentSessionMarkdown} size="sm" variant="outline">
+                          <FileText className="h-4 w-4" />
+                          セッション
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline">{campaignState.sessions.length}セッション</Badge>
-                      <Button onClick={exportPrepNoteMarkdown} size="sm" variant="outline">
-                        <Download className="h-4 w-4" />
-                        Markdown
-                      </Button>
-                      <Button onClick={exportPrepNoteJson} size="sm" variant="outline">
-                        <Download className="h-4 w-4" />
-                        JSON
-                      </Button>
-                      <Button onClick={exportCurrentSessionMarkdown} size="sm" variant="outline">
-                        <FileText className="h-4 w-4" />
-                        セッション
-                      </Button>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="muted">要約 {dynamicPrepNote.shortRecap.length}</Badge>
+                        <Badge variant="muted">導入 {dynamicPrepNote.hooks.length}</Badge>
+                        <Badge variant="muted">未解決 {dynamicPrepNote.openQuestions.length}</Badge>
+                        <Badge variant="muted">GMメモ {dynamicPrepNote.reminders.length}</Badge>
+                      </div>
+                      <Tabs
+                        ariaLabel="次回準備カテゴリ"
+                        value={prepWorkspaceMode}
+                        options={prepWorkspaceOptions}
+                        onChange={setPrepWorkspaceMode}
+                      />
                     </div>
                   </CardContent>
                 </Card>
-                <PrepSection title="3行あらすじ" items={dynamicPrepNote.shortRecap} icon={FileText} />
-                <PrepSection title="次回導入案" items={dynamicPrepNote.hooks} icon={Compass} />
-                <PrepSection title="未解決の問い" items={dynamicPrepNote.openQuestions} icon={Search} />
-                <PrepSection title="GM確認メモ" items={dynamicPrepNote.reminders} icon={KeyRound} />
+                {prepWorkspaceMode === "recap" && (
+                  <PrepSection title="3行あらすじ" items={dynamicPrepNote.shortRecap} icon={FileText} />
+                )}
+                {prepWorkspaceMode === "hooks" && (
+                  <PrepSection title="次回導入案" items={dynamicPrepNote.hooks} icon={Compass} />
+                )}
+                {prepWorkspaceMode === "questions" && (
+                  <PrepSection title="未解決の問い" items={dynamicPrepNote.openQuestions} icon={Search} />
+                )}
+                {prepWorkspaceMode === "reminders" && (
+                  <PrepSection title="GM確認メモ" items={dynamicPrepNote.reminders} icon={KeyRound} />
+                )}
               </div>
             )}
           </div>
         </section>
 
+        {!isFocusMode && (
         <aside className="border-l bg-panel px-4 py-5 max-xl:col-span-2 max-xl:border-l-0 max-xl:border-t max-lg:col-span-1">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-semibold">
+                {rightPanelMode === "settings" ? <Settings2 className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+                補助パネル
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {rightPanelMode === "rescue" ? "セッション中の即応ツール" : "Providerと将来拡張"}
+              </p>
+            </div>
+            <Tabs
+              ariaLabel="補助パネル"
+              value={rightPanelMode}
+              options={rightPanelOptions}
+              onChange={setRightPanelMode}
+            />
+          </div>
+
+          {rightPanelMode === "rescue" && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold">即興レスキュー</p>
               <p className="text-xs text-muted-foreground">セッション中に使う短い候補</p>
             </div>
-            <Button size="icon" variant="outline">
-              <Plus className="h-4 w-4" />
-            </Button>
+            <Badge variant="muted">{quickPrompts.length}種</Badge>
           </div>
 
           <div className="mt-4 grid gap-2">
@@ -2716,8 +3279,19 @@ export function App() {
               </div>
             </CardContent>
           </Card>
+            </div>
+          )}
 
-          <div className="mt-4">
+          {rightPanelMode === "settings" && (
+            <div className="mt-4 grid gap-4">
+              <Tabs
+                ariaLabel="設定カテゴリ"
+                value={settingsPanelMode}
+                options={settingsPanelOptions}
+                onChange={setSettingsPanelMode}
+              />
+          {settingsPanelMode === "extraction" && (
+          <div>
             <ProviderSettingsCard
               isLocked={isExtracting}
               secrets={providerSecrets}
@@ -2726,8 +3300,10 @@ export function App() {
               onChange={(nextSettings) => updateCampaignState({ extractionProvider: nextSettings })}
             />
           </div>
+          )}
 
-          <Card className="mt-4">
+          {settingsPanelMode === "transcription" && (
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquareText className="h-4 w-4" />
@@ -2899,8 +3475,10 @@ export function App() {
               </div>
             </CardContent>
           </Card>
+          )}
 
-          <Card className="mt-4">
+          {settingsPanelMode === "roadmap" && (
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Swords className="h-4 w-4" />
@@ -2912,7 +3490,11 @@ export function App() {
               <p>AI接続はユーザーAPIキー方式にして、ローカル保存を基本にします。</p>
             </CardContent>
           </Card>
+          )}
+            </div>
+          )}
         </aside>
+        )}
       </div>
       {confirmation && (
         <ConfirmationDialog
@@ -2925,6 +3507,292 @@ export function App() {
         />
       )}
     </main>
+  );
+}
+
+function HomeDashboard({
+  approvedCount,
+  canExtractLog,
+  currentLiveLogSummary,
+  currentSession,
+  currentSpeakerIssueCount,
+  duplicateReviewItemCount,
+  extractionProviderReady,
+  hasPrepContent,
+  hiddenClueCount,
+  invalidReviewItemCount,
+  isExtracting,
+  memoryItemCount,
+  onExtract,
+  onExportCurrentSessionMarkdown,
+  onOpenChronicleOverview,
+  onOpenDuplicateReviewItems,
+  onOpenExtractionProviderSettings,
+  onOpenLogEditor,
+  onOpenPrepHooks,
+  onOpenHiddenClues,
+  onOpenInvalidReviewItems,
+  onOpenReviewInspect,
+  onOpenSessionList,
+  onOpenSpeakerLogIssues,
+  onOpenTranscriptionProviderSettings,
+  remainingCount,
+  reviewItemCount,
+  sessionCount,
+  transcriptionProviderReady,
+}: {
+  approvedCount: number;
+  canExtractLog: boolean;
+  currentLiveLogSummary: ReturnType<typeof summarizeLiveLog>;
+  currentSession: SessionState;
+  currentSpeakerIssueCount: number;
+  duplicateReviewItemCount: number;
+  extractionProviderReady: boolean;
+  hasPrepContent: boolean;
+  hiddenClueCount: number;
+  invalidReviewItemCount: number;
+  isExtracting: boolean;
+  memoryItemCount: number;
+  onExtract: () => void | Promise<void>;
+  onExportCurrentSessionMarkdown: () => void;
+  onOpenChronicleOverview: () => void;
+  onOpenDuplicateReviewItems: () => void;
+  onOpenExtractionProviderSettings: () => void;
+  onOpenHiddenClues: () => void;
+  onOpenInvalidReviewItems: () => void;
+  onOpenLogEditor: () => void;
+  onOpenPrepHooks: () => void;
+  onOpenReviewInspect: () => void;
+  onOpenSessionList: () => void;
+  onOpenSpeakerLogIssues: () => void;
+  onOpenTranscriptionProviderSettings: () => void;
+  remainingCount: number;
+  reviewItemCount: number;
+  sessionCount: number;
+  transcriptionProviderReady: boolean;
+}) {
+  const logReady = canExtractLog;
+  const reviewReady = reviewItemCount > 0;
+  const memoryReady = memoryItemCount > 0;
+  const prepReady = hasPrepContent;
+  const priorityAlerts = [
+    invalidReviewItemCount > 0
+      ? { label: `${invalidReviewItemCount}件の未入力候補`, onOpen: onOpenInvalidReviewItems }
+      : null,
+    duplicateReviewItemCount > 0
+      ? { label: `${duplicateReviewItemCount}件の重複候補`, onOpen: onOpenDuplicateReviewItems }
+      : null,
+    currentSpeakerIssueCount > 0
+      ? { label: `${currentSpeakerIssueCount}件のログ確認`, onOpen: onOpenSpeakerLogIssues }
+      : null,
+    hiddenClueCount > 0
+      ? { label: `${hiddenClueCount}件の未開示手がかり`, onOpen: onOpenHiddenClues }
+      : null,
+    !extractionProviderReady
+      ? { label: "抽出Provider要設定", onOpen: onOpenExtractionProviderSettings }
+      : null,
+    !transcriptionProviderReady
+      ? { label: "文字起こしProvider要設定", onOpen: onOpenTranscriptionProviderSettings }
+      : null,
+  ].filter((alert): alert is { label: string; onOpen: () => void } => alert !== null);
+
+  const workflowSteps = [
+    {
+      actionLabel: logReady ? "抽出へ進む" : "ログを整える",
+      description:
+        currentLiveLogSummary.nonEmptySegmentCount > 0
+          ? `${currentLiveLogSummary.nonEmptySegmentCount}発話を抽出元として使えます。`
+          : "通常ログまたは話者付きログを入力します。",
+      icon: FileText,
+      isDone: reviewReady,
+      isReady: logReady,
+      label: "ログ作成",
+      onOpen: onOpenLogEditor,
+    },
+    {
+      actionLabel: reviewReady ? "候補を確認" : "抽出待ち",
+      description:
+        reviewItemCount > 0
+          ? `${remainingCount}件が未確認、${approvedCount}件が採用済みです。`
+          : "抽出プレビュー後に、GM承認フローへ進みます。",
+      icon: ShieldCheck,
+      isDone: memoryReady,
+      isReady: reviewReady,
+      label: "承認",
+      onOpen: onOpenReviewInspect,
+    },
+    {
+      actionLabel: memoryReady ? "記憶を見る" : "承認待ち",
+      description:
+        memoryItemCount > 0
+          ? `${memoryItemCount}件のキャンペーン記憶を利用できます。`
+          : "採用した候補だけがキャンペーン記憶になります。",
+      icon: BookOpen,
+      isDone: prepReady,
+      isReady: memoryReady,
+      label: "記憶化",
+      onOpen: onOpenChronicleOverview,
+    },
+    {
+      actionLabel: prepReady ? "準備を開く" : "記憶待ち",
+      description: prepReady
+        ? "承認済み記憶から次回準備メモを生成済みです。"
+        : "記憶が増えると導入案と確認メモが厚くなります。",
+      icon: Compass,
+      isDone: false,
+      isReady: prepReady,
+      label: "次回準備",
+      onOpen: onOpenPrepHooks,
+    },
+  ];
+
+  return (
+    <div className="grid gap-4">
+      <Card>
+        <CardContent className="grid gap-4 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">{currentSession.title} の進行状況</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                ログ、承認、記憶、次回準備を1つの導線で確認します。
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button disabled={!canExtractLog || isExtracting} onClick={onExtract}>
+                <Wand2 className="h-4 w-4" />
+                {isExtracting ? "抽出中" : "抽出プレビュー"}
+              </Button>
+              <Button onClick={onExportCurrentSessionMarkdown} variant="outline">
+                <FileText className="h-4 w-4" />
+                セッション出力
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
+            <MetricTile
+              label="セッション"
+              value={`${sessionCount}`}
+              detail={currentSession.date}
+              onOpen={onOpenSessionList}
+            />
+            <MetricTile
+              label="発話ログ"
+              value={`${currentLiveLogSummary.nonEmptySegmentCount}`}
+              detail={
+                currentLiveLogSummary.lowConfidenceCount > 0
+                  ? `要確認 ${currentLiveLogSummary.lowConfidenceCount}`
+                  : "本文あり"
+              }
+              onOpen={onOpenLogEditor}
+              tone={currentSpeakerIssueCount > 0 ? "warning" : "default"}
+            />
+            <MetricTile
+              label="承認候補"
+              value={`${reviewItemCount}`}
+              detail={`${approvedCount}採用 / ${remainingCount}未確認`}
+              onOpen={remainingCount > 0 ? onOpenReviewInspect : onOpenDuplicateReviewItems}
+              tone={remainingCount > 0 ? "warning" : "default"}
+            />
+            <MetricTile
+              label="キャンペーン記憶"
+              value={`${memoryItemCount}`}
+              detail={hiddenClueCount > 0 ? `未開示 ${hiddenClueCount}` : "公開整理済み"}
+              onOpen={hiddenClueCount > 0 ? onOpenHiddenClues : onOpenChronicleOverview}
+            />
+          </div>
+
+          {priorityAlerts.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              <span className="text-sm font-medium text-destructive">要確認</span>
+              {priorityAlerts.map((alert) => (
+                <Button key={alert.label} onClick={alert.onOpen} size="sm" variant="destructive">
+                  {alert.label}
+                </Button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-md:grid-cols-1">
+        {workflowSteps.map((step, index) => (
+          <Card key={step.label}>
+            <CardContent className="grid h-full gap-3 py-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
+                    <step.icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{index + 1}. {step.label}</p>
+                    <Badge variant={step.isDone ? "default" : step.isReady ? "outline" : "muted"}>
+                      {step.isDone ? "完了" : step.isReady ? "着手可" : "待機"}
+                    </Badge>
+                  </div>
+                </div>
+                {step.isDone && <CheckCircle2 className="h-4 w-4 text-primary" />}
+              </div>
+              <p className="text-sm leading-6 text-muted-foreground">{step.description}</p>
+              <Button
+                disabled={!step.isReady && step.label !== "ログ作成"}
+                onClick={step.onOpen}
+                size="sm"
+                variant={step.isReady ? "default" : "outline"}
+              >
+                {step.actionLabel}
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MetricTile({
+  detail,
+  label,
+  onOpen,
+  tone = "default",
+  value,
+}: {
+  detail: string;
+  label: string;
+  onOpen?: () => void;
+  tone?: "default" | "warning";
+  value: string;
+}) {
+  const content = (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        {onOpen && <Badge variant="muted">開く</Badge>}
+      </div>
+      <p className="mt-2 text-2xl font-semibold tracking-normal">{value}</p>
+      <p className={tone === "warning" ? "mt-1 text-xs text-destructive" : "mt-1 text-xs text-muted-foreground"}>
+        {detail}
+      </p>
+    </>
+  );
+
+  if (onOpen) {
+    return (
+      <button
+        className="rounded-md border bg-background p-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={onOpen}
+        type="button"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-md border bg-background p-3">
+      {content}
+    </div>
   );
 }
 

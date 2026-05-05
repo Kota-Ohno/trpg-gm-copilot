@@ -48,7 +48,7 @@ export type PrepNote = {
   reminders: string[];
 };
 
-export type WorkspaceTab = "log" | "review" | "chronicle" | "prep";
+export type WorkspaceTab = "home" | "log" | "review" | "chronicle" | "prep";
 
 export type ExtractionSourceType = "plain" | "speaker" | "fallback";
 

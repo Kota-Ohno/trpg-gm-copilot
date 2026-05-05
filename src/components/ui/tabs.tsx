@@ -23,13 +23,13 @@ export function Tabs<T extends string>({ ariaLabel, value, options, onChange }: 
   };
 
   return (
-    <div aria-label={ariaLabel} className="inline-flex rounded-md bg-muted p-1" role="tablist">
+    <div aria-label={ariaLabel} className="inline-flex max-w-full flex-wrap gap-1 rounded-md bg-muted p-1" role="tablist">
       {options.map((option, index) => (
         <button
           key={option.value}
           aria-selected={option.value === value}
           className={cn(
-            "rounded-sm px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors",
+            "min-h-8 rounded-sm px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors",
             option.value === value && "bg-background text-foreground shadow-sm",
           )}
           onKeyDown={(event) => {

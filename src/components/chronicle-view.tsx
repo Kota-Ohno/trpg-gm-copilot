@@ -4,6 +4,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
+import { Tabs } from "./ui/tabs";
 import type { Chronicle, ClueStatus } from "../types";
 import { countChronicleItems } from "../lib/campaign";
 
@@ -13,12 +14,21 @@ const statusLabels = {
   hidden: "GM秘密",
 };
 
-type ClueStatusFilter = "all" | ClueStatus;
+export type ClueStatusFilter = "all" | ClueStatus;
+export type ChronicleViewMode = "overview" | "events" | "clues" | "npcs" | "locations" | "threads";
 const clueStatusOptions: Array<{ value: ClueStatusFilter; label: string }> = [
   { value: "all", label: "全手がかり" },
   { value: "known", label: "PL既知" },
   { value: "partial", label: "一部既知" },
   { value: "hidden", label: "GM秘密" },
+];
+const chronicleViewOptions: Array<{ value: ChronicleViewMode; label: string }> = [
+  { value: "overview", label: "概要" },
+  { value: "clues", label: "手がかり" },
+  { value: "npcs", label: "NPC" },
+  { value: "locations", label: "場所" },
+  { value: "events", label: "出来事" },
+  { value: "threads", label: "伏線" },
 ];
 
 function EmptyCategory({ label }: { label: string }) {
@@ -42,6 +52,10 @@ function SectionTitle({ count, label, total }: { count: number; label: string; t
 
 type ChronicleViewProps = {
   chronicle: Chronicle;
+  clueStatusFilter: ClueStatusFilter;
+  viewMode: ChronicleViewMode;
+  onClueStatusFilterChange: (filter: ClueStatusFilter) => void;
+  onViewModeChange: (viewMode: ChronicleViewMode) => void;
   onUpdateClueStatus?: (clueIndex: number, status: ClueStatus) => void;
   onUpdateNpcAttitude?: (npcIndex: number, attitude: string) => void;
   onUpdateThreadNextMove?: (threadIndex: number, nextMove: string) => void;
@@ -51,6 +65,10 @@ type ChronicleViewProps = {
 
 export function ChronicleView({
   chronicle,
+  clueStatusFilter,
+  viewMode,
+  onClueStatusFilterChange,
+  onViewModeChange,
   onUpdateClueStatus,
   onUpdateNpcAttitude,
   onUpdateThreadNextMove,
@@ -58,7 +76,6 @@ export function ChronicleView({
   onExportFilteredChronicleMarkdown,
 }: ChronicleViewProps) {
   const [query, setQuery] = useState("");
-  const [clueStatusFilter, setClueStatusFilter] = useState<ClueStatusFilter>("all");
   const normalizedQuery = query.trim().toLowerCase();
   const hasFilter = normalizedQuery.length > 0 || clueStatusFilter !== "all";
   const filteredChronicle = useMemo(() => {
@@ -156,10 +173,16 @@ export function ChronicleView({
             <Badge variant="outline">伏線 {chronicle.threads.length}</Badge>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Tabs
+              ariaLabel="記憶カテゴリ"
+              value={viewMode}
+              options={chronicleViewOptions}
+              onChange={onViewModeChange}
+            />
             <select
               className="h-10 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={clueStatusFilter}
-              onChange={(event) => setClueStatusFilter(event.target.value as ClueStatusFilter)}
+              onChange={(event) => onClueStatusFilterChange(event.target.value as ClueStatusFilter)}
             >
               {clueStatusOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -171,7 +194,7 @@ export function ChronicleView({
               disabled={!hasFilter}
               onClick={() => {
                 setQuery("");
-                setClueStatusFilter("all");
+                onClueStatusFilterChange("all");
               }}
               variant="outline"
             >
@@ -202,6 +225,7 @@ export function ChronicleView({
         </CardContent>
       </Card>
 
+      {viewMode === "overview" && (
       <Card>
         <CardHeader>
           <SectionTitle count={nextRevealCandidates.length} label="次に出す候補" total={nextRevealCandidates.length} />
@@ -216,7 +240,8 @@ export function ChronicleView({
                   <Button
                     onClick={() => {
                       setQuery(candidate.title);
-                      setClueStatusFilter("all");
+                      onClueStatusFilterChange("all");
+                      onViewModeChange(candidate.kind === "clue" ? "clues" : "threads");
                     }}
                     size="sm"
                     variant="ghost"
@@ -241,7 +266,9 @@ export function ChronicleView({
           )}
         </CardContent>
       </Card>
+      )}
 
+      {viewMode === "events" && (
       <Card>
         <CardHeader>
           <SectionTitle count={filteredChronicle.events.length} label="出来事" total={chronicle.events.length} />
@@ -258,7 +285,9 @@ export function ChronicleView({
           )}
         </CardContent>
       </Card>
+      )}
 
+      {viewMode === "clues" && (
       <Card>
         <CardHeader>
           <SectionTitle count={filteredChronicle.clues.length} label="手がかり" total={chronicle.clues.length} />
@@ -297,8 +326,11 @@ export function ChronicleView({
           )}
         </CardContent>
       </Card>
+      )}
 
+      {(viewMode === "npcs" || viewMode === "locations" || viewMode === "threads") && (
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+        {viewMode === "npcs" && (
         <Card>
           <CardHeader>
             <SectionTitle count={filteredChronicle.npcs.length} label="NPC" total={chronicle.npcs.length} />
@@ -337,7 +369,9 @@ export function ChronicleView({
             )}
           </CardContent>
         </Card>
+        )}
 
+        {viewMode === "locations" && (
         <Card>
           <CardHeader>
             <SectionTitle count={filteredChronicle.locations.length} label="場所" total={chronicle.locations.length} />
@@ -355,7 +389,9 @@ export function ChronicleView({
             )}
           </CardContent>
         </Card>
+        )}
 
+        {viewMode === "threads" && (
         <Card>
           <CardHeader>
             <SectionTitle count={filteredChronicle.threads.length} label="伏線" total={chronicle.threads.length} />
@@ -384,7 +420,9 @@ export function ChronicleView({
             )}
           </CardContent>
         </Card>
+        )}
       </div>
+      )}
     </div>
   );
 }
