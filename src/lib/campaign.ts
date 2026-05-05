@@ -509,23 +509,38 @@ export function normalizeCampaignLibraryState(rawState: unknown): CampaignLibrar
 
 export type ImportPreview =
   | {
+      approvedCount: number;
+      candidateCount: number;
+      campaignMode: CampaignMode;
       kind: "campaign";
       message: string;
       sessionCount: number;
+      storageBytes: number;
       title: string;
     }
   | {
       campaignCount: number;
+      candidateCount: number;
       kind: "library";
       message: string;
+      modeCounts: Record<CampaignMode, number>;
+      storageBytes: number;
       sessionCount: number;
       title: string;
     }
   | {
+      approvedCount: number;
+      candidateCount: number;
+      campaignMode: CampaignMode;
       kind: "session";
       message: string;
+      storageBytes: number;
       title: string;
     };
+
+function estimateJsonBytes(value: unknown): number {
+  return new TextEncoder().encode(JSON.stringify(value)).length;
+}
 
 export function readSessionImportPayload(parsedState: unknown): unknown | null {
   if (!isRecord(parsedState)) {
@@ -551,30 +566,55 @@ export function previewCampaignImport(parsedState: unknown): ImportPreview {
   const sessionPayload = readSessionImportPayload(parsedState);
   if (sessionPayload) {
     const importedCampaign = normalizeCampaignState({ sessions: [sessionPayload] });
+    const importedSession = importedCampaign.sessions[0];
     return {
+      approvedCount: importedSession.approvedIds.length,
+      candidateCount: importedSession.extractionItems.length,
+      campaignMode: importedCampaign.campaignMode,
       kind: "session",
-      message: `${importedCampaign.sessions[0].title}を現在のキャンペーンに追加します。`,
-      title: importedCampaign.sessions[0].title,
+      message: `${importedSession.title}を現在のキャンペーンに追加します。候補 ${importedSession.extractionItems.length} / 採用 ${importedSession.approvedIds.length}。`,
+      storageBytes: estimateJsonBytes(importedSession),
+      title: importedSession.title,
     };
   }
 
   if (isRecord(parsedState) && Array.isArray(parsedState.campaigns)) {
     const importedLibrary = normalizeCampaignLibraryState(parsedState);
     const sessionCount = importedLibrary.campaigns.reduce((total, campaign) => total + campaign.sessions.length, 0);
+    const candidateCount = importedLibrary.campaigns.reduce(
+      (total, campaign) =>
+        total + campaign.sessions.reduce((sessionTotal, session) => sessionTotal + session.extractionItems.length, 0),
+      0,
+    );
+    const modeCounts = importedLibrary.campaigns.reduce<Record<CampaignMode, number>>(
+      (counts, campaign) => ({
+        ...counts,
+        [campaign.campaignMode]: counts[campaign.campaignMode] + 1,
+      }),
+      { investigation: 0, fantasy: 0 },
+    );
     return {
       campaignCount: importedLibrary.campaigns.length,
+      candidateCount,
       kind: "library",
-      message: `${importedLibrary.campaigns.length}キャンペーン / ${sessionCount}セッションで全体を置き換えます。`,
+      message: `${importedLibrary.campaigns.length}キャンペーン / ${sessionCount}セッション / ${candidateCount}候補で全体を置き換えます。`,
+      modeCounts,
+      storageBytes: estimateJsonBytes(importedLibrary),
       sessionCount,
       title: "キャンペーンライブラリ",
     };
   }
 
   const importedCampaign = normalizeCampaignState(parsedState);
+  const stats = getCampaignSummaryStats(importedCampaign);
   return {
+    approvedCount: stats.approvedCount,
+    candidateCount: stats.candidateCount,
+    campaignMode: importedCampaign.campaignMode,
     kind: "campaign",
-    message: `${importedCampaign.campaignName} (${importedCampaign.sessions.length}セッション) で現在のキャンペーンを置き換えます。`,
+    message: `${importedCampaign.campaignName} (${stats.sessionCount}セッション / ${stats.candidateCount}候補 / ${stats.approvedCount}採用) で現在のキャンペーンを置き換えます。`,
     sessionCount: importedCampaign.sessions.length,
+    storageBytes: estimateJsonBytes(importedCampaign),
     title: importedCampaign.campaignName,
   };
 }

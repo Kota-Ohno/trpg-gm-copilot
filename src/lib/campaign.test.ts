@@ -265,15 +265,23 @@ describe("previewCampaignImport", () => {
     });
 
     expect(previewCampaignImport({ session: { title: "第2夜", log: "GM: 開始" } })).toEqual({
+      approvedCount: 0,
+      candidateCount: 0,
+      campaignMode: "investigation",
       kind: "session",
-      message: "第2夜を現在のキャンペーンに追加します。",
+      message: "第2夜を現在のキャンペーンに追加します。候補 0 / 採用 0。",
+      storageBytes: expect.any(Number),
       title: "第2夜",
     });
 
     expect(previewCampaignImport({ campaignName: "灰ヶ浦", sessions: [{ title: "第1夜" }] })).toMatchObject({
+      approvedCount: 0,
+      candidateCount: 0,
+      campaignMode: "investigation",
       kind: "campaign",
-      message: "灰ヶ浦 (1セッション) で現在のキャンペーンを置き換えます。",
+      message: "灰ヶ浦 (1セッション / 0候補 / 0採用) で現在のキャンペーンを置き換えます。",
       sessionCount: 1,
+      storageBytes: expect.any(Number),
       title: "灰ヶ浦",
     });
 
@@ -284,9 +292,12 @@ describe("previewCampaignImport", () => {
       ],
     })).toMatchObject({
       campaignCount: 2,
+      candidateCount: 0,
       kind: "library",
-      message: "2キャンペーン / 3セッションで全体を置き換えます。",
+      message: "2キャンペーン / 3セッション / 0候補で全体を置き換えます。",
+      modeCounts: { investigation: 2, fantasy: 0 },
       sessionCount: 3,
+      storageBytes: expect.any(Number),
     });
   });
 });
