@@ -154,6 +154,8 @@ type UiPreferences = {
   prepWorkspaceMode: PrepWorkspaceMode;
   reviewWorkspaceMode: ReviewWorkspaceMode;
   rightPanelMode: RightPanelMode;
+  sessionArchiveFilter: SessionArchiveFilter;
+  sessionTranscriptionFilter: SessionTranscriptionFilter;
   settingsPanelMode: SettingsPanelMode;
 };
 type StorageHealth = {
@@ -319,6 +321,8 @@ const defaultUiPreferences: UiPreferences = {
   prepWorkspaceMode: "recap",
   reviewWorkspaceMode: "inspect",
   rightPanelMode: "rescue",
+  sessionArchiveFilter: "active",
+  sessionTranscriptionFilter: "all",
   settingsPanelMode: "extraction",
 };
 
@@ -406,6 +410,20 @@ function loadUiPreferences(): UiPreferences {
         parsedPreferences.rightPanelMode,
         rightPanelOptions,
         defaultUiPreferences.rightPanelMode,
+      ),
+      sessionArchiveFilter: readOptionValue(
+        parsedPreferences.sessionArchiveFilter,
+        sessionArchiveOptions,
+        defaultUiPreferences.sessionArchiveFilter,
+      ),
+      sessionTranscriptionFilter: readOptionValue(
+        parsedPreferences.sessionTranscriptionFilter,
+        [
+          { value: "all" },
+          { value: "transcribed" },
+          { value: "untranscribed" },
+        ],
+        defaultUiPreferences.sessionTranscriptionFilter,
       ),
       settingsPanelMode: readOptionValue(
         parsedPreferences.settingsPanelMode,
@@ -595,8 +613,12 @@ export function App() {
   const [showInvalidReviewItemsOnly, setShowInvalidReviewItemsOnly] = useState(false);
   const [campaignQuery, setCampaignQuery] = useState("");
   const [sessionQuery, setSessionQuery] = useState("");
-  const [sessionArchiveFilter, setSessionArchiveFilter] = useState<SessionArchiveFilter>("active");
-  const [sessionTranscriptionFilter, setSessionTranscriptionFilter] = useState<SessionTranscriptionFilter>("all");
+  const [sessionArchiveFilter, setSessionArchiveFilter] = useState<SessionArchiveFilter>(
+    initialUiPreferences.sessionArchiveFilter,
+  );
+  const [sessionTranscriptionFilter, setSessionTranscriptionFilter] = useState<SessionTranscriptionFilter>(
+    initialUiPreferences.sessionTranscriptionFilter,
+  );
   const [transcriptionAudioFile, setTranscriptionAudioFile] = useState<File | null>(null);
   const [transcriptionDraftJson, setTranscriptionDraftJson] = useState("");
   const [transcriptionImportError, setTranscriptionImportError] = useState<string | null>(null);
@@ -900,6 +922,8 @@ export function App() {
           prepWorkspaceMode,
           reviewWorkspaceMode,
           rightPanelMode,
+          sessionArchiveFilter,
+          sessionTranscriptionFilter,
           settingsPanelMode,
         } satisfies UiPreferences),
       );
@@ -917,6 +941,8 @@ export function App() {
     prepWorkspaceMode,
     reviewWorkspaceMode,
     rightPanelMode,
+    sessionArchiveFilter,
+    sessionTranscriptionFilter,
     settingsPanelMode,
   ]);
 
