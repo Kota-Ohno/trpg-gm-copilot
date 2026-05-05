@@ -39,6 +39,7 @@ import { Input } from "./components/ui/input";
 import { Tabs } from "./components/ui/tabs";
 import { Textarea } from "./components/ui/textarea";
 import { sampleLiveLog } from "./data/sample";
+import { buildSupportDiagnostics } from "./lib/diagnostics";
 import {
   applyExtraction,
   cloneJson,
@@ -1055,54 +1056,37 @@ export function App() {
   };
 
   const exportSupportDiagnostics = (): void => {
-    const campaignStats = campaignLibrary.campaigns.map((campaign) => ({
-      campaignId: campaign.id,
-      campaignName: campaign.campaignName,
-      ...getCampaignSummaryStats(campaign),
-    }));
-
-    downloadJsonFile({
-      exportedAt: new Date().toISOString(),
-      app: "chronicle-gm",
-      activeCampaignId: campaignState.id,
-      activeSessionId: currentSession.id,
-      campaignCount: campaignLibrary.campaigns.length,
-      campaignStats,
-      currentSession: {
+    downloadJsonFile(buildSupportDiagnostics({
+      activeTab,
+      campaignLibrary,
+      campaignState,
+      chronicleClueStatusFilter,
+      chronicleViewMode,
+      currentSession,
+      currentSessionMetrics: {
         approvedCount,
         duplicateReviewItemCount,
         invalidReviewItemCount,
         reviewItemCount: items.length,
         speakerIssueCount: currentSpeakerIssueCount,
       },
-      providers: {
-        extraction: {
-          providerId: extractionProvider.providerId,
-          ready: extractionProviderReady,
-        },
-        transcription: {
-          providerId: transcriptionProvider.providerId,
-          readiness: transcriptionProviderReadiness,
-        },
-      },
+      extractionProvider,
+      extractionProviderReady,
+      isFocusMode,
+      logInputMode,
+      logWorkspaceMode,
+      navigationPanelMode,
+      prepWorkspaceMode,
+      reviewWorkspaceMode,
+      rightPanelMode,
+      settingsPanelMode,
       storage: {
         ...storageHealth,
         usagePercent: storageUsagePercent,
       },
-      ui: {
-        activeTab,
-        chronicleClueStatusFilter,
-        chronicleViewMode,
-        isFocusMode,
-        logInputMode,
-        logWorkspaceMode,
-        navigationPanelMode,
-        prepWorkspaceMode,
-        reviewWorkspaceMode,
-        rightPanelMode,
-        settingsPanelMode,
-      },
-    }, createExportFileName("support-diagnostics"));
+      transcriptionProviderId: transcriptionProvider.providerId,
+      transcriptionProviderReadiness,
+    }), createExportFileName("support-diagnostics"));
   };
 
   const exportTranscriptionDraftJson = (): void => {
