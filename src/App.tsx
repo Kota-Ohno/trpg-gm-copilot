@@ -147,6 +147,7 @@ type ReviewWorkspaceMode = "inspect" | "manage";
 type RightPanelMode = "rescue" | "settings";
 type SettingsPanelMode = "extraction" | "transcription" | "roadmap";
 type SessionArchiveFilter = "active" | "all" | "archived";
+type SessionSortMode = "date-desc" | "size-desc" | "review-debt" | "title";
 type SessionTranscriptionFilter = "all" | "transcribed" | "untranscribed";
 type ReviewKindFilter = "all" | ExtractionItem["kind"];
 type ReviewVisibilityFilter = "all" | ExtractionItem["visibility"];
@@ -174,6 +175,7 @@ type UiPreferences = {
   reviewWorkspaceMode: ReviewWorkspaceMode;
   rightPanelMode: RightPanelMode;
   sessionArchiveFilter: SessionArchiveFilter;
+  sessionSortMode: SessionSortMode;
   sessionTranscriptionFilter: SessionTranscriptionFilter;
   settingsPanelMode: SettingsPanelMode;
 };
@@ -310,6 +312,13 @@ const sessionArchiveOptions: Array<{ value: SessionArchiveFilter; label: string 
   { value: "archived", label: "アーカイブ" },
 ];
 
+const sessionSortOptions: Array<{ value: SessionSortMode; label: string }> = [
+  { value: "date-desc", label: "新しい順" },
+  { value: "size-desc", label: "サイズ順" },
+  { value: "review-debt", label: "要確認順" },
+  { value: "title", label: "タイトル順" },
+];
+
 const prepWorkspaceOptions: Array<{ value: PrepWorkspaceMode; label: string }> = [
   { value: "recap", label: "要約" },
   { value: "hooks", label: "導入" },
@@ -396,6 +405,7 @@ const defaultUiPreferences: UiPreferences = {
   reviewWorkspaceMode: "inspect",
   rightPanelMode: "rescue",
   sessionArchiveFilter: "active",
+  sessionSortMode: "date-desc",
   sessionTranscriptionFilter: "all",
   settingsPanelMode: "extraction",
 };
@@ -494,6 +504,11 @@ function loadUiPreferences(): UiPreferences {
         parsedPreferences.sessionArchiveFilter,
         sessionArchiveOptions,
         defaultUiPreferences.sessionArchiveFilter,
+      ),
+      sessionSortMode: readOptionValue(
+        parsedPreferences.sessionSortMode,
+        sessionSortOptions,
+        defaultUiPreferences.sessionSortMode,
       ),
       sessionTranscriptionFilter: readOptionValue(
         parsedPreferences.sessionTranscriptionFilter,
@@ -697,6 +712,7 @@ export function App() {
   const [sessionArchiveFilter, setSessionArchiveFilter] = useState<SessionArchiveFilter>(
     initialUiPreferences.sessionArchiveFilter,
   );
+  const [sessionSortMode, setSessionSortMode] = useState<SessionSortMode>(initialUiPreferences.sessionSortMode);
   const [sessionTranscriptionFilter, setSessionTranscriptionFilter] = useState<SessionTranscriptionFilter>(
     initialUiPreferences.sessionTranscriptionFilter,
   );
@@ -854,7 +870,7 @@ export function App() {
       )
     : campaignLibrary.campaigns;
   const normalizedSessionQuery = sessionQuery.trim().toLowerCase();
-  const visibleSessions = campaignState.sessions.filter((session) => {
+  const filteredSessions = campaignState.sessions.filter((session) => {
     if (sessionArchiveFilter === "active" && session.archivedAt) {
       return false;
     }
@@ -917,6 +933,33 @@ export function App() {
       diagnostic.pendingDuplicateCount,
     0,
   );
+  const sessionReviewDebtById = new Map(
+    reviewQualityDiagnostics.map((diagnostic) => [
+      diagnostic.sessionId,
+      diagnostic.approvedInvalidCount +
+        diagnostic.approvedDuplicateCount +
+        diagnostic.pendingInvalidCount +
+        diagnostic.pendingDuplicateCount,
+    ]),
+  );
+  const visibleSessions = [...filteredSessions].sort((left, right) => {
+    if (sessionSortMode === "size-desc") {
+      return (
+        (sessionStorageDiagnosticById.get(right.id)?.totalBytes ?? 0) -
+        (sessionStorageDiagnosticById.get(left.id)?.totalBytes ?? 0)
+      );
+    }
+
+    if (sessionSortMode === "review-debt") {
+      return (sessionReviewDebtById.get(right.id) ?? 0) - (sessionReviewDebtById.get(left.id) ?? 0);
+    }
+
+    if (sessionSortMode === "title") {
+      return left.title.localeCompare(right.title, "ja");
+    }
+
+    return right.date.localeCompare(left.date);
+  });
   const memoryItemCount = countChronicleItems(chronicle);
   const hiddenClueCount = chronicle.clues.filter((clue) => clue.status !== "known").length;
   const hasPrepContent = dynamicPrepNote.shortRecap.length > 0 || dynamicPrepNote.hooks.length > 0;
@@ -1049,6 +1092,7 @@ export function App() {
           reviewWorkspaceMode,
           rightPanelMode,
           sessionArchiveFilter,
+          sessionSortMode,
           sessionTranscriptionFilter,
           settingsPanelMode,
         } satisfies UiPreferences),
@@ -1069,6 +1113,7 @@ export function App() {
     reviewWorkspaceMode,
     rightPanelMode,
     sessionArchiveFilter,
+    sessionSortMode,
     sessionTranscriptionFilter,
     settingsPanelMode,
   ]);
@@ -2320,6 +2365,7 @@ export function App() {
     setReviewSortMode(defaultUiPreferences.reviewSortMode);
     setReviewWorkspaceMode(defaultUiPreferences.reviewWorkspaceMode);
     setRightPanelMode(defaultUiPreferences.rightPanelMode);
+    setSessionSortMode(defaultUiPreferences.sessionSortMode);
     setSettingsPanelMode(defaultUiPreferences.settingsPanelMode);
   };
 
@@ -2591,6 +2637,19 @@ export function App() {
                   {option.label}
                 </Button>
               ))}
+              <select
+                aria-label="セッションの並び順"
+                className="h-8 rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                disabled={isExtracting}
+                value={sessionSortMode}
+                onChange={(event) => setSessionSortMode(event.target.value as SessionSortMode)}
+              >
+                {sessionSortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    並び: {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="space-y-1">
               {visibleSessions.map((session) => (
