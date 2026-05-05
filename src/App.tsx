@@ -153,6 +153,7 @@ type ReviewWorkspaceMode = "inspect" | "manage";
 type RightPanelMode = "rescue" | "settings";
 type SettingsPanelMode = "extraction" | "transcription" | "roadmap";
 type SessionArchiveFilter = "active" | "all" | "archived";
+type SessionListDensity = "compact" | "detailed";
 type SessionTranscriptionFilter = "all" | "transcribed" | "untranscribed";
 type ReviewKindFilter = "all" | ExtractionItem["kind"];
 type ReviewVisibilityFilter = "all" | ExtractionItem["visibility"];
@@ -180,6 +181,7 @@ type UiPreferences = {
   reviewWorkspaceMode: ReviewWorkspaceMode;
   rightPanelMode: RightPanelMode;
   sessionArchiveFilter: SessionArchiveFilter;
+  sessionListDensity: SessionListDensity;
   sessionSortMode: SessionSortMode;
   sessionTranscriptionFilter: SessionTranscriptionFilter;
   settingsPanelMode: SettingsPanelMode;
@@ -342,6 +344,11 @@ const sessionSortOptions: Array<{ value: SessionSortMode; label: string }> = [
   { value: "title", label: "タイトル順" },
 ];
 
+const sessionListDensityOptions: Array<{ value: SessionListDensity; label: string }> = [
+  { value: "compact", label: "簡潔" },
+  { value: "detailed", label: "詳細" },
+];
+
 const prepWorkspaceOptions: Array<{ value: PrepWorkspaceMode; label: string }> = [
   { value: "recap", label: "要約" },
   { value: "hooks", label: "導入" },
@@ -428,6 +435,7 @@ const defaultUiPreferences: UiPreferences = {
   reviewWorkspaceMode: "inspect",
   rightPanelMode: "rescue",
   sessionArchiveFilter: "active",
+  sessionListDensity: "compact",
   sessionSortMode: "date-desc",
   sessionTranscriptionFilter: "all",
   settingsPanelMode: "extraction",
@@ -532,6 +540,11 @@ function loadUiPreferences(): UiPreferences {
         parsedPreferences.sessionSortMode,
         sessionSortOptions,
         defaultUiPreferences.sessionSortMode,
+      ),
+      sessionListDensity: readOptionValue(
+        parsedPreferences.sessionListDensity,
+        sessionListDensityOptions,
+        defaultUiPreferences.sessionListDensity,
       ),
       sessionTranscriptionFilter: readOptionValue(
         parsedPreferences.sessionTranscriptionFilter,
@@ -734,6 +747,9 @@ export function App() {
   const [sessionQuery, setSessionQuery] = useState("");
   const [sessionArchiveFilter, setSessionArchiveFilter] = useState<SessionArchiveFilter>(
     initialUiPreferences.sessionArchiveFilter,
+  );
+  const [sessionListDensity, setSessionListDensity] = useState<SessionListDensity>(
+    initialUiPreferences.sessionListDensity,
   );
   const [sessionSortMode, setSessionSortMode] = useState<SessionSortMode>(initialUiPreferences.sessionSortMode);
   const [sessionTranscriptionFilter, setSessionTranscriptionFilter] = useState<SessionTranscriptionFilter>(
@@ -1111,6 +1127,7 @@ export function App() {
           reviewWorkspaceMode,
           rightPanelMode,
           sessionArchiveFilter,
+          sessionListDensity,
           sessionSortMode,
           sessionTranscriptionFilter,
           settingsPanelMode,
@@ -1132,6 +1149,7 @@ export function App() {
     reviewWorkspaceMode,
     rightPanelMode,
     sessionArchiveFilter,
+    sessionListDensity,
     sessionSortMode,
     sessionTranscriptionFilter,
     settingsPanelMode,
@@ -2399,6 +2417,7 @@ export function App() {
     setReviewWorkspaceMode(defaultUiPreferences.reviewWorkspaceMode);
     setRightPanelMode(defaultUiPreferences.rightPanelMode);
     setSessionArchiveFilter(defaultUiPreferences.sessionArchiveFilter);
+    setSessionListDensity(defaultUiPreferences.sessionListDensity);
     setSessionSortMode(defaultUiPreferences.sessionSortMode);
     setSessionTranscriptionFilter(defaultUiPreferences.sessionTranscriptionFilter);
     setSettingsPanelMode(defaultUiPreferences.settingsPanelMode);
@@ -2694,6 +2713,19 @@ export function App() {
                   </option>
                 ))}
               </select>
+              <select
+                aria-label="セッション一覧の表示密度"
+                className="h-8 rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                disabled={isExtracting}
+                value={sessionListDensity}
+                onChange={(event) => setSessionListDensity(event.target.value as SessionListDensity)}
+              >
+                {sessionListDensityOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    表示: {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="space-y-1">
               {visibleSessions.map((session) => (
@@ -2740,7 +2772,7 @@ export function App() {
                           {sizeDiagnostic ? ` / ${formatFileSize(sizeDiagnostic.totalBytes)}` : ""}
                           {session.archivedAt ? " / アーカイブ" : ""}
                         </span>
-                        {sizeDiagnostic && (
+                        {sessionListDensity === "detailed" && sizeDiagnostic && (
                           <span
                             className={
                               session.id === campaignState.activeSessionId
@@ -2754,7 +2786,7 @@ export function App() {
                             {formatFileSize(sizeDiagnostic.transcriptionBytes)}
                           </span>
                         )}
-                        {reviewQualityDiagnostic && (
+                        {sessionListDensity === "detailed" && reviewQualityDiagnostic && (
                           <span
                             className={
                               session.id === campaignState.activeSessionId
