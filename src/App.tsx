@@ -2047,6 +2047,13 @@ export function App() {
   };
 
   const importTranscriptionDraftFile = async (file: File): Promise<void> => {
+    if (file.size > maxJsonImportFileSizeBytes) {
+      setTranscriptionImportError(
+        `JSONファイルが大きすぎます (${formatFileSize(file.size)})。${formatFileSize(maxJsonImportFileSizeBytes)} 以下に分割して読み込んでください。`,
+      );
+      return;
+    }
+
     try {
       const fileText = await file.text();
       JSON.parse(fileText);
