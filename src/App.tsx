@@ -1316,6 +1316,7 @@ export function App() {
     downloadJsonFile({
       exportedAt: new Date().toISOString(),
       campaignName,
+      campaignMode,
       sessionId: currentSession.id,
       sessionTitle: currentSession.title,
       segmentCount: drafts.length,
@@ -1349,6 +1350,7 @@ export function App() {
     downloadJsonFile({
       exportedAt: new Date().toISOString(),
       campaignName,
+      campaignMode,
       sessionId: currentSession.id,
       sessionTitle: currentSession.title,
       issueCount: issues.length,
@@ -1363,6 +1365,7 @@ export function App() {
     downloadJsonFile({
       exportedAt: new Date().toISOString(),
       campaignName,
+      campaignMode,
       sessionTitle: currentSession.title,
       filters,
       ...buildSpeakerSegmentExport(currentSession.liveLog, segments),
@@ -1373,6 +1376,7 @@ export function App() {
     downloadJsonFile({
       exportedAt: new Date().toISOString(),
       campaignName,
+      campaignMode,
       sessionTitle: currentSession.title,
       filters: {
         kind: reviewKindFilter,
@@ -1410,6 +1414,7 @@ export function App() {
     downloadJsonFile({
       exportedAt: new Date().toISOString(),
       campaignName,
+      campaignMode,
       itemCount: countChronicleItems(filteredChronicle),
       chronicle: filteredChronicle,
     }, createExportFileName(`${campaignName}-filtered-memory`));
@@ -1438,6 +1443,7 @@ export function App() {
       exportedAt: new Date().toISOString(),
       campaignId: campaignState.id,
       campaignName,
+      campaignMode,
       sessionId: currentSession.id,
       sessionTitle: currentSession.title,
       prepNote: dynamicPrepNote,
@@ -1452,6 +1458,7 @@ export function App() {
     downloadJsonFile({
       exportedAt: new Date().toISOString(),
       campaignName,
+      campaignMode,
       session,
     }, createExportFileName(`${session.title}-session`));
   };
