@@ -2540,6 +2540,7 @@ export function App() {
                 remainingCount={remainingCount}
                 reviewItemCount={items.length}
                 sessionCount={campaignState.sessions.length}
+                storageUsagePercent={storageUsagePercent}
                 transcriptionProviderReady={transcriptionProviderReadiness.ok}
                 onExtract={runExtractionPreview}
                 onExportCurrentSessionMarkdown={exportCurrentSessionMarkdown}
@@ -2595,6 +2596,12 @@ export function App() {
                 onOpenSessionList={() => {
                   setIsFocusMode(false);
                   setNavigationPanelMode("sessions");
+                }}
+                onOpenStorageSettings={() => {
+                  setIsFocusMode(false);
+                  setNavigationPanelMode("campaigns");
+                  setRightPanelMode("settings");
+                  setSettingsPanelMode("roadmap");
                 }}
               />
             )}
@@ -3644,10 +3651,12 @@ function HomeDashboard({
   onOpenReviewInspect,
   onOpenSessionList,
   onOpenSpeakerLogIssues,
+  onOpenStorageSettings,
   onOpenTranscriptionProviderSettings,
   remainingCount,
   reviewItemCount,
   sessionCount,
+  storageUsagePercent,
   transcriptionProviderReady,
 }: {
   approvedCount: number;
@@ -3674,10 +3683,12 @@ function HomeDashboard({
   onOpenReviewInspect: () => void;
   onOpenSessionList: () => void;
   onOpenSpeakerLogIssues: () => void;
+  onOpenStorageSettings: () => void;
   onOpenTranscriptionProviderSettings: () => void;
   remainingCount: number;
   reviewItemCount: number;
   sessionCount: number;
+  storageUsagePercent: number | null;
   transcriptionProviderReady: boolean;
 }) {
   const logReady = canExtractLog;
@@ -3702,6 +3713,9 @@ function HomeDashboard({
       : null,
     !transcriptionProviderReady
       ? { label: "文字起こしProvider要設定", onOpen: onOpenTranscriptionProviderSettings }
+      : null,
+    storageUsagePercent !== null && storageUsagePercent >= 80
+      ? { label: `保存容量 ${storageUsagePercent}%`, onOpen: onOpenStorageSettings }
       : null,
   ].filter((alert): alert is { label: string; onOpen: () => void } => alert !== null);
 
