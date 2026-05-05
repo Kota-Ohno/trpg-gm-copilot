@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import { Tabs } from "./ui/tabs";
-import type { Chronicle, ClueStatus } from "../types";
+import type { CampaignMode, Chronicle, ClueStatus } from "../types";
 import { countChronicleItems } from "../lib/campaign";
 
 const statusLabels = {
@@ -31,6 +31,35 @@ const chronicleViewOptions: Array<{ value: ChronicleViewMode; label: string }> =
   { value: "threads", label: "伏線" },
 ];
 
+const chronicleLabels: Record<
+  CampaignMode,
+  {
+    clue: string;
+    cluePlural: string;
+    hidden: string;
+    location: string;
+    nextReveal: string;
+    thread: string;
+  }
+> = {
+  investigation: {
+    clue: "手がかり",
+    cluePlural: "手がかり",
+    hidden: "GM秘密",
+    location: "場所",
+    nextReveal: "次に出す候補",
+    thread: "伏線",
+  },
+  fantasy: {
+    clue: "クエスト/情報",
+    cluePlural: "クエスト/情報",
+    hidden: "勢力事情",
+    location: "拠点/場所",
+    nextReveal: "次に動かす候補",
+    thread: "世界変化",
+  },
+};
+
 function EmptyCategory({ label }: { label: string }) {
   return (
     <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
@@ -51,6 +80,7 @@ function SectionTitle({ count, label, total }: { count: number; label: string; t
 }
 
 type ChronicleViewProps = {
+  campaignMode?: CampaignMode;
   chronicle: Chronicle;
   clueStatusFilter: ClueStatusFilter;
   viewMode: ChronicleViewMode;
@@ -64,6 +94,7 @@ type ChronicleViewProps = {
 };
 
 export function ChronicleView({
+  campaignMode = "investigation",
   chronicle,
   clueStatusFilter,
   viewMode,
@@ -76,6 +107,23 @@ export function ChronicleView({
   onExportFilteredChronicleMarkdown,
 }: ChronicleViewProps) {
   const [query, setQuery] = useState("");
+  const labels = chronicleLabels[campaignMode];
+  const modeClueStatusOptions = clueStatusOptions.map((option) =>
+    option.value === "all"
+      ? { ...option, label: `全${labels.cluePlural}` }
+      : option.value === "hidden"
+        ? { ...option, label: labels.hidden }
+        : option,
+  );
+  const modeChronicleViewOptions = chronicleViewOptions.map((option) =>
+    option.value === "clues"
+      ? { ...option, label: labels.cluePlural }
+      : option.value === "locations"
+        ? { ...option, label: labels.location }
+        : option.value === "threads"
+          ? { ...option, label: labels.thread }
+          : option,
+  );
   const normalizedQuery = query.trim().toLowerCase();
   const hasFilter = normalizedQuery.length > 0 || clueStatusFilter !== "all";
   const filteredChronicle = useMemo(() => {
@@ -136,14 +184,14 @@ export function ChronicleView({
         kind: "clue" as const,
         title: clue.title,
         detail: clue.detail,
-        label: statusLabels[clue.status],
+        label: clue.status === "hidden" ? labels.hidden : statusLabels[clue.status],
       })),
     ...chronicle.threads.map((thread, index) => ({
       id: `thread:${index}:${thread.title}:${thread.detail}:${thread.nextMove}`,
       kind: "thread" as const,
       title: thread.title,
       detail: thread.nextMove,
-      label: "伏線",
+      label: labels.thread,
     })),
   ].slice(0, 6);
 
@@ -161,22 +209,24 @@ export function ChronicleView({
             <Badge variant="muted">{hasFilter ? `${filteredCount}/${totalCount}件表示` : `${totalCount}件`}</Badge>
             {normalizedQuery && <Badge variant="secondary">検索: {query.trim()}</Badge>}
             {clueStatusFilter !== "all" && (
-              <Badge variant="secondary">手がかり: {statusLabels[clueStatusFilter]}</Badge>
+              <Badge variant="secondary">
+                {labels.clue}: {clueStatusFilter === "hidden" ? labels.hidden : statusLabels[clueStatusFilter]}
+              </Badge>
             )}
             <Badge variant="outline">出来事 {chronicle.events.length}</Badge>
-            <Badge variant="outline">手がかり {chronicle.clues.length}</Badge>
+            <Badge variant="outline">{labels.cluePlural} {chronicle.clues.length}</Badge>
             <Badge variant="outline">PL既知 {clueStatusCounts.known}</Badge>
             <Badge variant="outline">一部既知 {clueStatusCounts.partial}</Badge>
-            <Badge variant="outline">GM秘密 {clueStatusCounts.hidden}</Badge>
+            <Badge variant="outline">{labels.hidden} {clueStatusCounts.hidden}</Badge>
             <Badge variant="outline">NPC {chronicle.npcs.length}</Badge>
-            <Badge variant="outline">場所 {chronicle.locations.length}</Badge>
-            <Badge variant="outline">伏線 {chronicle.threads.length}</Badge>
+            <Badge variant="outline">{labels.location} {chronicle.locations.length}</Badge>
+            <Badge variant="outline">{labels.thread} {chronicle.threads.length}</Badge>
           </div>
           <div className="flex flex-wrap gap-2">
             <Tabs
               ariaLabel="記憶カテゴリ"
               value={viewMode}
-              options={chronicleViewOptions}
+              options={modeChronicleViewOptions}
               onChange={onViewModeChange}
             />
             <select
@@ -184,7 +234,7 @@ export function ChronicleView({
               value={clueStatusFilter}
               onChange={(event) => onClueStatusFilterChange(event.target.value as ClueStatusFilter)}
             >
-              {clueStatusOptions.map((option) => (
+              {modeClueStatusOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -228,7 +278,7 @@ export function ChronicleView({
       {viewMode === "overview" && (
       <Card>
         <CardHeader>
-          <SectionTitle count={nextRevealCandidates.length} label="次に出す候補" total={nextRevealCandidates.length} />
+          <SectionTitle count={nextRevealCandidates.length} label={labels.nextReveal} total={nextRevealCandidates.length} />
         </CardHeader>
         <CardContent className="grid gap-2">
           {nextRevealCandidates.length > 0 ? (
@@ -262,7 +312,7 @@ export function ChronicleView({
               </div>
             ))
           ) : (
-            <EmptyCategory label="次に出す候補" />
+            <EmptyCategory label={labels.nextReveal} />
           )}
         </CardContent>
       </Card>
@@ -290,7 +340,7 @@ export function ChronicleView({
       {viewMode === "clues" && (
       <Card>
         <CardHeader>
-          <SectionTitle count={filteredChronicle.clues.length} label="手がかり" total={chronicle.clues.length} />
+          <SectionTitle count={filteredChronicle.clues.length} label={labels.cluePlural} total={chronicle.clues.length} />
         </CardHeader>
         <CardContent className="grid gap-3">
           {filteredChronicle.clues.length > 0 ? (
@@ -300,7 +350,7 @@ export function ChronicleView({
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium">{clue.title}</p>
                     <Badge variant={clue.status === "hidden" ? "secondary" : "outline"}>
-                      {statusLabels[clue.status]}
+                      {clue.status === "hidden" ? labels.hidden : statusLabels[clue.status]}
                     </Badge>
                   </div>
                   {onUpdateClueStatus && (
@@ -310,7 +360,7 @@ export function ChronicleView({
                       value={clue.status}
                       onChange={(event) => onUpdateClueStatus(index, event.target.value as ClueStatus)}
                     >
-                      {clueStatusOptions.filter((option) => option.value !== "all").map((option) => (
+                      {modeClueStatusOptions.filter((option) => option.value !== "all").map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
@@ -322,7 +372,7 @@ export function ChronicleView({
               </div>
             ))
           ) : (
-            <EmptyCategory label="手がかり" />
+            <EmptyCategory label={labels.cluePlural} />
           )}
         </CardContent>
       </Card>
@@ -359,7 +409,7 @@ export function ChronicleView({
                       </p>
                     )}
                     <p className="rounded-md bg-secondary/40 px-3 py-2">
-                      <span className="font-medium">GM秘密:</span> {npc.gmSecret}
+                      <span className="font-medium">{labels.hidden}:</span> {npc.gmSecret}
                     </p>
                   </div>
                 </div>
@@ -374,7 +424,7 @@ export function ChronicleView({
         {viewMode === "locations" && (
         <Card>
           <CardHeader>
-            <SectionTitle count={filteredChronicle.locations.length} label="場所" total={chronicle.locations.length} />
+            <SectionTitle count={filteredChronicle.locations.length} label={labels.location} total={chronicle.locations.length} />
           </CardHeader>
           <CardContent className="space-y-3">
             {filteredChronicle.locations.length > 0 ? (
@@ -385,7 +435,7 @@ export function ChronicleView({
                 </div>
               ))
             ) : (
-              <EmptyCategory label="場所" />
+              <EmptyCategory label={labels.location} />
             )}
           </CardContent>
         </Card>
@@ -394,7 +444,7 @@ export function ChronicleView({
         {viewMode === "threads" && (
         <Card>
           <CardHeader>
-            <SectionTitle count={filteredChronicle.threads.length} label="伏線" total={chronicle.threads.length} />
+            <SectionTitle count={filteredChronicle.threads.length} label={labels.thread} total={chronicle.threads.length} />
           </CardHeader>
           <CardContent className="space-y-3">
             {filteredChronicle.threads.length > 0 ? (
@@ -416,7 +466,7 @@ export function ChronicleView({
                 </div>
               ))
             ) : (
-              <EmptyCategory label="伏線" />
+              <EmptyCategory label={labels.thread} />
             )}
           </CardContent>
         </Card>

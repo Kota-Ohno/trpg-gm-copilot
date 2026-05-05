@@ -3520,6 +3520,7 @@ export function App() {
 
             {activeTab === "chronicle" && (
               <ChronicleView
+                campaignMode={campaignMode}
                 chronicle={chronicle}
                 clueStatusFilter={chronicleClueStatusFilter}
                 viewMode={chronicleViewMode}
