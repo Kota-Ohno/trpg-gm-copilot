@@ -827,6 +827,7 @@ export function App() {
     return Math.round((approvedCount / items.length) * 100);
   }, [approvedCount, items.length]);
   const storageUsagePercent = getStorageUsagePercent(storageHealth);
+  const activeSessionCount = campaignState.sessions.filter((session) => !session.archivedAt).length;
 
   useEffect(() => {
     try {
@@ -2443,7 +2444,7 @@ export function App() {
                       </Button>
                       <Button
                         aria-label={session.archivedAt ? `${session.title}を有効化` : `${session.title}をアーカイブ`}
-                        disabled={isExtracting}
+                        disabled={isExtracting || (!session.archivedAt && activeSessionCount <= 1)}
                         onClick={() => setSessionArchived(session.id, !session.archivedAt)}
                         size="icon"
                         variant="ghost"
