@@ -45,6 +45,7 @@ export type SupportDiagnosticsInput = {
   currentSessionMetrics: {
     approvedCount: number;
     duplicateReviewItemCount: number;
+    extractionPromptLength: number;
     invalidReviewItemCount: number;
     reviewItemCount: number;
     speakerIssueCount: number;

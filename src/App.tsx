@@ -1226,6 +1226,7 @@ export function App() {
       currentSessionMetrics: {
         approvedCount,
         duplicateReviewItemCount,
+        extractionPromptLength,
         invalidReviewItemCount,
         reviewItemCount: items.length,
         speakerIssueCount: currentSpeakerIssueCount,

@@ -20,6 +20,7 @@ describe("buildSupportDiagnostics", () => {
       currentSessionMetrics: {
         approvedCount: 1,
         duplicateReviewItemCount: 2,
+        extractionPromptLength: 12000,
         invalidReviewItemCount: 3,
         reviewItemCount: 4,
         speakerIssueCount: 5,
@@ -52,6 +53,7 @@ describe("buildSupportDiagnostics", () => {
       currentSession: {
         approvedCount: 1,
         duplicateReviewItemCount: 2,
+        extractionPromptLength: 12000,
         invalidReviewItemCount: 3,
         reviewItemCount: 4,
         speakerIssueCount: 5,
