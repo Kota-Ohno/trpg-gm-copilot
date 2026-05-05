@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  Archive,
   BookOpen,
   CheckCircle2,
   Clock3,
@@ -880,6 +881,10 @@ export function App() {
     [campaignLibrary],
   );
   const largestSessionStorageDiagnostic = sessionStorageDiagnostics[0] ?? null;
+  const sessionStorageDiagnosticById = useMemo(
+    () => new Map(sessionStorageDiagnostics.map((diagnostic) => [diagnostic.sessionId, diagnostic])),
+    [sessionStorageDiagnostics],
+  );
   const memoryItemCount = countChronicleItems(chronicle);
   const hiddenClueCount = chronicle.clues.filter((clue) => clue.status !== "known").length;
   const hasPrepContent = dynamicPrepNote.shortRecap.length > 0 || dynamicPrepNote.hooks.length > 0;
@@ -1356,6 +1361,29 @@ export function App() {
       campaignName,
       session,
     }, createExportFileName(`${session.title}-session`));
+  };
+
+  const exportAndArchiveSession = (sessionId: string): void => {
+    const targetSession = campaignState.sessions.find((session) => session.id === sessionId);
+    if (!targetSession || targetSession.archivedAt || activeSessionCount <= 1) {
+      return;
+    }
+
+    const sizeDiagnostic = sessionStorageDiagnosticById.get(sessionId);
+
+    setConfirmation({
+      title: `${targetSession.title}を書き出してアーカイブしますか`,
+      message: [
+        "セッションJSONを書き出したあと、このセッションをアーカイブします。",
+        sizeDiagnostic ? `推定サイズは ${formatFileSize(sizeDiagnostic.totalBytes)} です。` : "",
+        "アーカイブ後も検索と復元はできます。",
+      ].filter(Boolean).join(" "),
+      confirmLabel: "退避してアーカイブ",
+      onConfirm: () => {
+        exportSessionJson(targetSession);
+        setSessionArchived(sessionId, true);
+      },
+    });
   };
 
   const exportSessionMarkdown = (session: SessionState): void => {
@@ -2536,6 +2564,7 @@ export function App() {
                 (() => {
                   const liveLogSummary = summarizeLiveLog(session.liveLog);
                   const speakerIssueCount = getSpeakerLogIssues(session.liveLog).length;
+                  const sizeDiagnostic = sessionStorageDiagnosticById.get(session.id);
 
                   return (
                     <div
@@ -2563,6 +2592,7 @@ export function App() {
                           {liveLogSummary.lowConfidenceCount > 0 ? ` / 要確認${liveLogSummary.lowConfidenceCount}` : ""}
                           {speakerIssueCount > 0 ? ` / ログ確認${speakerIssueCount}` : ""}
                           {session.transcriptionRun ? ` / 文字起こし${session.transcriptionRun.segmentCount}` : ""}
+                          {sizeDiagnostic ? ` / ${formatFileSize(sizeDiagnostic.totalBytes)}` : ""}
                           {session.archivedAt ? " / アーカイブ" : ""}
                         </span>
                       </button>
@@ -2602,6 +2632,17 @@ export function App() {
                       >
                         {session.archivedAt ? <RotateCcw className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
                       </Button>
+                      {!session.archivedAt && (
+                        <Button
+                          aria-label={`${session.title}を書き出してアーカイブ`}
+                          disabled={isExtracting || activeSessionCount <= 1}
+                          onClick={() => exportAndArchiveSession(session.id)}
+                          size="icon"
+                          variant="ghost"
+                        >
+                          <Archive className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         aria-label={`${session.title}を削除`}
                         disabled={isExtracting || campaignState.sessions.length <= 1}
