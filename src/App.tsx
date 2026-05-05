@@ -213,6 +213,19 @@ const prepSectionLabels: Record<CampaignMode, Record<PrepWorkspaceMode, string>>
   },
 };
 
+const memoryNavigationLabels: Record<CampaignMode, { clues: string; locations: string; threads: string }> = {
+  investigation: {
+    clues: "調査ボード",
+    locations: "場所",
+    threads: "伏線",
+  },
+  fantasy: {
+    clues: "クエスト/情報",
+    locations: "拠点/場所",
+    threads: "世界変化",
+  },
+};
+
 const quickPromptSets: Record<
   CampaignMode,
   Array<{ icon: typeof UserRound; title: string; result: string }>
@@ -754,6 +767,7 @@ export function App() {
     transcriptionProvider,
   } = campaignState;
   const quickPrompts = quickPromptSets[campaignMode];
+  const memoryNavLabels = memoryNavigationLabels[campaignMode];
   const prepLabels = prepSectionLabels[campaignMode];
   const selectedTranscriptionProvider = getTranscriptionProvider(transcriptionProvider.providerId);
   const transcriptionDraftPreview = useMemo(
@@ -2797,11 +2811,11 @@ export function App() {
 
           <nav className="mt-6 space-y-1">
             {[
-              { icon: Search, label: "調査ボード", count: chronicle.clues.length, viewMode: "clues" },
+              { icon: Search, label: memoryNavLabels.clues, count: chronicle.clues.length, viewMode: "clues" },
               { icon: UserRound, label: "NPC", count: chronicle.npcs.length, viewMode: "npcs" },
-              { icon: MapIcon, label: "場所", count: chronicle.locations.length, viewMode: "locations" },
+              { icon: MapIcon, label: memoryNavLabels.locations, count: chronicle.locations.length, viewMode: "locations" },
               { icon: Clock3, label: "年表", count: chronicle.events.length, viewMode: "events" },
-              { icon: Sparkles, label: "伏線", count: chronicle.threads.length, viewMode: "threads" },
+              { icon: Sparkles, label: memoryNavLabels.threads, count: chronicle.threads.length, viewMode: "threads" },
             ].map((item) => (
               <button
                 className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
