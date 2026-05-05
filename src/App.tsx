@@ -239,6 +239,17 @@ const campaignModeDescriptions: Record<CampaignMode, string> = {
   fantasy: "セッションログからクエスト、勢力事情、世界変化を抽出して次回準備へつなげます。",
 };
 
+const reviewImpactLabels: Record<CampaignMode, { clues: string; threads: string }> = {
+  investigation: {
+    clues: "記憶",
+    threads: "伏線",
+  },
+  fantasy: {
+    clues: "クエスト/情報",
+    threads: "世界変化",
+  },
+};
+
 function formatImportPreviewMessage(preview: ReturnType<typeof previewCampaignImport>): string {
   const storageLabel = `推定サイズ ${formatFileSize(preview.storageBytes)}`;
 
@@ -818,6 +829,7 @@ export function App() {
   const quickPrompts = quickPromptSets[campaignMode];
   const memoryNavLabels = memoryNavigationLabels[campaignMode];
   const prepLabels = prepSectionLabels[campaignMode];
+  const reviewImpactLabel = reviewImpactLabels[campaignMode];
   const selectedTranscriptionProvider = getTranscriptionProvider(transcriptionProvider.providerId);
   const transcriptionDraftPreview = useMemo(
     () => previewTranscriptionDraftPayload(transcriptionDraftJson),
@@ -3751,8 +3763,8 @@ export function App() {
                         <div className="mt-2 flex flex-wrap gap-2">
                           <Badge variant="outline">出来事 +{visibleReviewMemoryPreview.newEvents}</Badge>
                           <Badge variant="outline">NPC +{visibleReviewMemoryPreview.newNpcs}</Badge>
-                          <Badge variant="outline">記憶 +{visibleReviewMemoryPreview.newClues}</Badge>
-                          <Badge variant="outline">伏線 +{visibleReviewMemoryPreview.newThreads}</Badge>
+                          <Badge variant="outline">{reviewImpactLabel.clues} +{visibleReviewMemoryPreview.newClues}</Badge>
+                          <Badge variant="outline">{reviewImpactLabel.threads} +{visibleReviewMemoryPreview.newThreads}</Badge>
                           {visibleReviewMemoryPreview.skippedCandidates > 0 && (
                             <Badge variant="secondary">重複/未入力 {visibleReviewMemoryPreview.skippedCandidates}</Badge>
                           )}
