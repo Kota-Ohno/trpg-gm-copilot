@@ -1429,7 +1429,10 @@ export function App() {
   };
 
   const exportPrepNoteMarkdown = (): void => {
-    const markdown = formatPrepNoteMarkdown(dynamicPrepNote, `${currentSession.title} 次回準備`);
+    const markdown = formatPrepNoteMarkdown(
+      dynamicPrepNote,
+      `${currentSession.title} 次回準備 (${findOptionLabel(campaignModeOptions, campaignMode, "調査")})`,
+    );
 
     downloadTextFile(
       markdown,
