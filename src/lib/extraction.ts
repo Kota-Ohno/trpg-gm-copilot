@@ -1,4 +1,5 @@
 import type {
+  CampaignMode,
   ExtractionItem,
   LiveLogSession,
   PrepNote,
@@ -618,7 +619,10 @@ export function buildExtractionInput(log: string, liveLog: LiveLogSession, sourc
   return plainLogToExtractionLines(log);
 }
 
-export function runRuleBasedExtraction(lines: ExtractionInputLine[]): ExtractionItem[] {
+export function runRuleBasedExtraction(
+  lines: ExtractionInputLine[],
+  campaignMode: CampaignMode = "investigation",
+): ExtractionItem[] {
   const candidates: ExtractionItem[] = [];
   const seenKeys = new Set<string>();
 
@@ -647,6 +651,22 @@ export function runRuleBasedExtraction(lines: ExtractionInputLine[]): Extraction
           title: text.replace(/[。.!！?？].*$/, "").slice(0, 28),
           detail,
           visibility: "PL既知",
+        },
+        seenKeys,
+      );
+    }
+
+    if (
+      campaignMode === "fantasy" &&
+      /(依頼|クエスト|任務|討伐|護衛|届け|奪還|救出|報酬|契約|ギルド|街道|砦|拠点|勢力|騎士団|商会|王国|帝国|神殿|魔法|遺跡|廃鉱|竜|世界|戦争|同盟)/.test(text)
+    ) {
+      addExtractionCandidate(
+        candidates,
+        {
+          kind: /(秘密|密約|裏切|陰謀|内通|隠)/.test(text) ? "GM秘密" : "手がかり",
+          title: text.replace(/[。.!！?？].*$/, "").slice(0, 28),
+          detail,
+          visibility: line.role === "GM" && /(秘密|密約|裏切|陰謀|内通|隠)/.test(text) ? "GMのみ" : "PL既知",
         },
         seenKeys,
       );

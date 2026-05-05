@@ -198,7 +198,7 @@ function buildRuleBasedFallback(
   validationErrors: string[] = [],
   failureReason?: string,
 ): ExtractionResult {
-  const generatedItems = runRuleBasedExtraction(context.extractionLines);
+  const generatedItems = runRuleBasedExtraction(context.extractionLines, request.campaignMode);
   const normalizedValidationErrors = normalizeValidationErrors(validationErrors, failureReason);
 
   return {

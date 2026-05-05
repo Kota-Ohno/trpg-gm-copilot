@@ -152,6 +152,18 @@ describe("runRuleBasedExtraction", () => {
     expect(items.map((item) => item.kind)).toEqual(expect.arrayContaining(["出来事", "手がかり", "GM秘密", "伏線", "NPC"]));
     expect(items.some((item) => item.visibility === "GMのみ")).toBe(true);
   });
+
+  it("extracts fantasy quest and faction signals when fantasy mode is active", () => {
+    const items = runRuleBasedExtraction([
+      { speakerName: "GM", role: "GM", text: "騎士団が廃鉱の奪還を依頼し、報酬を提示した。" },
+      { speakerName: "GM", role: "GM", text: "商会は王国に内通している秘密を隠している。" },
+    ], "fantasy");
+
+    expect(items).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "手がかり", visibility: "PL既知" }),
+      expect.objectContaining({ kind: "GM秘密", visibility: "GMのみ" }),
+    ]));
+  });
 });
 
 describe("buildExtractionInput", () => {
