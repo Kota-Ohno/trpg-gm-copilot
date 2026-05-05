@@ -2380,7 +2380,9 @@ export function App() {
     setReviewSortMode(defaultUiPreferences.reviewSortMode);
     setReviewWorkspaceMode(defaultUiPreferences.reviewWorkspaceMode);
     setRightPanelMode(defaultUiPreferences.rightPanelMode);
+    setSessionArchiveFilter(defaultUiPreferences.sessionArchiveFilter);
     setSessionSortMode(defaultUiPreferences.sessionSortMode);
+    setSessionTranscriptionFilter(defaultUiPreferences.sessionTranscriptionFilter);
     setSettingsPanelMode(defaultUiPreferences.settingsPanelMode);
   };
 
