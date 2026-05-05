@@ -1298,8 +1298,12 @@ export function App() {
       logWorkspaceMode,
       navigationPanelMode,
       prepWorkspaceMode,
+      reviewSortMode,
       reviewWorkspaceMode,
       rightPanelMode,
+      sessionArchiveFilter,
+      sessionSortMode,
+      sessionTranscriptionFilter,
       settingsPanelMode,
       storage: {
         ...storageHealth,

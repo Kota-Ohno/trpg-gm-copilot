@@ -57,8 +57,12 @@ export type SupportDiagnosticsInput = {
   logWorkspaceMode: string;
   navigationPanelMode: string;
   prepWorkspaceMode: string;
+  reviewSortMode: string;
   reviewWorkspaceMode: string;
   rightPanelMode: string;
+  sessionArchiveFilter: string;
+  sessionSortMode: string;
+  sessionTranscriptionFilter: string;
   settingsPanelMode: string;
   storage: {
     libraryBytes: number;
@@ -172,8 +176,12 @@ export function buildSupportDiagnostics(input: SupportDiagnosticsInput, exported
       logWorkspaceMode: input.logWorkspaceMode,
       navigationPanelMode: input.navigationPanelMode,
       prepWorkspaceMode: input.prepWorkspaceMode,
+      reviewSortMode: input.reviewSortMode,
       reviewWorkspaceMode: input.reviewWorkspaceMode,
       rightPanelMode: input.rightPanelMode,
+      sessionArchiveFilter: input.sessionArchiveFilter,
+      sessionSortMode: input.sessionSortMode,
+      sessionTranscriptionFilter: input.sessionTranscriptionFilter,
       settingsPanelMode: input.settingsPanelMode,
     },
   };

@@ -32,8 +32,12 @@ describe("buildSupportDiagnostics", () => {
       logWorkspaceMode: "editor",
       navigationPanelMode: "sessions",
       prepWorkspaceMode: "recap",
+      reviewSortMode: "status",
       reviewWorkspaceMode: "inspect",
       rightPanelMode: "settings",
+      sessionArchiveFilter: "active",
+      sessionSortMode: "review-debt",
+      sessionTranscriptionFilter: "all",
       settingsPanelMode: "roadmap",
       storage: {
         libraryBytes: 2048,
@@ -63,7 +67,12 @@ describe("buildSupportDiagnostics", () => {
         transcription: { providerId: "manual", readiness: { ok: true, message: "ready" } },
       },
       storage: { libraryBytes: 2048, usagePercent: 50 },
-      ui: { activeTab: "home", settingsPanelMode: "roadmap" },
+      ui: {
+        activeTab: "home",
+        reviewSortMode: "status",
+        sessionSortMode: "review-debt",
+        settingsPanelMode: "roadmap",
+      },
     });
     expect(diagnostics).not.toHaveProperty("providerSecrets");
     expect(diagnostics.campaignStats[0]).toMatchObject({
