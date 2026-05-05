@@ -150,6 +150,11 @@ type UiPreferences = {
   rightPanelMode: RightPanelMode;
   settingsPanelMode: SettingsPanelMode;
 };
+type StorageHealth = {
+  libraryBytes: number;
+  quotaBytes: number | null;
+  usageBytes: number | null;
+};
 
 const tabOptions: Array<{ value: WorkspaceTab; label: string }> = [
   { value: "home", label: "ホーム" },
@@ -470,6 +475,14 @@ function formatFileSize(bytes: number): string {
   return `${Math.max(1, Math.round(bytes / 1024))}KB`;
 }
 
+function getStorageUsagePercent(storageHealth: StorageHealth): number | null {
+  if (!storageHealth.usageBytes || !storageHealth.quotaBytes) {
+    return null;
+  }
+
+  return Math.round((storageHealth.usageBytes / storageHealth.quotaBytes) * 100);
+}
+
 function formatRunTimestamp(value: string): string {
   if (!value.trim()) {
     return "日時不明";
@@ -588,6 +601,11 @@ export function App() {
   const [transcriptionImportError, setTranscriptionImportError] = useState<string | null>(null);
   const [transcriptionImportMessage, setTranscriptionImportMessage] = useState<string | null>(null);
   const [storageError, setStorageError] = useState<string | null>(null);
+  const [storageHealth, setStorageHealth] = useState<StorageHealth>({
+    libraryBytes: 0,
+    quotaBytes: null,
+    usageBytes: null,
+  });
   const [providerSecrets, setProviderSecrets] = useState<ProviderSecretSettings>(loadProviderSecrets);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
 
@@ -792,6 +810,7 @@ export function App() {
     }
     return Math.round((approvedCount / items.length) * 100);
   }, [approvedCount, items.length]);
+  const storageUsagePercent = getStorageUsagePercent(storageHealth);
 
   useEffect(() => {
     try {
@@ -800,6 +819,37 @@ export function App() {
     } catch {
       setStorageError("キャンペーン状態をブラウザに保存できませんでした。書き出しで退避してください。");
     }
+  }, [campaignLibrary]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const serializedLibrary = JSON.stringify(campaignLibrary);
+    const libraryBytes = new Blob([serializedLibrary]).size;
+
+    if (typeof navigator === "undefined" || !navigator.storage?.estimate) {
+      setStorageHealth({
+        libraryBytes,
+        quotaBytes: null,
+        usageBytes: null,
+      });
+      return;
+    }
+
+    void navigator.storage.estimate().then((estimate) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setStorageHealth({
+        libraryBytes,
+        quotaBytes: typeof estimate.quota === "number" ? estimate.quota : null,
+        usageBytes: typeof estimate.usage === "number" ? estimate.usage : null,
+      });
+    });
+
+    return () => {
+      isMounted = false;
+    };
   }, [campaignLibrary]);
 
   useEffect(() => {
@@ -2172,6 +2222,10 @@ export function App() {
             </div>
             <div className="flex flex-wrap gap-1.5">
               <Badge variant="muted">ローカル自動保存</Badge>
+              <Badge variant={storageUsagePercent !== null && storageUsagePercent >= 80 ? "destructive" : "muted"}>
+                保存 {formatFileSize(storageHealth.libraryBytes)}
+                {storageUsagePercent !== null ? ` / ${storageUsagePercent}%` : ""}
+              </Badge>
               <Badge variant="outline">APIキーは書き出し対象外</Badge>
             </div>
             {storageError ? (
