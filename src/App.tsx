@@ -2728,6 +2728,20 @@ export function App() {
                           {sizeDiagnostic ? ` / ${formatFileSize(sizeDiagnostic.totalBytes)}` : ""}
                           {session.archivedAt ? " / アーカイブ" : ""}
                         </span>
+                        {sizeDiagnostic && (
+                          <span
+                            className={
+                              session.id === campaignState.activeSessionId
+                                ? "mt-1 block text-[11px] opacity-75"
+                                : "mt-1 block text-[11px] text-muted-foreground"
+                            }
+                          >
+                            通常 {formatFileSize(sizeDiagnostic.logBytes)} / 話者{" "}
+                            {formatFileSize(sizeDiagnostic.speakerLogBytes)} / レビュー{" "}
+                            {formatFileSize(sizeDiagnostic.reviewBytes)} / 文字起こし{" "}
+                            {formatFileSize(sizeDiagnostic.transcriptionBytes)}
+                          </span>
+                        )}
                       </button>
                       <Button
                         aria-label={`${session.title}を書き出し`}
