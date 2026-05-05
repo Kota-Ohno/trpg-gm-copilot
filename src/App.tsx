@@ -70,6 +70,7 @@ import {
 } from "./lib/campaign";
 import {
   appendTranscriptionDraftsToLiveLog,
+  buildExtractionInput,
   buildSpeakerSegmentExport,
   findDuplicateExtractionItemIds,
   formatReviewItemsMarkdown,
@@ -89,6 +90,7 @@ import {
   summarizePlainLog,
   transcriptionDraftsToLiveLog,
 } from "./lib/extraction";
+import { buildExtractionPrompt } from "./lib/extraction-prompt";
 import {
   defaultProviderSecretSettings,
   getTranscriptionProvider,
@@ -875,6 +877,15 @@ export function App() {
     logInputMode === "plain"
       ? summarizePlainLog(log).speakerLineCount > 0
       : liveLog.segments.some((segment) => segment.text.trim().length > 0);
+  const extractionPromptLength = useMemo(
+    () =>
+      buildExtractionPrompt({
+        campaignMode,
+        lines: buildExtractionInput(log, liveLog, logInputMode),
+        source: logInputMode,
+      }).length,
+    [campaignMode, liveLog, log, logInputMode],
+  );
   const dynamicPrepNote = useMemo(
     () => generatePrepNote(chronicle, campaignState.sessions, currentSession, campaignMode),
     [campaignMode, campaignState.sessions, chronicle, currentSession],
@@ -2936,6 +2947,9 @@ export function App() {
                         <div className="mt-2 flex flex-wrap gap-2">
                           <Badge variant={logInputMode === "speaker" ? "default" : "outline"}>
                             {logInputMode === "speaker" ? "抽出元: 話者付きログ" : "抽出元: 通常ログ"}
+                          </Badge>
+                          <Badge variant={extractionPromptLength > 30000 ? "destructive" : "muted"}>
+                            prompt {extractionPromptLength.toLocaleString()}文字
                           </Badge>
                           {logInputMode === "speaker" && (
                             <Badge variant="muted">{summarizeLiveLog(liveLog).nonEmptySegmentCount}発話</Badge>
