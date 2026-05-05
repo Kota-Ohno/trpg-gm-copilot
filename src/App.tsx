@@ -42,6 +42,7 @@ import { Textarea } from "./components/ui/textarea";
 import { sampleLiveLog } from "./data/sample";
 import { getBackupStatus } from "./lib/backup";
 import { buildReviewQualityDiagnostics, buildSessionStorageDiagnostics, buildSupportDiagnostics } from "./lib/diagnostics";
+import { sortSessions, type SessionSortMode } from "./lib/session-list";
 import {
   applyExtraction,
   cloneJson,
@@ -147,7 +148,6 @@ type ReviewWorkspaceMode = "inspect" | "manage";
 type RightPanelMode = "rescue" | "settings";
 type SettingsPanelMode = "extraction" | "transcription" | "roadmap";
 type SessionArchiveFilter = "active" | "all" | "archived";
-type SessionSortMode = "date-desc" | "size-desc" | "review-debt" | "title";
 type SessionTranscriptionFilter = "all" | "transcribed" | "untranscribed";
 type ReviewKindFilter = "all" | ExtractionItem["kind"];
 type ReviewVisibilityFilter = "all" | ExtractionItem["visibility"];
@@ -976,24 +976,12 @@ export function App() {
         diagnostic.pendingDuplicateCount,
     ]),
   );
-  const visibleSessions = [...filteredSessions].sort((left, right) => {
-    if (sessionSortMode === "size-desc") {
-      return (
-        (sessionStorageDiagnosticById.get(right.id)?.totalBytes ?? 0) -
-        (sessionStorageDiagnosticById.get(left.id)?.totalBytes ?? 0)
-      );
-    }
-
-    if (sessionSortMode === "review-debt") {
-      return (sessionReviewDebtById.get(right.id) ?? 0) - (sessionReviewDebtById.get(left.id) ?? 0);
-    }
-
-    if (sessionSortMode === "title") {
-      return left.title.localeCompare(right.title, "ja");
-    }
-
-    return right.date.localeCompare(left.date);
-  });
+  const visibleSessions = sortSessions(
+    filteredSessions,
+    sessionSortMode,
+    sessionStorageDiagnosticById,
+    sessionReviewDebtById,
+  );
   const memoryItemCount = countChronicleItems(chronicle);
   const hiddenClueCount = chronicle.clues.filter((clue) => clue.status !== "known").length;
   const hasPrepContent = dynamicPrepNote.shortRecap.length > 0 || dynamicPrepNote.hooks.length > 0;
