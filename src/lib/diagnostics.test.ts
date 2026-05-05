@@ -11,6 +11,7 @@ describe("buildSupportDiagnostics", () => {
     });
     const diagnostics = buildSupportDiagnostics({
       activeTab: "home",
+      backupStatus: { ageDays: 9, label: "9日前にバックアップ", needsBackup: true },
       campaignLibrary,
       campaignState: campaign,
       chronicleClueStatusFilter: "all",
@@ -47,6 +48,7 @@ describe("buildSupportDiagnostics", () => {
       app: "chronicle-gm",
       exportedAt: "2026-05-05T00:00:00.000Z",
       campaignCount: 1,
+      backup: { ageDays: 9, label: "9日前にバックアップ", needsBackup: true },
       currentSession: {
         approvedCount: 1,
         duplicateReviewItemCount: 2,

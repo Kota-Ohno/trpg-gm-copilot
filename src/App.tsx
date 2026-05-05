@@ -1064,6 +1064,7 @@ export function App() {
   const exportSupportDiagnostics = (): void => {
     downloadJsonFile(buildSupportDiagnostics({
       activeTab,
+      backupStatus,
       campaignLibrary,
       campaignState,
       chronicleClueStatusFilter,

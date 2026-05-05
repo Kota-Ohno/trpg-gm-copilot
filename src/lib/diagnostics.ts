@@ -6,6 +6,7 @@ import type {
   TranscriptionProviderId,
   WorkspaceTab,
 } from "../types";
+import type { BackupStatus } from "./backup";
 import { getCampaignSummaryStats } from "./campaign";
 import type { TranscriptionProviderCheckResult } from "./transcription-providers";
 
@@ -13,6 +14,7 @@ export type SupportDiagnosticsInput = {
   activeTab: WorkspaceTab;
   campaignLibrary: CampaignLibraryState;
   campaignState: CampaignState;
+  backupStatus: BackupStatus;
   chronicleClueStatusFilter: string;
   chronicleViewMode: string;
   currentSession: SessionState;
@@ -50,6 +52,7 @@ export function buildSupportDiagnostics(input: SupportDiagnosticsInput, exported
     activeCampaignId: input.campaignState.id,
     activeSessionId: input.currentSession.id,
     campaignCount: input.campaignLibrary.campaigns.length,
+    backup: input.backupStatus,
     campaignStats: input.campaignLibrary.campaigns.map((campaign) => ({
       campaignId: campaign.id,
       campaignName: campaign.campaignName,
