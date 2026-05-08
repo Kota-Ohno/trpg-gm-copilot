@@ -7,6 +7,7 @@ import { Input } from "./ui/input";
 import { Tabs } from "./ui/tabs";
 import type { CampaignMode, Chronicle, ClueStatus } from "../types";
 import { countChronicleItems } from "../lib/campaign";
+import emptyNoMemoryImage from "../assets/public-release/empty-no-memory.jpg";
 
 const statusLabels = {
   known: "PL既知",
@@ -194,6 +195,7 @@ export function ChronicleView({
       label: labels.thread,
     })),
   ].slice(0, 6);
+  const showGlobalEmptyState = totalCount === 0 && !hasFilter;
 
   return (
     <div className="grid gap-4">
@@ -275,7 +277,27 @@ export function ChronicleView({
         </CardContent>
       </Card>
 
-      {viewMode === "overview" && (
+      {showGlobalEmptyState && (
+        <Card>
+          <CardContent className="py-4">
+            <div className="illustrated-empty-state rounded-md border border-dashed bg-background/82 p-4">
+              <img
+                alt="承認済み記憶なしを表す、空のキャンペーン整理箱と封じられた記憶台帳のイラスト。"
+                className="h-28 w-28 rounded-md object-cover shadow-sm"
+                src={emptyNoMemoryImage}
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">承認済みのキャンペーン記憶はまだありません</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  ログから抽出した候補をGMが承認すると、出来事、NPC、手がかり、伏線としてここに集まります。
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!showGlobalEmptyState && viewMode === "overview" && (
       <Card>
         <CardHeader>
           <SectionTitle count={nextRevealCandidates.length} label={labels.nextReveal} total={nextRevealCandidates.length} />
@@ -318,7 +340,7 @@ export function ChronicleView({
       </Card>
       )}
 
-      {viewMode === "events" && (
+      {!showGlobalEmptyState && viewMode === "events" && (
       <Card>
         <CardHeader>
           <SectionTitle count={filteredChronicle.events.length} label="出来事" total={chronicle.events.length} />
@@ -337,7 +359,7 @@ export function ChronicleView({
       </Card>
       )}
 
-      {viewMode === "clues" && (
+      {!showGlobalEmptyState && viewMode === "clues" && (
       <Card>
         <CardHeader>
           <SectionTitle count={filteredChronicle.clues.length} label={labels.cluePlural} total={chronicle.clues.length} />
@@ -378,7 +400,7 @@ export function ChronicleView({
       </Card>
       )}
 
-      {(viewMode === "npcs" || viewMode === "locations" || viewMode === "threads") && (
+      {!showGlobalEmptyState && (viewMode === "npcs" || viewMode === "locations" || viewMode === "threads") && (
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         {viewMode === "npcs" && (
         <Card>

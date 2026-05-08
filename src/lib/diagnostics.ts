@@ -334,12 +334,22 @@ export function buildReleaseQaChecklist(): ReleaseQaChecklistItem[] {
     {
       id: "local-check",
       label: "ローカルチェック",
-      detail: "npm run check を実行してテストとproduction buildを通す。",
+      detail: "pnpm run check を実行してテストとproduction buildを通す。",
     },
     {
       id: "starter-flow",
       label: "初回導線",
-      detail: "調査/ファンタジーのテンプレート作成からホームの継続キューまで確認する。",
+      detail: "新規ブラウザ状態で公開入口、調査/ファンタジー/カスタム開始、戻りユーザーのワークベンチ直行を確認する。",
+    },
+    {
+      id: "ten-second-comprehension",
+      label: "10秒理解",
+      detail: "公開入口スクリーンショットだけで対象ユーザー、価値、最初の行動が伝わることを第三者視点で確認する。",
+    },
+    {
+      id: "no-provider-activation",
+      label: "5分/Provider不要導線",
+      detail: "APIキー、アカウント、外部送信なしでサンプルまたは貼り付けログから承認済み記憶と次回準備まで進める。",
     },
     {
       id: "gm-workflow",
@@ -354,7 +364,17 @@ export function buildReleaseQaChecklist(): ReleaseQaChecklistItem[] {
     {
       id: "responsive-ui",
       label: "表示確認",
-      detail: "desktop幅と狭幅表示で文字の重なり、ボタンの押しづらさ、横スクロールを確認する。",
+      detail: "desktop幅と狭幅表示で公開入口、空状態、ワークベンチの重なり、押しづらさ、横スクロールを確認する。",
+    },
+    {
+      id: "asset-manifest-budget",
+      label: "画像/Manifest",
+      detail: "公開版画像がmanifestに記録され、hero 350KB以下、各エンブレム/空状態120KB以下であることを確認する。",
+    },
+    {
+      id: "privacy-network-boundary",
+      label: "プライバシー境界",
+      detail: "公開入口とProvider不要導線でキャンペーン本文が外部送信されず、Provider/診断/書き出し境界が説明通りであることを確認する。",
     },
     {
       id: releaseQaItemIds.extractionProviderLiveCheck,

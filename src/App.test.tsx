@@ -17,6 +17,18 @@ function stubLocalStorage(values: Record<string, string>): void {
 }
 
 describe("App smoke render", () => {
+  it("renders the public entry for a fresh browser profile", () => {
+    stubLocalStorage({});
+
+    const html = renderToString(<App />);
+
+    expect(html).toContain("5分で試す");
+    expect(html).toContain("ワークベンチへ");
+    expect(html).toContain("灯台サンプル");
+    expect(html).toContain("実ログから始める");
+    expect(html).not.toContain("即応パレット");
+  });
+
   it("renders core product workflows and continuity surfaces", () => {
     const html = renderToString(<App />);
 
@@ -29,6 +41,7 @@ describe("App smoke render", () => {
     expect(html).toContain("次にやること");
     expect(html).toContain("即応パレット");
     expect(html).toContain("次回準備");
+    expect(html).toContain("公開入口");
   });
 
   it("renders operational QA evidence surfaces from persisted UI preferences", () => {
@@ -71,7 +84,7 @@ describe("App smoke render", () => {
 
     expect(html).toContain("抽出/OpenAI: 成功");
     expect(html).toContain("文字起こし/OpenAI: 成功");
-    expect(html).toContain("0/7件のRelease QAを確認済み");
+    expect(html).toContain("0/11件のRelease QAを確認済み");
     expect(html).toContain("証跡 2件");
   });
 

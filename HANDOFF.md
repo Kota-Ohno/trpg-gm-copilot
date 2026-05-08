@@ -6,7 +6,7 @@
 
 - active goal: `TRPGのGMサポートシステムとして、市場価値を十分に発揮できるレベルのプロダクトに仕上げてください、機能面はもちろん、UIUX、継続性も考慮してください`
 - ローカル開発サーバー: `http://localhost:5174/`
-- 直近の検証: `npm run check` 通過、12 test files / 127 tests passed、production build passed。
+- 直近の検証: `pnpm run check` 通過、12 test files / 127 tests passed、production build passed。
 - 直近の疎通: `curl -I http://localhost:5174/` は `200 OK`。
 - ユーザーから「動作は問題ないです」と確認済み。実ブラウザでの主要導線確認はOKとして扱う。
 - 現在の残goalは、本番向け名称・UI/UX・ビジュアルの仕上げ。
@@ -190,7 +190,7 @@ TRPG向けの **人間GMを支援するツール** を作る。
 - `.gitignore`
 - `index.html`
 - `package.json`
-- `package-lock.json`
+- `pnpm-lock.yaml`
 - `postcss.config.js`
 - `tailwind.config.js`
 - `tsconfig.json`
@@ -273,16 +273,16 @@ TRPG向けの **人間GMを支援するツール** を作る。
 実行済み:
 
 ```bash
-npm install
-npm run build
+pnpm install
+pnpm run build
 ```
 
-`npm run build` は成功済み。
+`pnpm run build` は成功済み。
 
 開発サーバー:
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 起動時のURL:
@@ -296,7 +296,7 @@ npm run dev
 
 - `.gitignore` は追加済み。
 - `dist/`, `node_modules/`, `*.tsbuildinfo`, `vite.config.js`, `vite.config.d.ts` は無視対象。
-- `npm run build` 後に `dist/` は生成されるがGitには出ない想定。
+- `pnpm run build` 後に `dist/` は生成されるがGitには出ない想定。
 - `tsconfig.node.json` は残っているが、`tsconfig.json` から project reference は外している。
 - いまの `tsconfig.node.json` はほぼ未使用。将来整理してよい。
 - React 19 + TypeScript で `JSX.Element` 戻り値型が面倒だったため、コンポーネントの戻り値型は明示していない。
@@ -311,7 +311,7 @@ npm run dev
    - 開き直したら、この `HANDOFF.md` を読ませる。
 
 2. UI/UXを触って確認する。
-   - `npm run dev`
+   - `pnpm run dev`
    - `http://localhost:5173/`
    - ログタブから抽出プレビュー、承認、記憶、次回準備の流れを確認。
 
@@ -405,7 +405,7 @@ AI NPC/AI GM代行方向には寄せず、GM承認フローと調査シナリオ
 - `.gitignore`
 - `HANDOFF.md`
 - `index.html`
-- `package-lock.json`
+- `pnpm-lock.yaml`
 - `package.json`
 - `postcss.config.js`
 - `src/`

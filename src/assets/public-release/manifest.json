@@ -1,0 +1,103 @@
+{
+  "generatedAt": "2026-05-08",
+  "tool": "Codex built-in image_gen",
+  "usagePolicy": "Generic product artwork only. No private campaign content or user data was used in prompts.",
+  "assets": [
+    {
+      "id": "public-entry-hero",
+      "file": "loreline-hero.jpg",
+      "sourceFile": "generated_images/ig_0439631b8547edb00169fddc4b31888191a2b743759e7f119e.png",
+      "dimensions": { "width": 1536, "height": 819 },
+      "optimizedBytes": 331142,
+      "budgetBytes": 358400,
+      "classification": "decorative",
+      "alt": "",
+      "intendedUse": "Public entry hero background with UI text overlaid separately.",
+      "prompt": "Overhead premium editorial illustration of a refined TRPG GM desk at night, with campaign map, pinned clue threads, handwritten notes, dice, lantern glow, and luminous route lines converging messy log fragments into an organized next-session path; wide composition with dark negative space for UI copy; no text, letters, logos, watermark, faces, screens, or app UI."
+    },
+    {
+      "id": "mode-investigation",
+      "file": "mode-investigation.jpg",
+      "sourceFile": "generated_images/ig_0439631b8547edb00169fddcd7020c81918e1d3d6b7f6bb69c.png",
+      "dimensions": { "width": 512, "height": 512 },
+      "optimizedBytes": 87770,
+      "budgetBytes": 122880,
+      "classification": "non-decorative",
+      "alt": "調査モードを表す、海辺の地図と手がかりの糸を重ねたコンパスレンズのエンブレム。",
+      "intendedUse": "First-run campaign mode card for investigation campaigns.",
+      "prompt": "Square premium emblem for Investigation campaign mode: compass lens, clue thread pins, coastal night map lines, subtle magnifying-glass geometry; polished editorial icon illustration; no text, words, logos, watermark, faces, weapons, or generic fantasy parchment."
+    },
+    {
+      "id": "mode-fantasy",
+      "file": "mode-fantasy.jpg",
+      "sourceFile": "generated_images/ig_0439631b8547edb00169fddcfda3048191975b84ce593f8c02.png",
+      "dimensions": { "width": 512, "height": 512 },
+      "optimizedBytes": 93592,
+      "budgetBytes": 122880,
+      "classification": "non-decorative",
+      "alt": "ファンタジーモードを表す、ランタンと旅路の星図が載ったキャンペーン年代記のエンブレム。",
+      "intendedUse": "First-run campaign mode card for fantasy campaigns.",
+      "prompt": "Square premium emblem for Fantasy campaign mode: lantern-lit route sigil over a campaign chronicle, dice, folded realm map, and constellation route lines; polished editorial icon illustration; no text, words, logos, watermark, characters, faces, or weapon focal point."
+    },
+    {
+      "id": "mode-custom",
+      "file": "mode-custom.jpg",
+      "sourceFile": "generated_images/ig_0439631b8547edb00169fddd293b548191b22f9a21c72ed522.png",
+      "dimensions": { "width": 512, "height": 512 },
+      "optimizedBytes": 73081,
+      "budgetBytes": 122880,
+      "classification": "non-decorative",
+      "alt": "カスタムモードを表す、空白の星図と未記入カードが並ぶ柔軟なキャンペーン設計エンブレム。",
+      "intendedUse": "First-run campaign mode card for custom campaigns.",
+      "prompt": "Square premium emblem for Custom campaign mode: blank constellation map, route nodes, archival ring, index cards, and a glowing unnamed path; polished editorial icon illustration; no text, words, logos, watermark, faces, characters, or genre-specific magic symbols."
+    },
+    {
+      "id": "empty-no-log",
+      "file": "empty-no-log.jpg",
+      "sourceFile": "generated_images/ig_00ea36a0b23ebf380169fe1792c618819190008bf3fcc3c1d8.png",
+      "dimensions": { "width": 512, "height": 512 },
+      "optimizedBytes": 69554,
+      "budgetBytes": 122880,
+      "classification": "non-decorative",
+      "alt": "未入力ログを表す、空白の卓上ログ用紙とペン、ダイス、始まりの光る経路のイラスト。",
+      "intendedUse": "No session log empty state and first action prompt.",
+      "prompt": "A compact premium editorial illustration showing an empty tabletop log sheet waiting to be filled, a fountain pen, quiet dice, and a faint route line beginning from a blank page; no text, words, letters, logos, watermark, faces, or app UI."
+    },
+    {
+      "id": "empty-no-candidates",
+      "file": "empty-no-candidates.jpg",
+      "sourceFile": "generated_images/ig_00ea36a0b23ebf380169fe17f6f748819189a50a86eecfc395.png",
+      "dimensions": { "width": 512, "height": 512 },
+      "optimizedBytes": 80515,
+      "budgetBytes": 122880,
+      "classification": "non-decorative",
+      "alt": "抽出候補なしを表す、まだ候補が入っていない選別器と空の整理スロットのイラスト。",
+      "intendedUse": "No extraction candidates empty state in review flow.",
+      "prompt": "A compact premium editorial illustration of a tabletop sieve of small glowing log fragments with no pieces caught yet, beside organized empty index slots and a GM approval stamp waiting unused; no text, letters, logos, watermark, faces, app UI, or pseudo-text."
+    },
+    {
+      "id": "empty-no-memory",
+      "file": "empty-no-memory.jpg",
+      "sourceFile": "generated_images/ig_00ea36a0b23ebf380169fe183d38288191b1b37770d0c3f52f.png",
+      "dimensions": { "width": 512, "height": 512 },
+      "optimizedBytes": 63308,
+      "budgetBytes": 122880,
+      "classification": "non-decorative",
+      "alt": "承認済み記憶なしを表す、空のキャンペーン整理箱と封じられた記憶台帳のイラスト。",
+      "intendedUse": "No approved campaign memory empty state in home and chronicle surfaces.",
+      "prompt": "A compact premium editorial illustration of an empty campaign archive tray with blank tabs, a sealed memory ledger, and a small approval token waiting beside it; no readable text, pseudo-text, logos, watermark, faces, app UI, skulls, or weapon focal point."
+    },
+    {
+      "id": "empty-no-prep",
+      "file": "empty-no-prep.jpg",
+      "sourceFile": "generated_images/ig_00ea36a0b23ebf380169fe189298d08191a1dd4aec1cfacd98.png",
+      "dimensions": { "width": 512, "height": 512 },
+      "optimizedBytes": 68223,
+      "budgetBytes": 122880,
+      "classification": "non-decorative",
+      "alt": "次回準備なしを表す、承認済み記憶を待つ空の経路ボードと三つのルートマーカーのイラスト。",
+      "intendedUse": "No next-session prep empty state.",
+      "prompt": "A compact premium editorial illustration of an empty route board for the next tabletop session, with three blank route markers, a folded map, and an unlit path line waiting for approved memory; no text, words, letters, logos, watermark, faces, app UI, weapon focal point, or beige parchment dominance."
+    }
+  ]
+}
