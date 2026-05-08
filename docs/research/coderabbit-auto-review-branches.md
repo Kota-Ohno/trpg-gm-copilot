@@ -8,10 +8,12 @@ CodeRabbit skips automatic reviews for pull requests whose base/target branch is
 
 The repository default branch is `main`, while the long-lived review bases currently in use are `feature/public-release` and `feature/voice-transcription-research`. To allow automatic reviews on PRs targeting those release/research branches, add them to `reviews.auto_review.base_branches` in the root `.coderabbit.yaml`.
 
+For open source repositories, CodeRabbit applies configuration from the base branch for the current review and ignores `.coderabbit.yaml` changes inside the PR being reviewed. Therefore this branch's config change is mainly for future PRs after it is merged into the base branch; the current PR still needs an explicit `@coderabbitai review` command.
+
 ## Source
 
 - CodeRabbit configuration reference, `reviews.auto_review.base_branches`: "Base branches (other than the default branch) to review. Accepts regex patterns. Use '.*' to match all branches. Defaults to []".
-- CodeRabbit YAML configuration guide: `.coderabbit.yaml` must be located in the repository root, and configuration in the feature branch under review is detected by CodeRabbit.
+- CodeRabbit YAML configuration guide: `.coderabbit.yaml` must be located in the repository root. For OSS PRs, CodeRabbit can warn that config changes in the PR are ignored and the base-branch config is used.
 
 ## Plan Review
 
@@ -36,7 +38,7 @@ SubAgents were not used because the current runtime instructions only permit the
 - Regression risk: Adding a root `.coderabbit.yaml` changes CodeRabbit behavior only. It does not affect runtime code, builds, or tests.
 - Hidden assumption: This enables automatic reviews for PRs whose base branch is `feature/public-release` or `feature/voice-transcription-research`. If another non-default base branch should also be reviewed, it must be added separately or covered by a scoped regex.
 - Over-broad review scope: Avoided `.*` because reviewing all non-default branches can create noisy reviews on experimental branches.
-- Configuration availability: Existing open PRs may need a new push or an explicit `@coderabbitai review` command for an immediate review. Future PRs should use this committed config.
+- Configuration availability: Existing open PRs need an explicit `@coderabbitai review` command for an immediate review. Future PRs use this committed config only after the config has landed in their base branch.
 
 ## Verification Evidence
 
