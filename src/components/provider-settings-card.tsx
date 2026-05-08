@@ -17,6 +17,7 @@ type ProviderSettingsCardProps = {
   settings: ExtractionProviderSettings;
   onChangeSecrets: (settings: ProviderSecretSettings) => void;
   onChange: (settings: ExtractionProviderSettings) => void;
+  onConnectionTestResult?: (result: ProviderConnectionTestResult) => void;
 };
 
 export function ProviderSettingsCard({
@@ -25,6 +26,7 @@ export function ProviderSettingsCard({
   settings,
   onChange,
   onChangeSecrets,
+  onConnectionTestResult,
 }: ProviderSettingsCardProps) {
   const [connectionResult, setConnectionResult] = useState<ProviderConnectionTestResult | null>(null);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
@@ -92,6 +94,7 @@ export function ProviderSettingsCard({
       const result = await testExtractionProviderConnection({ secrets, settings });
       if (latestTestKeyRef.current === testKey) {
         setConnectionResult(result);
+        onConnectionTestResult?.(result);
       }
     } finally {
       if (latestTestKeyRef.current === testKey) {
@@ -263,6 +266,11 @@ export function ProviderSettingsCard({
                 <Unplug className="h-3 w-3" />
               )}
               {connectionResult.ok ? "成功" : "失敗"}
+            </Badge>
+          )}
+          {connectionResult?.ok && (
+            <Badge variant={connectionResult.isReleaseQaEvidence ? "secondary" : "muted"}>
+              {connectionResult.isReleaseQaEvidence ? "Release QA証跡" : "ローカル確認"}
             </Badge>
           )}
         </div>

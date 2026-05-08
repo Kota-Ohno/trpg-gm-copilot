@@ -11,6 +11,12 @@ export type TranscriptionProviderCheckResult = {
   message: string;
 };
 
+export type TranscriptionProviderConnectionTestResult = {
+  isReleaseQaEvidence: boolean;
+  ok: boolean;
+  message: string;
+};
+
 export type TranscriptionProviderRequest = {
   audioFile?: File;
   draftJson?: string;
@@ -69,6 +75,10 @@ function normalizeTranscriptionResponse(value: unknown): TranscriptionSegmentDra
   return [];
 }
 
+function normalizeEndpoint(endpoint: string, fallbackEndpoint: string): string {
+  return (endpoint.trim() || fallbackEndpoint).replace(/\/+$/, "");
+}
+
 async function readTranscriptionErrorMessage(response: Response): Promise<string> {
   const contentType = response.headers.get("content-type") ?? "";
   const fallbackMessage = `OpenAI文字起こしAPIが失敗しました。status: ${response.status}`;
@@ -92,6 +102,32 @@ async function readTranscriptionErrorMessage(response: Response): Promise<string
 
   const errorText = await response.text();
   return errorText.trim() || fallbackMessage;
+}
+
+async function fetchTranscriptionConnectionWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+  }
+}
+
+function getTranscriptionProviderErrorMessage(error: unknown, providerLabel: string, timeoutMs: number): string {
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return `${providerLabel} API が${Math.round(timeoutMs / 1000)}秒以内に応答しませんでした。`;
+  }
+
+  return error instanceof Error ? error.message : `${providerLabel} API 呼び出しに失敗しました。`;
 }
 
 export function hasWebSpeechRecognitionSupport(value: unknown): boolean {
@@ -138,6 +174,79 @@ export function checkTranscriptionProviderReadiness(
   return {
     ok: false,
     message: `${provider.label} はまだ接続確認に対応していません。`,
+  };
+}
+
+export async function testTranscriptionProviderConnection(
+  request: TranscriptionProviderRequest,
+): Promise<TranscriptionProviderConnectionTestResult> {
+  const provider = getTranscriptionProvider(request.settings.providerId);
+
+  if (provider.id === "manual") {
+    return {
+      isReleaseQaEvidence: false,
+      ok: true,
+      message: "手動入力Providerはローカルで利用できます。model: manual-transcript",
+    };
+  }
+
+  if (provider.id === "web-speech") {
+    return {
+      ...checkTranscriptionProviderReadiness(request.settings, request.secrets),
+      isReleaseQaEvidence: false,
+    };
+  }
+
+  if (provider.id === "openai") {
+    const apiKey = request.secrets.openAiApiKey.trim();
+    const model = request.settings.model.trim() || provider.defaultModel;
+    if (!apiKey) {
+      return {
+        isReleaseQaEvidence: false,
+        ok: false,
+        message: `OpenAI文字起こしにはAPI keyが必要です。model: ${model}`,
+      };
+    }
+
+    try {
+      const endpoint = normalizeEndpoint(request.settings.endpoint, provider.defaultEndpoint);
+      const response = await fetchTranscriptionConnectionWithTimeout(
+        `${endpoint}/models/${encodeURIComponent(model)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+          },
+          method: "GET",
+        },
+        12_000,
+      );
+
+      if (!response.ok) {
+        return {
+          isReleaseQaEvidence: false,
+          ok: false,
+          message: await readTranscriptionErrorMessage(response),
+        };
+      }
+
+      return {
+        isReleaseQaEvidence: true,
+        ok: true,
+        message: `OpenAI文字起こしProvider に接続できました。model: ${model}`,
+      };
+    } catch (error) {
+      return {
+        isReleaseQaEvidence: false,
+        ok: false,
+        message: getTranscriptionProviderErrorMessage(error, "OpenAI文字起こし", 12_000),
+      };
+    }
+  }
+
+  return {
+    isReleaseQaEvidence: false,
+    ok: false,
+    message: `${provider.label} は接続確認に対応していません。`,
   };
 }
 
@@ -212,7 +321,7 @@ export async function runTranscriptionProvider(
     }
 
     try {
-      const endpoint = (request.settings.endpoint || provider.defaultEndpoint).replace(/\/+$/, "");
+      const endpoint = normalizeEndpoint(request.settings.endpoint, provider.defaultEndpoint);
       const model = request.settings.model.trim() || provider.defaultModel;
       const formData = new FormData();
       formData.append("file", request.audioFile);

@@ -3,6 +3,7 @@ import {
   checkTranscriptionProviderReadiness,
   hasWebSpeechRecognitionSupport,
   runTranscriptionProvider,
+  testTranscriptionProviderConnection,
   validateTranscriptionAudioFile,
 } from "./transcription-providers";
 
@@ -60,6 +61,69 @@ describe("hasWebSpeechRecognitionSupport", () => {
     expect(hasWebSpeechRecognitionSupport({ webkitSpeechRecognition: function SpeechRecognition() {} })).toBe(true);
     expect(hasWebSpeechRecognitionSupport({})).toBe(false);
     expect(hasWebSpeechRecognitionSupport(null)).toBe(false);
+  });
+});
+
+describe("testTranscriptionProviderConnection", () => {
+  it("confirms manual transcription locally", async () => {
+    await expect(testTranscriptionProviderConnection({
+      secrets: { openAiApiKey: "" },
+      settings: { providerId: "manual", model: "manual-transcript", endpoint: "", language: "ja" },
+    })).resolves.toEqual({
+      isReleaseQaEvidence: false,
+      ok: true,
+      message: "手動入力Providerはローカルで利用できます。model: manual-transcript",
+    });
+  });
+
+  it("requires an OpenAI API key before calling the model endpoint", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(testTranscriptionProviderConnection({
+      secrets: { openAiApiKey: "" },
+      settings: {
+        providerId: "openai",
+        model: "gpt-4o-mini-transcribe",
+        endpoint: "https://api.openai.com/v1",
+        language: "ja",
+      },
+    })).resolves.toMatchObject({
+      isReleaseQaEvidence: false,
+      ok: false,
+      message: "OpenAI文字起こしにはAPI keyが必要です。model: gpt-4o-mini-transcribe",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("checks OpenAI transcription model access without uploading audio", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ id: "gpt-4o-mini-transcribe" }), {
+      headers: { "content-type": "application/json" },
+      status: 200,
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(testTranscriptionProviderConnection({
+      secrets: { openAiApiKey: "sk-test" },
+      settings: {
+        providerId: "openai",
+        model: "gpt-4o-mini-transcribe",
+        endpoint: "https://api.openai.com/v1/",
+        language: "ja",
+      },
+    })).resolves.toEqual({
+      isReleaseQaEvidence: true,
+      ok: true,
+      message: "OpenAI文字起こしProvider に接続できました。model: gpt-4o-mini-transcribe",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.openai.com/v1/models/gpt-4o-mini-transcribe",
+      expect.objectContaining({
+        headers: { Authorization: "Bearer sk-test" },
+        method: "GET",
+      }),
+    );
   });
 });
 

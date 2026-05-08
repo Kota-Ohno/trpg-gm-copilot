@@ -24,6 +24,7 @@ import {
   Sparkles,
   Swords,
   Trash2,
+  Unplug,
   UserRound,
   Wand2,
 } from "lucide-react";
@@ -43,14 +44,24 @@ import { sampleLiveLog } from "./data/sample";
 import { getBackupStatus } from "./lib/backup";
 import {
   buildCampaignOperationalRisks,
+  buildProductSafetyChecklist,
+  buildReleaseQaChecklist,
   buildReviewQualityDiagnostics,
   buildSessionStorageDiagnostics,
   buildSupportDiagnostics,
+  formatReleaseQaMarkdown,
+  releaseQaItemIds,
 } from "./lib/diagnostics";
 import { sortSessions, type SessionSortMode } from "./lib/session-list";
 import {
   applyExtraction,
+  buildContinuityQueue,
+  buildPlayerHandoutShareStatus,
+  buildPlayerHandoutSafetyWarnings,
+  buildSessionWrapUpChecklist,
+  campaignStarterTemplates,
   cloneJson,
+  createCampaignFromTemplate,
   countChronicleItems,
   createExportFileName,
   createInitialCampaignState,
@@ -62,7 +73,9 @@ import {
   formatCampaignMarkdown,
   formatCampaignLibraryMarkdown,
   formatChronicleMarkdown,
+  formatPlayerHandoutMarkdown,
   formatPrepNoteMarkdown,
+  formatSessionWrapUpMarkdown,
   generatePrepNote,
   getCampaignSearchText,
   getCampaignSummaryStats,
@@ -73,6 +86,12 @@ import {
   previewCampaignImport,
   previewExtractionApplication,
   readSessionImportPayload,
+  sanitizeCampaignLibraryStateForExport,
+  sanitizeCampaignStateForExport,
+  type CampaignStarterTemplateId,
+  type ContinuityQueueItem,
+  type PlayerHandoutSafetyWarning,
+  type SessionWrapUpChecklistItem,
 } from "./lib/campaign";
 import {
   appendTranscriptionDraftsToLiveLog,
@@ -99,15 +118,18 @@ import {
 import { buildExtractionPrompt } from "./lib/extraction-prompt";
 import {
   defaultProviderSecretSettings,
+  getExtractionProvider,
   getTranscriptionProvider,
   normalizeProviderSecretSettings,
   transcriptionProviders,
 } from "./lib/extraction-provider-settings";
-import { runExtractionProvider } from "./lib/extraction-providers";
+import { runExtractionProvider, type ProviderConnectionTestResult } from "./lib/extraction-providers";
 import {
   checkTranscriptionProviderReadiness,
   runTranscriptionProvider,
+  testTranscriptionProviderConnection,
   validateTranscriptionAudioFile,
+  type TranscriptionProviderConnectionTestResult,
 } from "./lib/transcription-providers";
 import {
   buildReviewRemovalBatch,
@@ -138,6 +160,13 @@ const CAMPAIGN_LIBRARY_STORAGE_KEY = "chronicle-gm.campaign-library.v1";
 const LAST_BACKUP_STORAGE_KEY = "chronicle-gm.last-backup.v1";
 const PROVIDER_SECRETS_STORAGE_KEY = "chronicle-gm.provider-secrets.v1";
 const UI_PREFERENCES_STORAGE_KEY = "chronicle-gm.ui-preferences.v1";
+const RELEASE_QA_COMPLETED_STORAGE_KEY = "chronicle-gm.release-qa-completed.v1";
+const RELEASE_QA_EVIDENCE_STORAGE_KEY = "chronicle-gm.release-qa-evidence.v1";
+const PRODUCT_NAME = "Loreline";
+const PRODUCT_TAGLINE = "GM Continuity Studio";
+const LEGACY_PROVIDER_RELEASE_QA_ID = releaseQaItemIds.legacyProviderLiveCheck;
+const EXTRACTION_PROVIDER_RELEASE_QA_ID = releaseQaItemIds.extractionProviderLiveCheck;
+const TRANSCRIPTION_PROVIDER_RELEASE_QA_ID = releaseQaItemIds.transcriptionProviderLiveCheck;
 const maxJsonImportFileSizeBytes = 8 * 1024 * 1024;
 const campaignNameInputId = "campaign-name";
 const campaignImportInputId = "campaign-json-import";
@@ -149,7 +178,7 @@ const sessionDateInputId = "active-session-date";
 type LogInputMode = "plain" | "speaker";
 type LogWorkspaceMode = "editor" | "transcription";
 type NavigationPanelMode = "campaigns" | "sessions";
-type PrepWorkspaceMode = "recap" | "hooks" | "questions" | "reminders";
+type PrepWorkspaceMode = "recap" | "hooks" | "questions" | "reminders" | "handout" | "wrapup";
 type ReviewWorkspaceMode = "inspect" | "manage";
 type RightPanelMode = "rescue" | "settings";
 type SettingsPanelMode = "extraction" | "transcription" | "roadmap";
@@ -193,12 +222,12 @@ type StorageHealth = {
   usageBytes: number | null;
 };
 
-const tabOptions: Array<{ value: WorkspaceTab; label: string }> = [
-  { value: "home", label: "ホーム" },
-  { value: "log", label: "ログ" },
-  { value: "review", label: "承認" },
-  { value: "chronicle", label: "記憶" },
-  { value: "prep", label: "次回準備" },
+const tabOptions: Array<{ value: WorkspaceTab; label: string; icon?: typeof Compass }> = [
+  { value: "home", label: "ホーム", icon: Compass },
+  { value: "log", label: "ログ", icon: FileText },
+  { value: "review", label: "承認", icon: ShieldCheck },
+  { value: "chronicle", label: "記憶", icon: BookOpen },
+  { value: "prep", label: "次回準備", icon: Sparkles },
 ];
 
 const campaignModeOptions: Array<{ value: CampaignMode; label: string; description: string }> = [
@@ -212,12 +241,16 @@ const prepSectionLabels: Record<CampaignMode, Record<PrepWorkspaceMode, string>>
     hooks: "次回導入案",
     questions: "未解決の問い",
     reminders: "GM確認メモ",
+    handout: "PL共有メモ",
+    wrapup: "締め作業",
   },
   fantasy: {
     recap: "前回の戦況",
     hooks: "次のクエスト候補",
     questions: "未解決の依頼/勢力",
     reminders: "GM確認メモ",
+    handout: "PL共有メモ",
+    wrapup: "締め作業",
   },
 };
 
@@ -360,9 +393,9 @@ const logWorkspaceOptions: Array<{ value: LogWorkspaceMode; label: string }> = [
   { value: "transcription", label: "文字起こし" },
 ];
 
-const navigationPanelOptions: Array<{ value: NavigationPanelMode; label: string }> = [
-  { value: "campaigns", label: "キャンペーン" },
-  { value: "sessions", label: "セッション" },
+const navigationPanelOptions: Array<{ value: NavigationPanelMode; label: string; icon?: typeof Compass }> = [
+  { value: "campaigns", label: "キャンペーン", icon: BookOpen },
+  { value: "sessions", label: "セッション", icon: Clock3 },
 ];
 
 const sessionArchiveOptions: Array<{ value: SessionArchiveFilter; label: string }> = [
@@ -388,6 +421,8 @@ const prepWorkspaceOptions: Array<{ value: PrepWorkspaceMode; label: string }> =
   { value: "hooks", label: "導入" },
   { value: "questions", label: "未解決" },
   { value: "reminders", label: "GMメモ" },
+  { value: "handout", label: "PL共有" },
+  { value: "wrapup", label: "締め" },
 ];
 
 const chronicleViewLabels: Record<ChronicleViewMode, string> = {
@@ -402,7 +437,7 @@ const chronicleViewLabels: Record<ChronicleViewMode, string> = {
 const settingsPanelLabels: Record<SettingsPanelMode, string> = {
   extraction: "抽出",
   transcription: "文字起こし",
-  roadmap: "拡張",
+  roadmap: "運用QA",
 };
 
 const reviewKindOptions: Array<{ value: ReviewKindFilter; label: string }> = [
@@ -439,15 +474,15 @@ const transcriptionLanguageOptions = [
   { value: "auto", label: "自動" },
 ];
 
-const rightPanelOptions: Array<{ value: RightPanelMode; label: string }> = [
-  { value: "rescue", label: "セッション中" },
-  { value: "settings", label: "設定" },
+const rightPanelOptions: Array<{ value: RightPanelMode; label: string; icon?: typeof Compass }> = [
+  { value: "rescue", label: "即応", icon: Sparkles },
+  { value: "settings", label: "運用", icon: Settings2 },
 ];
 
-const settingsPanelOptions: Array<{ value: SettingsPanelMode; label: string }> = [
-  { value: "extraction", label: "抽出" },
-  { value: "transcription", label: "文字起こし" },
-  { value: "roadmap", label: "拡張" },
+const settingsPanelOptions: Array<{ value: SettingsPanelMode; label: string; icon?: typeof Compass }> = [
+  { value: "extraction", label: "抽出", icon: Wand2 },
+  { value: "transcription", label: "文字起こし", icon: MessageSquareText },
+  { value: "roadmap", label: "運用QA", icon: ShieldCheck },
 ];
 
 const extractionSourceLabels: Record<ExtractionRun["sourceType"], string> = {
@@ -463,7 +498,7 @@ const defaultUiPreferences: UiPreferences = {
   isFocusMode: false,
   logInputMode: "plain",
   logWorkspaceMode: "editor",
-  navigationPanelMode: "sessions",
+  navigationPanelMode: "campaigns",
   prepWorkspaceMode: "recap",
   reviewSortMode: "original",
   reviewWorkspaceMode: "inspect",
@@ -711,22 +746,96 @@ function loadLastBackupAt(): string | null {
   return savedValue?.trim() || null;
 }
 
-function sanitizeCampaignStateForExport(campaignState: CampaignState): CampaignState {
-  return {
-    ...campaignState,
-    extractionProvider: {
-      providerId: campaignState.extractionProvider.providerId,
-      model: campaignState.extractionProvider.model,
-      endpoint: campaignState.extractionProvider.endpoint,
-    },
-  };
+function loadReleaseQaCompletedIds(): string[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const savedValue = window.localStorage.getItem(RELEASE_QA_COMPLETED_STORAGE_KEY);
+  if (!savedValue) {
+    return [];
+  }
+
+  try {
+    const parsedValue = JSON.parse(savedValue);
+    const completedIds = Array.isArray(parsedValue)
+      ? parsedValue.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    return completedIds.filter((id) => id !== LEGACY_PROVIDER_RELEASE_QA_ID);
+  } catch {
+    return [];
+  }
 }
 
-function sanitizeCampaignLibraryStateForExport(campaignLibrary: CampaignLibraryState): CampaignLibraryState {
-  return {
-    ...campaignLibrary,
-    campaigns: campaignLibrary.campaigns.map(sanitizeCampaignStateForExport),
-  };
+function mergeReleaseQaEvidenceNote(
+  notes: Record<string, string>,
+  itemId: string,
+  note: string,
+): void {
+  const normalizedNote = note.trim();
+  if (!normalizedNote) {
+    return;
+  }
+
+  notes[itemId] = notes[itemId] ? `${notes[itemId]}; ${normalizedNote}` : normalizedNote;
+}
+
+function migrateLegacyProviderEvidenceNote(
+  notes: Record<string, string>,
+  legacyNote: string,
+): void {
+  const segments = legacyNote
+    .split(/\s*;\s*/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+  const normalizedSegments = segments.length > 0 ? segments : [legacyNote.trim()];
+
+  normalizedSegments.forEach((segment) => {
+    if (segment.includes("文字起こし/")) {
+      mergeReleaseQaEvidenceNote(notes, TRANSCRIPTION_PROVIDER_RELEASE_QA_ID, segment);
+      return;
+    }
+
+    if (segment.includes("抽出/")) {
+      mergeReleaseQaEvidenceNote(notes, EXTRACTION_PROVIDER_RELEASE_QA_ID, segment);
+      return;
+    }
+
+    mergeReleaseQaEvidenceNote(notes, EXTRACTION_PROVIDER_RELEASE_QA_ID, segment);
+    mergeReleaseQaEvidenceNote(notes, TRANSCRIPTION_PROVIDER_RELEASE_QA_ID, segment);
+  });
+}
+
+function loadReleaseQaEvidenceNotes(): Record<string, string> {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  const savedValue = window.localStorage.getItem(RELEASE_QA_EVIDENCE_STORAGE_KEY);
+  if (!savedValue) {
+    return {};
+  }
+
+  try {
+    const parsedValue = JSON.parse(savedValue);
+    if (!parsedValue || typeof parsedValue !== "object" || Array.isArray(parsedValue)) {
+      return {};
+    }
+
+    return Object.entries(parsedValue)
+      .filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].trim().length > 0)
+      .reduce<Record<string, string>>((notes, [key, value]) => {
+        if (key === LEGACY_PROVIDER_RELEASE_QA_ID) {
+          migrateLegacyProviderEvidenceNote(notes, value);
+          return notes;
+        }
+
+        mergeReleaseQaEvidenceNote(notes, key, value);
+        return notes;
+      }, {});
+  } catch {
+    return {};
+  }
 }
 
 function downloadTextFile(content: string, fileName: string, type: string): void {
@@ -791,6 +900,9 @@ export function App() {
   );
   const [transcriptionAudioFile, setTranscriptionAudioFile] = useState<File | null>(null);
   const [transcriptionDraftJson, setTranscriptionDraftJson] = useState("");
+  const [isTestingTranscriptionConnection, setIsTestingTranscriptionConnection] = useState(false);
+  const [transcriptionConnectionResult, setTranscriptionConnectionResult] =
+    useState<TranscriptionProviderConnectionTestResult | null>(null);
   const [transcriptionImportError, setTranscriptionImportError] = useState<string | null>(null);
   const [transcriptionImportMessage, setTranscriptionImportMessage] = useState<string | null>(null);
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(loadLastBackupAt);
@@ -800,7 +912,12 @@ export function App() {
     quotaBytes: null,
     usageBytes: null,
   });
+  const [clipboardMessage, setClipboardMessage] = useState<string | null>(null);
+  const [releaseQaMessage, setReleaseQaMessage] = useState<string | null>(null);
   const [providerSecrets, setProviderSecrets] = useState<ProviderSecretSettings>(loadProviderSecrets);
+  const [releaseQaCompletedIds, setReleaseQaCompletedIds] = useState<string[]>(loadReleaseQaCompletedIds);
+  const [releaseQaEvidenceNotes, setReleaseQaEvidenceNotes] =
+    useState<Record<string, string>>(loadReleaseQaEvidenceNotes);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
 
   const campaignState =
@@ -831,6 +948,17 @@ export function App() {
   const prepLabels = prepSectionLabels[campaignMode];
   const reviewImpactLabel = reviewImpactLabels[campaignMode];
   const selectedTranscriptionProvider = getTranscriptionProvider(transcriptionProvider.providerId);
+  const transcriptionConnectionTestKey = [
+    providerSecrets.openAiApiKey,
+    transcriptionProvider.endpoint,
+    transcriptionProvider.language,
+    transcriptionProvider.model,
+    transcriptionProvider.providerId,
+  ].join("\n");
+  const canTestTranscriptionConnection =
+    !isExtracting &&
+    !isTestingTranscriptionConnection &&
+    (transcriptionProvider.providerId !== "openai" || providerSecrets.openAiApiKey.trim().length > 0);
   const transcriptionDraftPreview = useMemo(
     () => previewTranscriptionDraftPayload(transcriptionDraftJson),
     [transcriptionDraftJson],
@@ -981,6 +1109,31 @@ export function App() {
     () => generatePrepNote(chronicle, campaignState.sessions, currentSession, campaignMode),
     [campaignMode, campaignState.sessions, chronicle, currentSession],
   );
+  const playerHandoutMarkdown = useMemo(
+    () => formatPlayerHandoutMarkdown(campaignState),
+    [campaignState],
+  );
+  const sessionWrapUpMarkdown = useMemo(
+    () => formatSessionWrapUpMarkdown(campaignState, currentSession, dynamicPrepNote),
+    [campaignState, currentSession, dynamicPrepNote],
+  );
+  const playerHandoutSafetyWarnings = useMemo(
+    () => buildPlayerHandoutSafetyWarnings(campaignState, playerHandoutMarkdown),
+    [campaignState, playerHandoutMarkdown],
+  );
+  const playerHandoutShareStatus = useMemo(
+    () => buildPlayerHandoutShareStatus(campaignState, playerHandoutMarkdown),
+    [campaignState, playerHandoutMarkdown],
+  );
+  const canSharePlayerHandout = playerHandoutShareStatus.canShare;
+  const continuityQueue = useMemo(
+    () => buildContinuityQueue(campaignState, currentSession, dynamicPrepNote),
+    [campaignState, currentSession, dynamicPrepNote],
+  );
+  const sessionWrapUpChecklist = useMemo(
+    () => buildSessionWrapUpChecklist(campaignState, currentSession, dynamicPrepNote),
+    [campaignState, currentSession, dynamicPrepNote],
+  );
   const currentLiveLogSummary = useMemo(() => summarizeLiveLog(liveLog), [liveLog]);
   const currentSpeakerIssueCount = useMemo(() => getSpeakerLogIssues(liveLog).length, [liveLog]);
   const sessionStorageDiagnostics = useMemo(
@@ -1035,8 +1188,8 @@ export function App() {
   const hasPrepContent = dynamicPrepNote.shortRecap.length > 0 || dynamicPrepNote.hooks.length > 0;
   const sideWorkspaceLabel =
     rightPanelMode === "settings"
-      ? `補助パネル / 設定 / ${settingsPanelLabels[settingsPanelMode]}`
-      : "補助パネル / セッション中";
+      ? `サイドデスク / 運用 / ${settingsPanelLabels[settingsPanelMode]}`
+      : "サイドデスク / 即応";
   const activeWorkspaceLabel = useMemo(() => {
     const tabLabel = findOptionLabel(tabOptions, activeTab, "ホーム");
 
@@ -1082,6 +1235,43 @@ export function App() {
   }, [approvedCount, items.length]);
   const storageUsagePercent = getStorageUsagePercent(storageHealth);
   const backupStatus = getBackupStatus(lastBackupAt);
+  const releaseQaChecklist = useMemo(() => buildReleaseQaChecklist(), []);
+  const releaseQaCompletedIdSet = useMemo(() => new Set(releaseQaCompletedIds), [releaseQaCompletedIds]);
+  const releaseQaCompletedCount = releaseQaChecklist.filter((item) => releaseQaCompletedIdSet.has(item.id)).length;
+  const releaseQaEvidenceCount = releaseQaChecklist.filter((item) => releaseQaEvidenceNotes[item.id]?.trim()).length;
+  const isReleaseQaReady =
+    releaseQaCompletedCount === releaseQaChecklist.length &&
+    releaseQaEvidenceCount === releaseQaChecklist.length;
+  const releaseQaIncompleteCount = releaseQaChecklist.length - releaseQaCompletedCount;
+  const releaseQaMissingEvidenceCount = releaseQaChecklist.length - releaseQaEvidenceCount;
+  const productSafetyChecklist = useMemo(
+    () =>
+      buildProductSafetyChecklist({
+        backupStatus,
+        extractionProviderReady,
+        playerHandoutAvailable: playerHandoutMarkdown.trim().length > 0,
+        playerHandoutWarningCount: playerHandoutSafetyWarnings.length,
+        providerSecretsExcludedFromExports: true,
+        releaseQaCompletedCount,
+        releaseQaEvidenceCount,
+        releaseQaTotalCount: releaseQaChecklist.length,
+        reviewQualityDebtCount,
+        storageUsagePercent,
+        transcriptionProviderReady: transcriptionProviderReadiness.ok,
+      }),
+    [
+      backupStatus,
+      extractionProviderReady,
+      playerHandoutMarkdown,
+      playerHandoutSafetyWarnings.length,
+      releaseQaChecklist.length,
+      releaseQaCompletedCount,
+      releaseQaEvidenceCount,
+      reviewQualityDebtCount,
+      storageUsagePercent,
+      transcriptionProviderReadiness.ok,
+    ],
+  );
   const activeSessionCount = campaignState.sessions.filter((session) => !session.archivedAt).length;
 
   const markBackupCreated = (): void => {
@@ -1146,6 +1336,11 @@ export function App() {
   }, [providerSecrets]);
 
   useEffect(() => {
+    setIsTestingTranscriptionConnection(false);
+    setTranscriptionConnectionResult(null);
+  }, [transcriptionConnectionTestKey]);
+
+  useEffect(() => {
     try {
       window.localStorage.setItem(
         UI_PREFERENCES_STORAGE_KEY,
@@ -1189,6 +1384,43 @@ export function App() {
     sessionTranscriptionFilter,
     settingsPanelMode,
   ]);
+
+  useEffect(() => {
+    const validIds = new Set(releaseQaChecklist.map((item) => item.id));
+    const normalizedIds = releaseQaCompletedIds.filter((id, index, ids) => validIds.has(id) && ids.indexOf(id) === index);
+
+    if (normalizedIds.length !== releaseQaCompletedIds.length) {
+      setReleaseQaCompletedIds(normalizedIds);
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(RELEASE_QA_COMPLETED_STORAGE_KEY, JSON.stringify(normalizedIds));
+    } catch {
+      setStorageError("Release QA の確認状態をブラウザに保存できませんでした。");
+    }
+  }, [releaseQaChecklist, releaseQaCompletedIds]);
+
+  useEffect(() => {
+    const validIds = new Set(releaseQaChecklist.map((item) => item.id));
+    const normalizedNotes = Object.fromEntries(
+      Object.entries(releaseQaEvidenceNotes)
+        .filter(([id, note]) => validIds.has(id) && note.trim().length > 0)
+        .map(([id, note]) => [id, note.trim()]),
+    );
+    const didNormalize = JSON.stringify(normalizedNotes) !== JSON.stringify(releaseQaEvidenceNotes);
+
+    if (didNormalize) {
+      setReleaseQaEvidenceNotes(normalizedNotes);
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(RELEASE_QA_EVIDENCE_STORAGE_KEY, JSON.stringify(normalizedNotes));
+    } catch {
+      setStorageError("Release QA の確認メモをブラウザに保存できませんでした。");
+    }
+  }, [releaseQaChecklist, releaseQaEvidenceNotes]);
 
   const setActiveCampaignState = (updater: (current: CampaignState) => CampaignState): void => {
     setCampaignLibrary((currentLibrary) => {
@@ -1240,6 +1472,22 @@ export function App() {
     setLogInputMode("plain");
     setLogWorkspaceMode("editor");
     setActiveTab("log");
+  };
+
+  const addCampaignFromTemplate = (templateId: CampaignStarterTemplateId): void => {
+    setCampaignLibrary((current) => {
+      const nextCampaign = createCampaignFromTemplate(templateId, current.campaigns.length + 1);
+
+      return {
+        campaigns: [...current.campaigns, nextCampaign],
+        activeCampaignId: nextCampaign.id,
+      };
+    });
+    setCampaignQuery("");
+    setSessionQuery("");
+    setLogInputMode(templateId === "investigation-demo" ? "speaker" : "plain");
+    setLogWorkspaceMode("editor");
+    setActiveTab("home");
   };
 
   const duplicateCampaign = (campaignId: string): void => {
@@ -1316,6 +1564,98 @@ export function App() {
     setStorageError(null);
   };
 
+  const exportPlayerHandoutMarkdown = (): void => {
+    if (!canSharePlayerHandout) {
+      setClipboardMessage(playerHandoutShareStatus.message);
+      return;
+    }
+
+    downloadTextFile(
+      playerHandoutMarkdown,
+      `${createExportFileName(`${campaignName}-player-handout`).replace(/\.json$/, "")}.md`,
+      "text/markdown;charset=utf-8",
+    );
+    setStorageError(null);
+  };
+
+  const copyPlayerHandoutMarkdown = async (): Promise<void> => {
+    if (!canSharePlayerHandout) {
+      setClipboardMessage(playerHandoutShareStatus.message);
+      return;
+    }
+
+    await copyTextToClipboard("PL共有メモ", playerHandoutMarkdown);
+  };
+
+  const exportSessionWrapUpMarkdown = (): void => {
+    downloadTextFile(
+      sessionWrapUpMarkdown,
+      `${createExportFileName(`${currentSession.title}-wrap-up`).replace(/\.json$/, "")}.md`,
+      "text/markdown;charset=utf-8",
+    );
+    setStorageError(null);
+  };
+
+  const copyTextToClipboard = async (label: string, content: string): Promise<boolean> => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(content);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = content;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+
+      setClipboardMessage(`${label}をコピーしました。`);
+      setStorageError(null);
+      return true;
+    } catch {
+      setClipboardMessage(`${label}をコピーできませんでした。Markdown書き出しを使ってください。`);
+      return false;
+    }
+  };
+
+  const openWrapUpTarget = (target: SessionWrapUpChecklistItem["target"]): void => {
+    if (target === "log") {
+      setLogWorkspaceMode("editor");
+      setActiveTab("log");
+      return;
+    }
+
+    if (target === "review") {
+      setReviewWorkspaceMode("inspect");
+      setActiveTab("review");
+      return;
+    }
+
+    if (target === "memory") {
+      setChronicleViewMode("overview");
+      setActiveTab("chronicle");
+      return;
+    }
+
+    if (target === "share") {
+      setPrepWorkspaceMode("handout");
+      setActiveTab("prep");
+      return;
+    }
+
+    if (target === "sessions") {
+      setIsFocusMode(false);
+      setNavigationPanelMode("sessions");
+      return;
+    }
+
+    setPrepWorkspaceMode("hooks");
+    setActiveTab("prep");
+  };
+
   const exportCampaignLibrary = (): void => {
     downloadJsonFile(sanitizeCampaignLibraryStateForExport(campaignLibrary), createExportFileName("campaign-library"));
     markBackupCreated();
@@ -1357,6 +1697,8 @@ export function App() {
       prepWorkspaceMode,
       reviewSortMode,
       reviewWorkspaceMode,
+      releaseQaCompletedIds,
+      releaseQaEvidenceNotes,
       rightPanelMode,
       sessionArchiveFilter,
       sessionListDensity,
@@ -1370,6 +1712,118 @@ export function App() {
       transcriptionProviderId: transcriptionProvider.providerId,
       transcriptionProviderReadiness,
     }), createExportFileName("support-diagnostics"));
+  };
+
+  const exportReleaseQaMarkdown = (): void => {
+    downloadTextFile(
+      formatReleaseQaMarkdown(
+        releaseQaChecklist,
+        `${PRODUCT_NAME} Release QA`,
+        releaseQaCompletedIds,
+        releaseQaEvidenceNotes,
+      ),
+      `${createExportFileName("release-qa").replace(/\.json$/, "")}.md`,
+      "text/markdown;charset=utf-8",
+    );
+    setReleaseQaMessage("Release QA Markdownを書き出しました。");
+    setStorageError(null);
+  };
+
+  const copyReleaseQaMarkdown = async (): Promise<void> => {
+    const didCopy = await copyTextToClipboard(
+      "Release QA",
+      formatReleaseQaMarkdown(
+        releaseQaChecklist,
+        `${PRODUCT_NAME} Release QA`,
+        releaseQaCompletedIds,
+        releaseQaEvidenceNotes,
+      ),
+    );
+    setReleaseQaMessage(
+      didCopy
+        ? "Release QA Markdownをコピーしました。"
+        : "Release QA Markdownをコピーできませんでした。Markdown書き出しを使ってください。",
+    );
+  };
+
+  const toggleReleaseQaItem = (itemId: string): void => {
+    setReleaseQaCompletedIds((currentIds) =>
+      currentIds.includes(itemId)
+        ? currentIds.filter((currentId) => currentId !== itemId)
+        : [...currentIds, itemId],
+    );
+  };
+
+  const markReleaseQaItemCompleted = (itemId: string): void => {
+    setReleaseQaCompletedIds((currentIds) =>
+      currentIds.includes(itemId) ? currentIds : [...currentIds, itemId],
+    );
+  };
+
+  const resetReleaseQaChecklist = (): void => {
+    setReleaseQaCompletedIds([]);
+    setReleaseQaEvidenceNotes({});
+    setReleaseQaMessage("Release QAをリセットしました。");
+  };
+
+  const requestReleaseQaReset = (): void => {
+    setConfirmation({
+      title: "Release QAをリセットしますか",
+      message: "確認済み状態と証跡メモをすべて消去します。出荷判定の根拠が失われるため、必要ならMarkdownを書き出してから実行してください。",
+      confirmLabel: "リセットする",
+      onConfirm: resetReleaseQaChecklist,
+    });
+  };
+
+  const updateReleaseQaEvidenceNote = (itemId: string, note: string): void => {
+    setReleaseQaEvidenceNotes((currentNotes) => {
+      if (!note.trim()) {
+        const remainingNotes = { ...currentNotes };
+        delete remainingNotes[itemId];
+        return remainingNotes;
+      }
+
+      return {
+        ...currentNotes,
+        [itemId]: note,
+      };
+    });
+  };
+
+  const appendReleaseQaEvidenceNote = (itemId: string, note: string): void => {
+    const normalizedNote = note.trim();
+    if (!normalizedNote) {
+      return;
+    }
+
+    setReleaseQaEvidenceNotes((currentNotes) => {
+      const currentNote = currentNotes[itemId]?.trim();
+
+      return {
+        ...currentNotes,
+        [itemId]: currentNote ? `${currentNote}; ${normalizedNote}` : normalizedNote,
+      };
+    });
+  };
+
+  const recordProviderConnectionEvidence = (
+    itemId: string,
+    providerLabel: string,
+    result: ProviderConnectionTestResult | TranscriptionProviderConnectionTestResult,
+  ): void => {
+    if (!result.isReleaseQaEvidence) {
+      setReleaseQaMessage(
+        `${providerLabel}: ${result.ok ? "ローカル確認として成功" : "接続テスト失敗"}。Release QA証跡には未反映です。`,
+      );
+      return;
+    }
+
+    appendReleaseQaEvidenceNote(
+      itemId,
+      `${new Date().toISOString()} ${providerLabel}: 成功 - ${result.message}`,
+    );
+    markReleaseQaItemCompleted(itemId);
+    setReleaseQaMessage(`${providerLabel}: Release QA証跡として記録しました。`);
   };
 
   const exportTranscriptionDraftJson = (): void => {
@@ -1646,7 +2100,7 @@ export function App() {
         },
       });
     } catch {
-      setStorageError("JSONを読み込めませんでした。Chronicle GMのエクスポートファイルか確認してください。");
+      setStorageError(`JSONを読み込めませんでした。${PRODUCT_NAME}のエクスポートファイルか確認してください。`);
     }
   };
 
@@ -1958,6 +2412,25 @@ export function App() {
     }
 
     applyImportedTranscriptionDraftLog(targetSession.id, liveLogFromDrafts, message, transcriptionRun);
+  };
+
+  const testTranscriptionConnection = async (): Promise<void> => {
+    setIsTestingTranscriptionConnection(true);
+    setTranscriptionConnectionResult(null);
+    try {
+      const result = await testTranscriptionProviderConnection({
+        secrets: providerSecrets,
+        settings: transcriptionProvider,
+      });
+      setTranscriptionConnectionResult(result);
+      recordProviderConnectionEvidence(
+        TRANSCRIPTION_PROVIDER_RELEASE_QA_ID,
+        `文字起こし/${selectedTranscriptionProvider.label}`,
+        result,
+      );
+    } finally {
+      setIsTestingTranscriptionConnection(false);
+    }
   };
 
   const appendTranscriptionDraftJson = async (): Promise<void> => {
@@ -2470,30 +2943,45 @@ export function App() {
   };
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <div
         className={
           isFocusMode
             ? "grid min-h-screen grid-cols-1"
-            : "grid min-h-screen grid-cols-[260px_1fr_320px] max-xl:grid-cols-[220px_1fr] max-lg:grid-cols-1"
+            : "grid min-h-screen grid-cols-[288px_minmax(0,1fr)] max-2xl:grid-cols-[260px_minmax(0,1fr)] max-lg:grid-cols-1"
         }
       >
         {!isFocusMode && (
-        <aside className="border-r bg-sidebar px-4 py-5 max-lg:border-b max-lg:border-r-0">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <BookOpen className="h-5 w-5" />
+        <aside className="bg-sidebar px-4 py-5 shadow-[inset_-1px_0_0_hsl(var(--border))] max-lg:order-2 max-lg:border-t max-lg:shadow-none">
+          <div className="surface-elevated rounded-md border p-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
+                <Compass className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{PRODUCT_NAME}</p>
+                <p className="truncate text-xs text-muted-foreground">{PRODUCT_TAGLINE}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-semibold">Chronicle GM</p>
-              <p className="text-xs text-muted-foreground">
-                {findOptionLabel(campaignModeOptions, campaignMode, "調査")} mode
-              </p>
+            <div className="mt-4 grid gap-2 text-center sm:grid-cols-3">
+              <div className="rounded-md border bg-background/80 px-2 py-2">
+                <p className="text-[11px] text-muted-foreground">記憶</p>
+                <p className="text-sm font-semibold">{memoryItemCount}</p>
+              </div>
+              <div className="rounded-md border bg-background/80 px-2 py-2">
+                <p className="text-[11px] text-muted-foreground">未承認</p>
+                <p className="text-sm font-semibold">{remainingCount}</p>
+              </div>
+              <div className="rounded-md border bg-background/80 px-2 py-2">
+                <p className="text-[11px] text-muted-foreground">卓</p>
+                <p className="text-sm font-semibold">{campaignState.sessions.length}</p>
+              </div>
             </div>
           </div>
 
           <div className="mt-5">
             <Tabs
+              className="w-full"
               ariaLabel="左ナビゲーション"
               value={navigationPanelMode}
               options={navigationPanelOptions}
@@ -2503,10 +2991,10 @@ export function App() {
 
           {navigationPanelMode === "campaigns" && (
           <>
-          <div className="mt-6 space-y-2">
+          <div className="mt-6 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <p className="text-xs font-medium text-muted-foreground">キャンペーン一覧</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Campaigns</p>
                 {normalizedCampaignQuery && (
                   <Badge variant="muted">{visibleCampaigns.length}/{campaignLibrary.campaigns.length}</Badge>
                 )}
@@ -2527,7 +3015,7 @@ export function App() {
                 onChange={(event) => setCampaignQuery(event.target.value)}
               />
             </div>
-            <div className="space-y-1">
+            <div className="max-h-[34vh] space-y-1 overflow-auto pr-1 scrollbar-thin max-lg:max-h-none">
               {visibleCampaigns.map((campaign) => (
                 (() => {
                   const stats = getCampaignSummaryStats(campaign);
@@ -2539,8 +3027,8 @@ export function App() {
                     <div
                       className={
                         campaign.id === campaignState.id
-                          ? "flex items-center gap-1 rounded-md bg-primary px-2 py-2 text-sm text-primary-foreground"
-                          : "flex items-center gap-1 rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          ? "flex items-center gap-1 rounded-md border border-primary bg-primary px-2 py-2 text-sm text-primary-foreground shadow-sm"
+                          : "flex items-center gap-1 rounded-md border border-transparent bg-card/45 px-2 py-2 text-sm text-muted-foreground transition-colors hover:border-border hover:bg-card hover:text-foreground"
                       }
                       key={campaign.id}
                     >
@@ -2593,112 +3081,151 @@ export function App() {
             </div>
           </div>
 
-          <div className="mt-6 space-y-2">
-            <label className="text-xs font-medium text-muted-foreground" htmlFor={campaignNameInputId}>
-              キャンペーン名
-            </label>
-            <Input
-              disabled={isExtracting}
-              id={campaignNameInputId}
-              value={campaignName}
-              onBlur={(event) => updateCampaignState({ campaignName: event.target.value.trim() || "無題キャンペーン" })}
-              onChange={(event) => updateCampaignState({ campaignName: event.target.value })}
-            />
-            <div className="grid grid-cols-2 gap-2">
-              {campaignModeOptions.map((option) => (
+          <details className="mt-6 rounded-md border bg-card/72 p-3">
+            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Campaign Setup
+            </summary>
+            <div className="mt-3 space-y-3">
+              <label className="text-xs font-medium text-muted-foreground" htmlFor={campaignNameInputId}>
+                キャンペーン名
+              </label>
+              <Input
+                disabled={isExtracting}
+                id={campaignNameInputId}
+                value={campaignName}
+                onBlur={(event) => updateCampaignState({ campaignName: event.target.value.trim() || "無題キャンペーン" })}
+                onChange={(event) => updateCampaignState({ campaignName: event.target.value })}
+              />
+              <div className="grid gap-2 sm:grid-cols-2">
+                {campaignModeOptions.map((option) => (
+                  <Button
+                    className="h-auto min-w-0 flex-col items-start gap-1 whitespace-normal px-3 py-2 text-left"
+                    disabled={isExtracting}
+                    key={option.value}
+                    onClick={() => updateCampaignState({ campaignMode: option.value })}
+                    size="sm"
+                    variant={campaignMode === option.value ? "default" : "outline"}
+                  >
+                    <span className="max-w-full break-words">{option.label}</span>
+                    <span className="max-w-full break-words text-[11px] font-normal opacity-80">{option.description}</span>
+                  </Button>
+                ))}
+              </div>
+              <div className="grid gap-2 rounded-md border bg-background/80 p-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-medium text-muted-foreground">テンプレート</p>
+                <Badge variant="muted">{campaignStarterTemplates.length}種</Badge>
+              </div>
+              {campaignStarterTemplates.map((template) => (
                 <Button
-                  className="h-auto flex-col items-start gap-1 whitespace-normal px-3 py-2 text-left"
+                  className="h-auto min-w-0 justify-start whitespace-normal px-2 py-2 text-left"
                   disabled={isExtracting}
-                  key={option.value}
-                  onClick={() => updateCampaignState({ campaignMode: option.value })}
+                  key={template.id}
+                  onClick={() => addCampaignFromTemplate(template.id)}
                   size="sm"
-                  variant={campaignMode === option.value ? "default" : "outline"}
+                  variant="outline"
                 >
-                  <span>{option.label}</span>
-                  <span className="text-[11px] font-normal opacity-80">{option.description}</span>
+                  {template.mode === "fantasy" ? <Swords className="h-3.5 w-3.5" /> : <Search className="h-3.5 w-3.5" />}
+                  <span className="min-w-0 max-w-full">
+                    <span className="block text-xs font-medium">{template.label}</span>
+                    <span className="block break-words text-[11px] font-normal leading-4 text-muted-foreground">
+                      {template.description}
+                    </span>
+                  </span>
                 </Button>
               ))}
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button onClick={exportCampaignState} size="sm" variant="outline">
-                <Download className="h-3.5 w-3.5" />
-                現在を書き出し
-              </Button>
-              <Button onClick={exportCampaignMarkdown} size="sm" variant="outline">
-                <FileText className="h-3.5 w-3.5" />
-                現在の要約
-              </Button>
-              <Button onClick={exportCampaignLibrary} size="sm" variant="outline">
-                <Download className="h-3.5 w-3.5" />
-                全体を書き出し
-              </Button>
-              <Button onClick={exportCampaignLibraryMarkdown} size="sm" variant="outline">
-                <FileText className="h-3.5 w-3.5" />
-                目録を書き出し
-              </Button>
-              <label
-                className={
-                  isExtracting
-                    ? "inline-flex h-8 cursor-not-allowed items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-xs font-medium opacity-50"
-                    : "inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                }
-                htmlFor={campaignImportInputId}
-              >
-                <Upload className="h-3.5 w-3.5" />
-                JSON読み込み
-                <input
-                  accept="application/json,.json"
-                  className="sr-only"
-                  disabled={isExtracting}
-                  id={campaignImportInputId}
-                  type="file"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    event.target.value = "";
-                    if (file) {
-                      void importCampaignState(file);
-                    }
-                  }}
-                />
-              </label>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              <Badge variant="muted">ローカル自動保存</Badge>
-              <Badge variant={storageUsagePercent !== null && storageUsagePercent >= 80 ? "destructive" : "muted"}>
-                保存 {formatFileSize(storageHealth.libraryBytes)}
-                {storageUsagePercent !== null ? ` / ${storageUsagePercent}%` : ""}
-              </Badge>
-              <Badge variant={backupStatus.needsBackup ? "destructive" : "muted"}>{backupStatus.label}</Badge>
-              {largestSessionStorageDiagnostic && (
-                <Badge variant="outline">
-                  最大セッション {formatFileSize(largestSessionStorageDiagnostic.totalBytes)}
-                </Badge>
-              )}
-              <Badge variant="outline">APIキーは書き出し対象外</Badge>
-            </div>
-            {storageError ? (
-              <div
-                className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
-                role="alert"
-              >
-                <p className="font-medium">保存状態を確認してください</p>
-                <p className="mt-1 leading-relaxed">{storageError}</p>
               </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                この端末のブラウザに保存中。キャンペーン、ライブラリ、セッションJSONを読み込めます。
-              </p>
-            )}
-          </div>
+            </div>
+          </details>
+
+          <details className="mt-3 rounded-md border bg-card/72 p-3">
+            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Export / Import
+            </summary>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+                <Button onClick={exportCampaignState} size="sm" variant="outline">
+                  <Download className="h-3.5 w-3.5" />
+                  現在を書き出し
+                </Button>
+                <Button onClick={exportCampaignMarkdown} size="sm" variant="outline">
+                  <FileText className="h-3.5 w-3.5" />
+                  現在の要約
+                </Button>
+                <Button onClick={exportPlayerHandoutMarkdown} size="sm" variant="outline">
+                  <FileText className="h-3.5 w-3.5" />
+                  PL共有
+                </Button>
+                <Button onClick={exportCampaignLibrary} size="sm" variant="outline">
+                  <Download className="h-3.5 w-3.5" />
+                  全体を書き出し
+                </Button>
+                <Button onClick={exportCampaignLibraryMarkdown} size="sm" variant="outline">
+                  <FileText className="h-3.5 w-3.5" />
+                  目録を書き出し
+                </Button>
+                <label
+                  className={
+                    isExtracting
+                      ? "inline-flex h-8 cursor-not-allowed items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-xs font-medium opacity-50"
+                      : "inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                  }
+                  htmlFor={campaignImportInputId}
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  JSON読み込み
+                  <input
+                    accept="application/json,.json"
+                    className="sr-only"
+                    disabled={isExtracting}
+                    id={campaignImportInputId}
+                    type="file"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      if (file) {
+                        void importCampaignState(file);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <Badge variant="muted">ローカル自動保存</Badge>
+                <Badge variant={storageUsagePercent !== null && storageUsagePercent >= 80 ? "destructive" : "muted"}>
+                  保存 {formatFileSize(storageHealth.libraryBytes)}
+                  {storageUsagePercent !== null ? ` / ${storageUsagePercent}%` : ""}
+                </Badge>
+                <Badge variant={backupStatus.needsBackup ? "destructive" : "muted"}>{backupStatus.label}</Badge>
+                {largestSessionStorageDiagnostic && (
+                  <Badge variant="outline">
+                    最大セッション {formatFileSize(largestSessionStorageDiagnostic.totalBytes)}
+                  </Badge>
+                )}
+                <Badge variant="outline">APIキーは書き出し対象外</Badge>
+              </div>
+              {storageError ? (
+                <div
+                  className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                  role="alert"
+                >
+                  <p className="font-medium">保存状態を確認してください</p>
+                  <p className="mt-1 leading-relaxed">{storageError}</p>
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  この端末のブラウザに保存中。キャンペーン、ライブラリ、セッションJSONを読み込めます。
+                </p>
+              )}
+          </details>
           </>
           )}
 
           {navigationPanelMode === "sessions" && (
           <>
-          <div className="mt-6 space-y-2">
+          <div className="mt-6 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-muted-foreground">セッション</label>
+                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sessions</label>
                 {(normalizedSessionQuery || sessionTranscriptionFilter !== "all" || sessionArchiveFilter !== "active") && (
                   <Badge variant="muted">{visibleSessions.length}/{campaignState.sessions.length}</Badge>
                 )}
@@ -2773,7 +3300,7 @@ export function App() {
                 ))}
               </select>
             </div>
-            <div className="space-y-1">
+            <div className="max-h-[42vh] space-y-1 overflow-auto pr-1 scrollbar-thin max-lg:max-h-none">
               {visibleSessions.map((session) => (
                 (() => {
                   const liveLogSummary = summarizeLiveLog(session.liveLog);
@@ -2785,8 +3312,8 @@ export function App() {
                     <div
                       className={
                         session.id === campaignState.activeSessionId
-                          ? "flex items-center gap-1 rounded-md bg-primary px-2 py-2 text-sm text-primary-foreground"
-                          : "flex items-center gap-1 rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          ? "flex items-center gap-1 rounded-md border border-primary bg-primary px-2 py-2 text-sm text-primary-foreground shadow-sm"
+                          : "flex items-center gap-1 rounded-md border border-transparent bg-card/45 px-2 py-2 text-sm text-muted-foreground transition-colors hover:border-border hover:bg-card hover:text-foreground"
                       }
                       key={session.id}
                     >
@@ -2915,7 +3442,7 @@ export function App() {
             </div>
           </div>
 
-          <nav className="mt-6 space-y-1">
+          <nav className="mt-6 space-y-1 rounded-md border bg-card/72 p-2">
             {[
               { icon: Search, label: memoryNavLabels.clues, count: chronicle.clues.length, viewMode: "clues" },
               { icon: UserRound, label: "NPC", count: chronicle.npcs.length, viewMode: "npcs" },
@@ -2924,7 +3451,7 @@ export function App() {
               { icon: Sparkles, label: memoryNavLabels.threads, count: chronicle.threads.length, viewMode: "threads" },
             ].map((item) => (
               <button
-                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                 key={item.label}
                 onClick={() => {
                   setChronicleClueStatusFilter("all");
@@ -2942,7 +3469,7 @@ export function App() {
             ))}
           </nav>
 
-          <div className="mt-6 rounded-lg border bg-card p-3">
+          <div className="mt-6 rounded-md border bg-card/80 p-3 shadow-sm">
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium">承認進捗</span>
               <span className="text-muted-foreground">{items.length === 0 ? "未抽出" : `${progress}%`}</span>
@@ -2959,28 +3486,55 @@ export function App() {
         </aside>
         )}
 
-        <section className="min-w-0 px-6 py-5">
-          <header className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-normal">{campaignName}</h1>
-              <p className="text-sm text-muted-foreground">
-                {campaignModeDescriptions[campaignMode]}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
+        <section className="min-w-0 max-w-full px-6 py-5 max-lg:order-1 max-lg:px-4">
+          <header className="surface-elevated w-full max-w-full overflow-hidden rounded-md border p-4">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="truncate text-2xl font-semibold tracking-normal">{campaignName}</h1>
                 <Badge variant="secondary">
                   {findOptionLabel(campaignModeOptions, campaignMode, "調査")}
                 </Badge>
+              </div>
+              <p className="mt-1 max-w-3xl break-all text-sm leading-6 text-muted-foreground">
+                {campaignModeDescriptions[campaignMode]}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
                 <Badge variant="outline">現在: {activeWorkspaceLabel}</Badge>
                 {!isFocusMode && <Badge variant="muted">{sideWorkspaceLabel}</Badge>}
                 {isFocusMode && <Badge variant="muted">集中表示</Badge>}
               </div>
-              <div className="mt-3 flex flex-wrap items-end gap-2">
-                <div>
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button disabled={!canExtractLog || isExtracting} onClick={runExtractionPreview} size="sm">
+                <Wand2 className="h-4 w-4" />
+                {isExtracting ? "抽出中" : "抽出"}
+              </Button>
+              <Button onClick={exportCurrentSessionMarkdown} size="sm" variant="outline">
+                <FileText className="h-4 w-4" />
+                出力
+              </Button>
+              <Button onClick={() => setIsFocusMode((current) => !current)} size="sm" variant="outline">
+                {isFocusMode ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+                {isFocusMode ? "通常" : "集中"}
+              </Button>
+            </div>
+            </div>
+            <div className="mt-4 grid gap-3 border-t pt-4 xl:grid-cols-[1fr_auto]">
+              <Tabs
+                ariaLabel="ワークスペース"
+                className="w-full"
+                value={activeTab}
+                options={tabOptions}
+                onChange={setActiveTab}
+              />
+              <div className="grid w-full gap-2 sm:flex sm:flex-wrap sm:items-end xl:justify-end">
+                <div className="min-w-0">
                   <label className="text-xs font-medium text-muted-foreground" htmlFor={sessionTitleInputId}>
-                    今回のセッション
+                    セッション
                   </label>
                   <Input
-                    className="mt-1 w-44"
+                    className="mt-1 w-full sm:w-44"
                     disabled={isExtracting}
                     id={sessionTitleInputId}
                     value={currentSession.title}
@@ -2988,12 +3542,12 @@ export function App() {
                     onChange={(event) => updateCurrentSession({ title: event.target.value })}
                   />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs font-medium text-muted-foreground" htmlFor={sessionDateInputId}>
                     日付
                   </label>
                   <Input
-                    className="mt-1 w-40"
+                    className="mt-1 w-full sm:w-40"
                     disabled={isExtracting}
                     id={sessionDateInputId}
                     type="date"
@@ -3004,27 +3558,21 @@ export function App() {
                     onChange={(event) => updateCurrentSession({ date: event.target.value })}
                   />
                 </div>
+                <Button className="justify-self-start" onClick={resetUiPreferences} size="sm" variant="ghost">
+                  <RotateCcw className="h-4 w-4" />
+                  初期化
+                </Button>
               </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Tabs ariaLabel="ワークスペース" value={activeTab} options={tabOptions} onChange={setActiveTab} />
-              <Button onClick={() => setIsFocusMode((current) => !current)} size="sm" variant="outline">
-                {isFocusMode ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-                {isFocusMode ? "通常表示" : "集中表示"}
-              </Button>
-              <Button onClick={resetUiPreferences} size="sm" variant="ghost">
-                <RotateCcw className="h-4 w-4" />
-                表示初期化
-              </Button>
             </div>
           </header>
 
-          <div className="mt-5">
+          <div className="mt-5 w-full max-w-full overflow-hidden">
             {activeTab === "home" && (
               <HomeDashboard
                 approvedCount={approvedCount}
                 canExtractLog={canExtractLog}
                 campaignMode={campaignMode}
+                continuityQueue={continuityQueue}
                 currentLiveLogSummary={currentLiveLogSummary}
                 currentSession={currentSession}
                 currentSpeakerIssueCount={currentSpeakerIssueCount}
@@ -3037,6 +3585,9 @@ export function App() {
                 isExtracting={isExtracting}
                 memoryItemCount={memoryItemCount}
                 remainingCount={remainingCount}
+                releaseQaCompletedCount={releaseQaCompletedCount}
+                releaseQaEvidenceCount={releaseQaEvidenceCount}
+                releaseQaTotalCount={releaseQaChecklist.length}
                 reviewItemCount={items.length}
                 reviewQualityDebtCount={reviewQualityDebtCount}
                 sessionCount={campaignState.sessions.length}
@@ -3093,6 +3644,11 @@ export function App() {
 
                   setIsFocusMode(false);
                   setNavigationPanelMode("sessions");
+                }}
+                onOpenOperationalQa={() => {
+                  setIsFocusMode(false);
+                  setRightPanelMode("settings");
+                  setSettingsPanelMode("roadmap");
                 }}
                 onOpenDuplicateReviewItems={() => {
                   setShowDuplicateReviewItemsOnly(true);
@@ -3163,7 +3719,7 @@ export function App() {
                           セッションログ
                         </CardTitle>
                         <CardDescription className="mt-2">
-                          初期MVPでは貼り付け入力に絞ります。ココフォリアやDiscordログの取り込みは後から足せます。
+                          まずは貼り付け入力で安定運用できます。ココフォリアやDiscordログは整形して取り込めます。
                         </CardDescription>
                         <div className="mt-2 flex flex-wrap gap-2">
                           <Badge variant={logInputMode === "speaker" ? "default" : "outline"}>
@@ -3891,6 +4447,23 @@ export function App() {
                           <FileText className="h-4 w-4" />
                           セッション
                         </Button>
+                        <Button disabled={!canSharePlayerHandout} onClick={exportPlayerHandoutMarkdown} size="sm" variant="outline">
+                          <ShieldCheck className="h-4 w-4" />
+                          PL共有
+                        </Button>
+                        <Button
+                          disabled={!canSharePlayerHandout}
+                          onClick={() => void copyPlayerHandoutMarkdown()}
+                          size="sm"
+                          variant="outline"
+                        >
+                          <Copy className="h-4 w-4" />
+                          PLコピー
+                        </Button>
+                        <Button onClick={exportSessionWrapUpMarkdown} size="sm" variant="outline">
+                          <CheckCircle2 className="h-4 w-4" />
+                          締め
+                        </Button>
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -3899,6 +4472,18 @@ export function App() {
                         <Badge variant="muted">{prepLabels.hooks} {dynamicPrepNote.hooks.length}</Badge>
                         <Badge variant="muted">{prepLabels.questions} {dynamicPrepNote.openQuestions.length}</Badge>
                         <Badge variant="muted">{prepLabels.reminders} {dynamicPrepNote.reminders.length}</Badge>
+                        <Badge variant={playerHandoutSafetyWarnings.length > 0 ? "destructive" : "secondary"}>
+                          PL安全 {playerHandoutSafetyWarnings.length > 0 ? `${playerHandoutSafetyWarnings.length}件確認` : "OK"}
+                        </Badge>
+                        <Badge variant="muted">
+                          締め {sessionWrapUpChecklist.filter((item) => item.status === "done").length}/
+                          {sessionWrapUpChecklist.length}
+                        </Badge>
+                        {clipboardMessage && (
+                          <Badge role="status" variant="secondary">
+                            {clipboardMessage}
+                          </Badge>
+                        )}
                       </div>
                       <Tabs
                         ariaLabel="次回準備カテゴリ"
@@ -3921,56 +4506,163 @@ export function App() {
                 {prepWorkspaceMode === "reminders" && (
                   <PrepSection title={prepLabels.reminders} items={dynamicPrepNote.reminders} icon={KeyRound} />
                 )}
+                {prepWorkspaceMode === "handout" && (
+                  <Card>
+                    <CardHeader>
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            <ShieldCheck className="h-4 w-4" />
+                            {prepLabels.handout}
+                          </CardTitle>
+                          <CardDescription className="mt-2">
+                            GM秘密、未開示候補、伏線の次手を除いた共有用Markdownです。
+                          </CardDescription>
+                        </div>
+                        <Badge variant={playerHandoutSafetyWarnings.length > 0 ? "destructive" : "default"}>
+                          {playerHandoutSafetyWarnings.length > 0 ? "要確認" : "安全チェックOK"}
+                        </Badge>
+                        <Button disabled={!canSharePlayerHandout} onClick={exportPlayerHandoutMarkdown} size="sm" variant="outline">
+                          <Download className="h-4 w-4" />
+                          Markdown
+                        </Button>
+                        <Button
+                          disabled={!canSharePlayerHandout}
+                          onClick={() => void copyPlayerHandoutMarkdown()}
+                          size="sm"
+                          variant="outline"
+                        >
+                          <Copy className="h-4 w-4" />
+                          コピー
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="grid gap-3">
+                      {playerHandoutSafetyWarnings.length > 0 && (
+                        <div className="grid gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3">
+                          <p className="text-sm font-medium text-destructive">共有前に確認</p>
+                          {playerHandoutSafetyWarnings.map((warning) => (
+                            <div className="rounded-md border bg-background p-2 text-xs" key={warning.id}>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="destructive">{formatHandoutWarningSource(warning.source)}</Badge>
+                                <span className="font-medium">{warning.label}</span>
+                              </div>
+                              <p className="mt-1 leading-5 text-muted-foreground">{warning.leakedText}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-xs leading-6">
+                        {playerHandoutMarkdown}
+                      </pre>
+                    </CardContent>
+                  </Card>
+                )}
+                {prepWorkspaceMode === "wrapup" && (
+                  <Card>
+                    <CardHeader>
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4" />
+                            {prepLabels.wrapup}
+                          </CardTitle>
+                          <CardDescription className="mt-2">
+                            セッション後に、記録、承認、共有、整理の抜け漏れを確認します。
+                          </CardDescription>
+                        </div>
+                        <Button onClick={exportSessionWrapUpMarkdown} size="sm" variant="outline">
+                          <Download className="h-4 w-4" />
+                          Markdown
+                        </Button>
+                        <Button
+                          onClick={() => void copyTextToClipboard("締めメモ", sessionWrapUpMarkdown)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          <Copy className="h-4 w-4" />
+                          コピー
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="grid gap-2">
+                      {sessionWrapUpChecklist.map((item) => (
+                        <div className="flex flex-wrap items-start justify-between gap-3 rounded-md border bg-background p-3" key={item.id}>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant={item.status === "done" ? "default" : "secondary"}>
+                                {item.status === "done" ? "完了" : "未完了"}
+                              </Badge>
+                              <p className="text-sm font-medium">{item.label}</p>
+                            </div>
+                            <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</p>
+                          </div>
+                          <Button
+                            onClick={() => openWrapUpTarget(item.target)}
+                            size="sm"
+                            variant={item.status === "done" ? "ghost" : "outline"}
+                          >
+                            開く
+                          </Button>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
           </div>
         </section>
 
         {!isFocusMode && (
-        <aside className="border-l bg-panel px-4 py-5 max-xl:col-span-2 max-xl:border-l-0 max-xl:border-t max-lg:col-span-1">
+        <aside className="col-start-2 border-t bg-panel px-6 py-5 max-lg:order-3 max-lg:col-start-auto max-lg:px-4">
+          <div className="surface-elevated rounded-md border p-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="flex items-center gap-2 text-sm font-semibold">
                 {rightPanelMode === "settings" ? <Settings2 className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-                補助パネル
+                サイドデスク
               </p>
               <p className="text-xs text-muted-foreground">
-                {rightPanelMode === "rescue" ? "セッション中の即応ツール" : "Providerと将来拡張"}
+                {rightPanelMode === "rescue" ? "進行中に差し込める即応ツール" : "Provider、保存、出荷QA"}
               </p>
             </div>
             <Tabs
-              ariaLabel="補助パネル"
+              ariaLabel="サイドデスク"
               value={rightPanelMode}
               options={rightPanelOptions}
               onChange={setRightPanelMode}
             />
           </div>
+          </div>
 
           {rightPanelMode === "rescue" && (
-            <div className="mt-4">
-              <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold">即興レスキュー</p>
-              <p className="text-xs text-muted-foreground">セッション中に使う短い候補</p>
-            </div>
-            <Badge variant="muted">{quickPrompts.length}種</Badge>
-          </div>
+            <div className="mt-4 grid gap-4">
+              <div className="rounded-md border bg-card/80 p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">即応パレット</p>
+                    <p className="text-xs text-muted-foreground">迷った瞬間に使う短い候補</p>
+                  </div>
+                  <Badge variant="muted">{quickPrompts.length}種</Badge>
+                </div>
 
-          <div className="mt-4 grid gap-2">
-            {quickPrompts.map((prompt) => (
-              <Button
-                className="justify-start"
-                key={prompt.title}
-                onClick={() => updateCampaignState({ quickResult: prompt.result })}
-                variant="outline"
-              >
-                <prompt.icon className="h-4 w-4" />
-                {prompt.title}
-              </Button>
-            ))}
-          </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  {quickPrompts.map((prompt) => (
+                    <Button
+                      className="h-auto justify-start whitespace-normal px-3 py-2 text-left"
+                      key={prompt.title}
+                      onClick={() => updateCampaignState({ quickResult: prompt.result })}
+                      variant="outline"
+                    >
+                      <prompt.icon className="h-4 w-4 shrink-0" />
+                      {prompt.title}
+                    </Button>
+                  ))}
+                </div>
+              </div>
 
-          <Card className="mt-4">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4" />
@@ -4015,6 +4707,13 @@ export function App() {
               settings={extractionProvider}
               onChangeSecrets={setProviderSecrets}
               onChange={(nextSettings) => updateCampaignState({ extractionProvider: nextSettings })}
+              onConnectionTestResult={(result) =>
+                recordProviderConnectionEvidence(
+                  EXTRACTION_PROVIDER_RELEASE_QA_ID,
+                  `抽出/${getExtractionProvider(extractionProvider.providerId).label}`,
+                  result,
+                )
+              }
             />
           </div>
           )}
@@ -4042,6 +4741,35 @@ export function App() {
                 <Badge variant="muted">言語 {transcriptionProvider.language}</Badge>
               </div>
               <p className="text-xs text-muted-foreground">{transcriptionProviderReadiness.message}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  aria-busy={isTestingTranscriptionConnection}
+                  disabled={!canTestTranscriptionConnection}
+                  onClick={() => void testTranscriptionConnection()}
+                  size="sm"
+                  variant="outline"
+                >
+                  <Unplug className="h-4 w-4" />
+                  {isTestingTranscriptionConnection ? "確認中" : "接続テスト"}
+                </Button>
+                {transcriptionConnectionResult && (
+                  <Badge variant={transcriptionConnectionResult.ok ? "default" : "destructive"}>
+                    {transcriptionConnectionResult.ok ? "成功" : "失敗"}
+                  </Badge>
+                )}
+                {transcriptionConnectionResult?.ok && (
+                  <Badge variant={transcriptionConnectionResult.isReleaseQaEvidence ? "secondary" : "muted"}>
+                    {transcriptionConnectionResult.isReleaseQaEvidence ? "Release QA証跡" : "ローカル確認"}
+                  </Badge>
+                )}
+              </div>
+              <p
+                aria-live="polite"
+                className={transcriptionConnectionResult?.ok === false ? "text-xs text-destructive" : "text-xs text-muted-foreground"}
+                role="status"
+              >
+                {isTestingTranscriptionConnection ? "文字起こしProvider 接続を確認しています。" : transcriptionConnectionResult?.message}
+              </p>
               <Button
                 disabled={isExtracting}
                 onClick={() =>
@@ -4198,13 +4926,109 @@ export function App() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Swords className="h-4 w-4" />
-                拡張予定
+                <ShieldCheck className="h-4 w-4" />
+                運用QA
               </CardTitle>
+              <CardDescription className="mt-2">
+                出荷前と卓後の継続運用で確認すべき安全性、保存、導線、Provider接続をまとめます。
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>ファンタジーモードでは、手がかりをクエスト、秘密を勢力事情、伏線を世界変化へ置き換えます。</p>
-              <p>AI接続はユーザーAPIキー方式にして、ローカル保存を基本にします。</p>
+              <div className="grid gap-2 rounded-md border border-border bg-background p-3 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-medium text-foreground">信頼性チェック</p>
+                  <Badge variant="muted">{productSafetyChecklist.length}項目</Badge>
+                </div>
+                {productSafetyChecklist.map((item) => (
+                  <div className="grid gap-1 rounded-md border bg-muted/20 p-2" key={item.id}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge
+                        variant={
+                          item.status === "ok"
+                            ? "default"
+                            : item.status === "action"
+                              ? "destructive"
+                              : "secondary"
+                        }
+                      >
+                        {item.status === "ok" ? "OK" : item.status === "action" ? "要対応" : "注意"}
+                      </Badge>
+                      <span className="font-medium text-foreground">{item.label}</span>
+                    </div>
+                    <p className="leading-5">{item.detail}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="grid gap-2 rounded-md border border-border bg-background p-3 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-medium text-foreground">Release QA</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={isReleaseQaReady ? "default" : "destructive"}>
+                      {isReleaseQaReady ? "出荷判定OK" : "出荷未完了"}
+                    </Badge>
+                    <Badge variant={releaseQaCompletedCount === releaseQaChecklist.length ? "default" : "muted"}>
+                      {releaseQaCompletedCount}/{releaseQaChecklist.length}確認済み
+                    </Badge>
+                    <Badge variant={releaseQaEvidenceCount === releaseQaChecklist.length ? "default" : "secondary"}>
+                      証跡 {releaseQaEvidenceCount}件
+                    </Badge>
+                    {!isReleaseQaReady && (
+                      <Badge variant="secondary">
+                        不足 確認{releaseQaIncompleteCount}件 / 証跡{releaseQaMissingEvidenceCount}件
+                      </Badge>
+                    )}
+                    <Button onClick={exportReleaseQaMarkdown} size="sm" variant="outline">
+                      <FileText className="h-4 w-4" />
+                      Markdown
+                    </Button>
+                    <Button onClick={() => void copyReleaseQaMarkdown()} size="sm" variant="outline">
+                      <Copy className="h-4 w-4" />
+                      コピー
+                    </Button>
+                    <Button onClick={requestReleaseQaReset} size="sm" variant="ghost">
+                      <RotateCcw className="h-4 w-4" />
+                      リセット
+                    </Button>
+                    {releaseQaMessage && (
+                      <Badge role="status" variant="secondary">
+                        {releaseQaMessage}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                {releaseQaChecklist.map((item) => {
+                  const hasEvidenceNote = Boolean(releaseQaEvidenceNotes[item.id]?.trim());
+
+                  return (
+                    <div className="grid gap-1 rounded-md border bg-muted/20 p-2" key={item.id}>
+                      <label className="flex items-start gap-2 text-foreground">
+                        <input
+                          checked={releaseQaCompletedIdSet.has(item.id)}
+                          className="mt-0.5 h-4 w-4 rounded border-input"
+                          onChange={() => toggleReleaseQaItem(item.id)}
+                          type="checkbox"
+                        />
+                        <span className="grid gap-1">
+                          <span className="flex flex-wrap items-center gap-2 font-medium">
+                            {item.label}
+                            <Badge variant={hasEvidenceNote ? "default" : "secondary"}>
+                              {hasEvidenceNote ? "証跡あり" : "証跡なし"}
+                            </Badge>
+                          </span>
+                          <span className="leading-5 text-muted-foreground">{item.detail}</span>
+                        </span>
+                      </label>
+                      <Textarea
+                        aria-label={`${item.label}の確認メモ`}
+                        className="min-h-16 text-xs"
+                        onChange={(event) => updateReleaseQaEvidenceNote(item.id, event.target.value)}
+                        placeholder="確認メモ: 実行日時、結果、対象URL、接続先など"
+                        value={releaseQaEvidenceNotes[item.id] ?? ""}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
               {largestSessionStorageDiagnostic && (
                 <div className="rounded-md border border-border bg-muted/20 p-3 text-xs">
                   <p className="font-medium text-foreground">保存サイズ最大セッション</p>
@@ -4248,6 +5072,7 @@ function HomeDashboard({
   approvedCount,
   canExtractLog,
   campaignMode,
+  continuityQueue,
   backupStatus,
   currentLiveLogSummary,
   currentSession,
@@ -4272,12 +5097,16 @@ function HomeDashboard({
   onOpenInvalidReviewItems,
   onOpenReviewInspect,
   onOpenReviewQuality,
+  onOpenOperationalQa,
   onOpenSessionList,
   onOpenSpeakerLogIssues,
   onOpenStorageSettings,
   onOpenTranscriptionImport,
   onOpenTranscriptionProviderSettings,
   remainingCount,
+  releaseQaCompletedCount,
+  releaseQaEvidenceCount,
+  releaseQaTotalCount,
   reviewItemCount,
   reviewQualityDebtCount,
   sessionCount,
@@ -4288,6 +5117,7 @@ function HomeDashboard({
   backupStatus: ReturnType<typeof getBackupStatus>;
   canExtractLog: boolean;
   campaignMode: CampaignMode;
+  continuityQueue: ContinuityQueueItem[];
   currentLiveLogSummary: ReturnType<typeof summarizeLiveLog>;
   currentSession: SessionState;
   currentSpeakerIssueCount: number;
@@ -4311,12 +5141,16 @@ function HomeDashboard({
   onOpenPrepHooks: () => void;
   onOpenReviewInspect: () => void;
   onOpenReviewQuality: () => void;
+  onOpenOperationalQa: () => void;
   onOpenSessionList: () => void;
   onOpenSpeakerLogIssues: () => void;
   onOpenStorageSettings: () => void;
   onOpenTranscriptionImport: () => void;
   onOpenTranscriptionProviderSettings: () => void;
   remainingCount: number;
+  releaseQaCompletedCount: number;
+  releaseQaEvidenceCount: number;
+  releaseQaTotalCount: number;
   reviewItemCount: number;
   reviewQualityDebtCount: number;
   sessionCount: number;
@@ -4357,6 +5191,12 @@ function HomeDashboard({
       : null,
     storageUsagePercent !== null && storageUsagePercent >= 80
       ? { label: `保存容量 ${storageUsagePercent}%`, onOpen: onOpenStorageSettings }
+      : null,
+    releaseQaCompletedCount < releaseQaTotalCount || releaseQaEvidenceCount < releaseQaTotalCount
+      ? {
+          label: `Release QA ${releaseQaCompletedCount}/${releaseQaTotalCount}・証跡 ${releaseQaEvidenceCount}/${releaseQaTotalCount}`,
+          onOpen: onOpenOperationalQa,
+        }
       : null,
     backupStatus.needsBackup
       ? { label: backupStatus.label, onOpen: onOpenStorageSettings }
@@ -4421,157 +5261,253 @@ function HomeDashboard({
         : memoryItemCount === 0
           ? { label: "採用候補を記憶化", detail: "承認した候補をキャンペーン記憶へ反映します。", onOpen: onOpenReviewInspect }
           : { label: "次回準備を確認", detail: "承認済み記憶から次回導入案を確認します。", onOpen: onOpenPrepHooks };
+  const openContinuityTarget = (target: ContinuityQueueItem["target"]): void => {
+    if (target === "log") {
+      onOpenLogEditor();
+      return;
+    }
+
+    if (target === "review") {
+      onOpenReviewInspect();
+      return;
+    }
+
+    if (target === "memory") {
+      onOpenChronicleOverview();
+      return;
+    }
+
+    if (target === "prep") {
+      onOpenPrepHooks();
+      return;
+    }
+
+    onOpenSessionList();
+  };
+  const priorityLabels: Record<ContinuityQueueItem["priority"], string> = {
+    high: "高",
+    low: "低",
+    medium: "中",
+  };
+  const priorityVariants: Record<ContinuityQueueItem["priority"], "destructive" | "muted" | "secondary"> = {
+    high: "destructive",
+    low: "muted",
+    medium: "secondary",
+  };
 
   return (
     <div className="grid gap-4">
-      <Card>
-        <CardContent className="grid gap-4 py-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium">{currentSession.title} の進行状況</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                ログ、承認、記憶、次回準備を1つの導線で確認します。
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button disabled={!canExtractLog || isExtracting} onClick={onExtract}>
-                <Wand2 className="h-4 w-4" />
-                {isExtracting ? "抽出中" : "抽出プレビュー"}
-              </Button>
-              <Button onClick={onExportCurrentSessionMarkdown} variant="outline">
-                <FileText className="h-4 w-4" />
-                セッション出力
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-4 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
-            <MetricTile
-              label="セッション"
-              value={`${sessionCount}`}
-              detail={currentSession.date}
-              onOpen={onOpenSessionList}
-            />
-            <MetricTile
-              label="発話ログ"
-              value={`${currentLiveLogSummary.nonEmptySegmentCount}`}
-              detail={
-                currentLiveLogSummary.lowConfidenceCount > 0
-                  ? `要確認 ${currentLiveLogSummary.lowConfidenceCount}`
-                  : "本文あり"
-              }
-              onOpen={onOpenLogEditor}
-              tone={currentSpeakerIssueCount > 0 ? "warning" : "default"}
-            />
-            <MetricTile
-              label="承認候補"
-              value={`${reviewItemCount}`}
-              detail={`${approvedCount}採用 / ${remainingCount}未確認`}
-              onOpen={remainingCount > 0 ? onOpenReviewInspect : onOpenDuplicateReviewItems}
-              tone={remainingCount > 0 ? "warning" : "default"}
-            />
-            <MetricTile
-              label="キャンペーン記憶"
-              value={`${memoryItemCount}`}
-              detail={hiddenClueCount > 0 ? `未開示 ${hiddenClueCount}` : "公開整理済み"}
-              onOpen={hiddenClueCount > 0 ? onOpenHiddenClues : onOpenChronicleOverview}
-            />
-          </div>
-
-          {priorityAlerts.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-              <span className="text-sm font-medium text-destructive">要確認</span>
-              {priorityAlerts.map((alert) => (
-                <Button key={alert.label} onClick={alert.onOpen} size="sm" variant="destructive">
-                  {alert.label}
-                </Button>
-              ))}
-            </div>
-          )}
-
-          {needsFirstLog && (
-            <div className="grid gap-3 rounded-md border border-dashed bg-background p-3">
-              <div>
-                <p className="text-sm font-medium">最初のセッションログを用意</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  サンプルで流れを確認するか、実セッションの文字起こし/ログ入力から始められます。
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
+        <Card className="command-surface border-primary/20 shadow-sm">
+          <CardContent className="grid gap-5 py-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary">Session Command</p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-normal">{currentSession.title}</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                  ログ、承認、記憶、次回準備を一本道に整理します。今やるべき作業だけを前面に出します。
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={onLoadDemo} size="sm">
-                  <RotateCcw className="h-4 w-4" />
-                  サンプルで試す
+                <Button disabled={!canExtractLog || isExtracting} onClick={onExtract}>
+                  <Wand2 className="h-4 w-4" />
+                  {isExtracting ? "抽出中" : "抽出プレビュー"}
                 </Button>
-                <Button onClick={onOpenLogEditor} size="sm" variant="outline">
+                <Button onClick={onExportCurrentSessionMarkdown} variant="outline">
                   <FileText className="h-4 w-4" />
-                  ログを入力
-                </Button>
-                <Button onClick={onOpenTranscriptionImport} size="sm" variant="outline">
-                  <Upload className="h-4 w-4" />
-                  文字起こしを取り込む
+                  セッション出力
                 </Button>
               </div>
             </div>
-          )}
 
-          {!needsFirstLog && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background px-3 py-2">
-              <div>
-                <p className="text-sm font-medium">おすすめの次アクション: {recommendedAction.label}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{recommendedAction.detail}</p>
-              </div>
-              <Button disabled={isExtracting} onClick={recommendedAction.onOpen} size="sm">
-                開く
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-md:grid-cols-1">
-        {workflowSteps.map((step, index) => (
-          <Card key={step.label}>
-            <CardContent className="grid h-full gap-3 py-4">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
-                    <step.icon className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{index + 1}. {step.label}</p>
-                    <Badge variant={step.isDone ? "default" : step.isReady ? "outline" : "muted"}>
-                      {step.isDone ? "完了" : step.isReady ? "着手可" : "待機"}
-                    </Badge>
-                  </div>
+            {needsFirstLog ? (
+              <div className="grid gap-3 rounded-md border border-dashed bg-background/80 p-4">
+                <div>
+                  <p className="text-sm font-semibold">最初のセッションログを用意</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    テンプレートで体験するか、実セッションのログ入力/文字起こし取り込みから開始します。
+                  </p>
                 </div>
-                {step.isDone && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={onLoadDemo} size="sm">
+                    <RotateCcw className="h-4 w-4" />
+                    テンプレートで試す
+                  </Button>
+                  <Button onClick={onOpenLogEditor} size="sm" variant="outline">
+                    <FileText className="h-4 w-4" />
+                    ログを入力
+                  </Button>
+                  <Button onClick={onOpenTranscriptionImport} size="sm" variant="outline">
+                    <Upload className="h-4 w-4" />
+                    文字起こし
+                  </Button>
+                </div>
               </div>
-              <p className="text-sm leading-6 text-muted-foreground">{step.description}</p>
-              <Button
-                disabled={!step.isReady && step.label !== "ログ作成"}
-                onClick={step.onOpen}
-                size="sm"
-                variant={step.isReady ? "default" : "outline"}
-              >
-                {step.actionLabel}
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+            ) : (
+              <div className="grid gap-3 rounded-md border border-primary/20 bg-background/86 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">次にやること: {recommendedAction.label}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{recommendedAction.detail}</p>
+                </div>
+                <Button className="w-full sm:w-auto" disabled={isExtracting} onClick={recommendedAction.onOpen}>
+                  <Compass className="h-4 w-4" />
+                  進む
+                </Button>
+              </div>
+            )}
+
+            <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+              <MetricTile
+                label="セッション"
+                value={`${sessionCount}`}
+                detail={currentSession.date}
+                icon={Clock3}
+                onOpen={onOpenSessionList}
+              />
+              <MetricTile
+                label="発話ログ"
+                value={`${currentLiveLogSummary.nonEmptySegmentCount}`}
+                detail={
+                  currentLiveLogSummary.lowConfidenceCount > 0
+                    ? `要確認 ${currentLiveLogSummary.lowConfidenceCount}`
+                    : "本文あり"
+                }
+                icon={MessageSquareText}
+                onOpen={onOpenLogEditor}
+                tone={currentSpeakerIssueCount > 0 ? "warning" : "default"}
+              />
+              <MetricTile
+                label="承認候補"
+                value={`${reviewItemCount}`}
+                detail={`${approvedCount}採用 / ${remainingCount}未確認`}
+                icon={ShieldCheck}
+                onOpen={remainingCount > 0 ? onOpenReviewInspect : onOpenDuplicateReviewItems}
+                tone={remainingCount > 0 ? "warning" : "default"}
+              />
+              <MetricTile
+                label="キャンペーン記憶"
+                value={`${memoryItemCount}`}
+                detail={hiddenClueCount > 0 ? `未開示 ${hiddenClueCount}` : "公開整理済み"}
+                icon={BookOpen}
+                onOpen={hiddenClueCount > 0 ? onOpenHiddenClues : onOpenChronicleOverview}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-4">
+          {priorityAlerts.length > 0 && (
+            <Card className="border-amber-200 bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-sm text-amber-800">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  優先確認
+                </CardTitle>
+                <CardDescription>進行前に片付けたいリスクです。</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-2">
+                {priorityAlerts.slice(0, 5).map((alert) => (
+                  <button
+                    className="min-h-9 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left text-xs font-medium leading-5 text-amber-900 transition-colors hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    key={alert.label}
+                    onClick={alert.onOpen}
+                    type="button"
+                  >
+                    {alert.label}
+                  </button>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {continuityQueue.length > 0 && (
+            <Card className="shadow-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-sm">次回までの確認キュー</CardTitle>
+                    <CardDescription className="mt-1">キャンペーン状態から自動抽出した未処理作業。</CardDescription>
+                  </div>
+                  <Badge variant="muted">{continuityQueue.length}件</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="grid gap-2">
+                {continuityQueue.slice(0, 4).map((item) => (
+                  <button
+                    className="grid min-w-0 gap-2 rounded-md border bg-background/80 px-3 py-2 text-left transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    key={item.id}
+                    onClick={() => openContinuityTarget(item.target)}
+                    type="button"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={priorityVariants[item.priority]}>優先 {priorityLabels[item.priority]}</Badge>
+                      {typeof item.count === "number" && <Badge variant="outline">{item.count}件</Badge>}
+                      <span className="min-w-0 break-words text-sm font-medium">{item.title}</span>
+                    </div>
+                    <span className="min-w-0 break-words text-xs leading-5 text-muted-foreground">{item.detail}</span>
+                  </button>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
+
+      <details className="rounded-md border bg-card/80 p-3">
+        <summary className="cursor-pointer text-sm font-semibold text-muted-foreground">ワークフロー詳細</summary>
+        <div className="mt-3 grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-md:grid-cols-1">
+          {workflowSteps.map((step, index) => (
+            <Card className={step.isReady ? "border-primary/20" : "opacity-85"} key={step.label}>
+              <CardContent className="grid h-full gap-3 py-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={
+                        step.isReady
+                          ? "flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground"
+                          : "flex h-9 w-9 items-center justify-center rounded-md bg-muted text-muted-foreground"
+                      }
+                    >
+                      <step.icon className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Step {index + 1}</p>
+                      <p className="text-sm font-semibold">{step.label}</p>
+                      <Badge variant={step.isDone ? "default" : step.isReady ? "outline" : "muted"}>
+                        {step.isDone ? "完了" : step.isReady ? "着手可" : "待機"}
+                      </Badge>
+                    </div>
+                  </div>
+                  {step.isDone && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                </div>
+                <p className="text-sm leading-6 text-muted-foreground">{step.description}</p>
+                <Button
+                  disabled={!step.isReady && step.label !== "ログ作成"}
+                  onClick={step.onOpen}
+                  size="sm"
+                  variant={step.isReady ? "default" : "outline"}
+                >
+                  {step.actionLabel}
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </details>
     </div>
   );
 }
 
 function MetricTile({
   detail,
+  icon: Icon,
   label,
   onOpen,
   tone = "default",
   value,
 }: {
   detail: string;
+  icon: typeof Compass;
   label: string;
   onOpen?: () => void;
   tone?: "default" | "warning";
@@ -4580,7 +5516,10 @@ function MetricTile({
   const content = (
     <>
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+          <Icon className="h-4 w-4" />
+          {label}
+        </span>
         {onOpen && <Badge variant="muted">開く</Badge>}
       </div>
       <p className="mt-2 text-2xl font-semibold tracking-normal">{value}</p>
@@ -4593,7 +5532,7 @@ function MetricTile({
   if (onOpen) {
     return (
       <button
-        className="rounded-md border bg-background p-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="rounded-md border bg-background/82 p-3 text-left shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={onOpen}
         type="button"
       >
@@ -4603,10 +5542,26 @@ function MetricTile({
   }
 
   return (
-    <div className="rounded-md border bg-background p-3">
+    <div className="rounded-md border bg-background/82 p-3 shadow-sm">
       {content}
     </div>
   );
+}
+
+function formatHandoutWarningSource(source: PlayerHandoutSafetyWarning["source"]): string {
+  if (source === "gm-secret") {
+    return "GM秘密";
+  }
+
+  if (source === "hidden-clue") {
+    return "未開示";
+  }
+
+  if (source === "partial-clue") {
+    return "一部既知";
+  }
+
+  return "伏線";
 }
 
 function ConfirmationDialog({

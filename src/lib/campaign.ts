@@ -85,6 +85,60 @@ export type CampaignSummaryStats = {
   transcribedSessionCount: number;
 };
 
+export type ContinuityQueueItem = {
+  count?: number;
+  detail: string;
+  id: string;
+  priority: "high" | "medium" | "low";
+  target: "log" | "review" | "memory" | "prep" | "sessions";
+  title: string;
+};
+
+export type SessionWrapUpChecklistItem = {
+  detail: string;
+  id: string;
+  label: string;
+  status: "done" | "todo";
+  target: "log" | "review" | "memory" | "prep" | "share" | "sessions";
+};
+
+export type PlayerHandoutSafetyWarning = {
+  id: string;
+  label: string;
+  leakedText: string;
+  source: "gm-secret" | "hidden-clue" | "partial-clue" | "thread";
+};
+
+export type PlayerHandoutShareStatus = {
+  canShare: boolean;
+  message: string;
+  warningCount: number;
+};
+
+export type CampaignStarterTemplateId = "investigation-demo" | "fantasy-campaign";
+
+export type CampaignStarterTemplate = {
+  description: string;
+  id: CampaignStarterTemplateId;
+  label: string;
+  mode: CampaignMode;
+};
+
+export const campaignStarterTemplates: CampaignStarterTemplate[] = [
+  {
+    description: "PL既知、GM秘密、未開示手がかりの流れを試せる調査卓。",
+    id: "investigation-demo",
+    label: "調査サンプル",
+    mode: "investigation",
+  },
+  {
+    description: "依頼、勢力事情、世界変化を継続管理する長期キャンペーン。",
+    id: "fantasy-campaign",
+    label: "ファンタジー雛形",
+    mode: "fantasy",
+  },
+];
+
 export function getCampaignSummaryStats(campaign: CampaignState): CampaignSummaryStats {
   return {
     archivedSessionCount: campaign.sessions.filter((session) => Boolean(session.archivedAt)).length,
@@ -106,6 +160,232 @@ export function getCampaignSummaryStats(campaign: CampaignState): CampaignSummar
     sessionCount: campaign.sessions.length,
     transcribedSessionCount: campaign.sessions.filter((session) => session.transcriptionRun !== null).length,
   };
+}
+
+function getDateAgeInDays(dateText: string, today: Date): number | null {
+  const date = new Date(`${dateText}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const sessionDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const ageMs = todayDate.getTime() - sessionDate.getTime();
+
+  return Math.floor(ageMs / 86_400_000);
+}
+
+export function buildContinuityQueue(
+  campaign: CampaignState,
+  activeSession: SessionState,
+  prepNote: PrepNote,
+  today = new Date(),
+): ContinuityQueueItem[] {
+  const sessionHasLog =
+    activeSession.log.trim().length > 0 ||
+    activeSession.liveLog.segments.some((segment) => segment.text.trim().length > 0);
+  const pendingReviewCount = activeSession.extractionItems.filter(
+    (item) => !activeSession.approvedIds.includes(item.id),
+  ).length;
+  const hiddenClueCount = campaign.chronicle.clues.filter((clue) => clue.status !== "known").length;
+  const threadNextMoveCount = campaign.chronicle.threads.filter((thread) => thread.nextMove.trim().length > 0).length;
+  const prepItemCount =
+    prepNote.shortRecap.length + prepNote.hooks.length + prepNote.openQuestions.length + prepNote.reminders.length;
+  const handoutWarningCount = buildPlayerHandoutSafetyWarnings(campaign).length;
+  const activeSessionAge = getDateAgeInDays(activeSession.date, today);
+  const openSessionCount = campaign.sessions.filter((session) => !session.archivedAt).length;
+  const archivedSessionCount = campaign.sessions.length - openSessionCount;
+  const queue: ContinuityQueueItem[] = [];
+
+  if (!sessionHasLog) {
+    queue.push({
+      detail: "通常ログか話者付きログを入れると、承認候補と次回準備へ進めます。",
+      id: "log-input",
+      priority: "high",
+      target: "log",
+      title: "セッションログを用意",
+    });
+  }
+
+  if (pendingReviewCount > 0) {
+    queue.push({
+      count: pendingReviewCount,
+      detail: "未確認候補を採用、修正、破棄してからキャンペーン記憶へ反映します。",
+      id: "pending-review",
+      priority: "high",
+      target: "review",
+      title: "GM承認待ちを片付ける",
+    });
+  }
+
+  if (hiddenClueCount > 0) {
+    queue.push({
+      count: hiddenClueCount,
+      detail: campaign.campaignMode === "fantasy"
+        ? "未開示のクエスト/勢力事情を次に動かす候補として確認します。"
+        : "一部既知またはGM秘密の手がかりを、次回どこまで出すか確認します。",
+      id: "hidden-memory",
+      priority: pendingReviewCount > 0 ? "medium" : "high",
+      target: "memory",
+      title: campaign.campaignMode === "fantasy" ? "未開示情報を確認" : "未開示手がかりを確認",
+    });
+  }
+
+  if (threadNextMoveCount > 0) {
+    queue.push({
+      count: threadNextMoveCount,
+      detail: campaign.campaignMode === "fantasy"
+        ? "世界変化の次の動きを次回の場面や依頼に接続します。"
+        : "未回収の伏線に次の出し方が設定されています。",
+      id: "thread-next-move",
+      priority: "medium",
+      target: "memory",
+      title: campaign.campaignMode === "fantasy" ? "世界変化の次手を使う" : "伏線の次手を使う",
+    });
+  }
+
+  if (handoutWarningCount > 0) {
+    queue.push({
+      count: handoutWarningCount,
+      detail: "PL共有メモに秘密由来テキスト候補があります。共有前に確認してください。",
+      id: "player-handout-warning",
+      priority: "high",
+      target: "prep",
+      title: "PL共有メモを確認",
+    });
+  }
+
+  if (prepItemCount > 0) {
+    queue.push({
+      count: prepItemCount,
+      detail: "あらすじ、導入案、未解決事項、GM確認メモをセッション前に確認できます。",
+      id: "prep-note",
+      priority: pendingReviewCount > 0 ? "low" : "medium",
+      target: "prep",
+      title: "次回準備メモを確認",
+    });
+  }
+
+  if (
+    activeSessionAge !== null &&
+    activeSessionAge >= 14 &&
+    sessionHasLog &&
+    (activeSession.approvedIds.length === 0 || pendingReviewCount > 0)
+  ) {
+    queue.push({
+      detail: `${activeSession.date} のログが未採用のまま残っています。記憶化するか、不要ならアーカイブします。`,
+      id: "stale-session",
+      priority: "medium",
+      target: "sessions",
+      title: "古いセッションを整理",
+    });
+  }
+
+  if (archivedSessionCount > 0 && openSessionCount > 4) {
+    queue.push({
+      count: openSessionCount,
+      detail: "終わった回をアーカイブすると、進行中セッションに集中しやすくなります。",
+      id: "session-housekeeping",
+      priority: "low",
+      target: "sessions",
+      title: "セッション一覧を整理",
+    });
+  }
+
+  return queue.slice(0, 5);
+}
+
+export function buildSessionWrapUpChecklist(
+  campaign: CampaignState,
+  activeSession: SessionState,
+  prepNote: PrepNote,
+): SessionWrapUpChecklistItem[] {
+  const sessionHasLog =
+    activeSession.log.trim().length > 0 ||
+    activeSession.liveLog.segments.some((segment) => segment.text.trim().length > 0);
+  const pendingReviewCount = activeSession.extractionItems.filter(
+    (item) => !activeSession.approvedIds.includes(item.id),
+  ).length;
+  const hasExtractionCandidates = activeSession.extractionItems.length > 0;
+  const hasApprovedMemory = countChronicleItems(campaign.chronicle) > 0;
+  const prepItemCount =
+    prepNote.shortRecap.length + prepNote.hooks.length + prepNote.openQuestions.length + prepNote.reminders.length;
+  const playerSafeItemCount =
+    campaign.chronicle.events.length +
+    campaign.chronicle.clues.filter((clue) => clue.status === "known").length +
+    campaign.chronicle.npcs.length +
+    campaign.chronicle.locations.length;
+  const handoutShareStatus = buildPlayerHandoutShareStatus(campaign);
+
+  return [
+    {
+      detail: sessionHasLog
+        ? "セッションログは保存されています。"
+        : "通常ログまたは話者付きログを残してください。",
+      id: "log-captured",
+      label: "ログを残す",
+      status: sessionHasLog ? "done" : "todo",
+      target: "log",
+    },
+    {
+      detail: hasExtractionCandidates
+        ? `${activeSession.extractionItems.length}件の抽出候補があります。`
+        : "ログから承認候補を抽出してください。",
+      id: "extract-candidates",
+      label: "候補を抽出",
+      status: hasExtractionCandidates ? "done" : "todo",
+      target: "log",
+    },
+    {
+      detail: pendingReviewCount > 0
+        ? `${pendingReviewCount}件がGM承認待ちです。`
+        : "未承認候補は残っていません。",
+      id: "review-cleared",
+      label: "GM承認を終える",
+      status: hasExtractionCandidates && pendingReviewCount === 0 ? "done" : "todo",
+      target: "review",
+    },
+    {
+      detail: hasApprovedMemory
+        ? "承認済み情報がキャンペーン記憶に入っています。"
+        : "採用した候補をキャンペーン記憶へ反映してください。",
+      id: "memory-updated",
+      label: "記憶を更新",
+      status: hasApprovedMemory ? "done" : "todo",
+      target: "memory",
+    },
+    {
+      detail: prepItemCount > 0
+        ? `${prepItemCount}件の次回準備項目があります。`
+        : "次回準備メモを確認できる状態にしてください。",
+      id: "prep-ready",
+      label: "次回準備を確認",
+      status: prepItemCount > 0 ? "done" : "todo",
+      target: "prep",
+    },
+    {
+      detail:
+        playerSafeItemCount === 0
+          ? "PLに共有できる公開情報はまだありません。"
+          : handoutShareStatus.canShare
+            ? "PL共有メモに出せる公開情報があります。"
+            : handoutShareStatus.message,
+      id: "player-handout-ready",
+      label: "PL共有を確認",
+      status: playerSafeItemCount > 0 && handoutShareStatus.canShare ? "done" : "todo",
+      target: "share",
+    },
+    {
+      detail: activeSession.archivedAt
+        ? "このセッションはアーカイブ済みです。"
+        : "終わった回は書き出してからアーカイブできます。",
+      id: "archive-session",
+      label: "必要ならアーカイブ",
+      status: activeSession.archivedAt ? "done" : "todo",
+      target: "sessions",
+    },
+  ];
 }
 
 export function getSessionSearchText(session: SessionState): string {
@@ -194,6 +474,101 @@ export function createNewCampaignState(index: number): CampaignState {
       threads: [],
     },
     quickResult: "",
+  };
+}
+
+export function createCampaignFromTemplate(templateId: CampaignStarterTemplateId, index: number): CampaignState {
+  if (templateId === "investigation-demo") {
+    const campaign = createInitialCampaignState();
+    const sessions = campaign.sessions.map(duplicateSessionState);
+    const activeSession = sessions[0] ?? createNewSession(1);
+
+    return {
+      ...campaign,
+      id: createId("campaign"),
+      campaignName: `${campaign.campaignName} ${index}`,
+      sessions,
+      activeSessionId: activeSession.id,
+    };
+  }
+
+  const session = createNewSession(1);
+  const fantasyLog = [
+    "GM: 辺境都市セレストの鐘が、予定より三日早く鳴りました。",
+    "リオ: まず冒険者ギルドで依頼を確認します。",
+    "GM: ギルド長は、北砦からの補給隊が戻らないと告げます。",
+    "エルナ: 商会の動きも気になります。補給路を押さえられたら街が危ない。",
+    "GM: 黒鷲商会は支援を申し出ていますが、代わりに古い鉱山の採掘権を要求しています。",
+    "リオ: 北砦へ向かう前に、商会の倉庫を調べたいです。",
+  ].join("\n");
+
+  return {
+    ...createInitialCampaignState(),
+    id: createId("campaign"),
+    campaignName: `セレスト辺境譚 ${index}`,
+    campaignMode: "fantasy",
+    sessions: [
+      {
+        ...session,
+        title: "第1話",
+        log: fantasyLog,
+        liveLog: {
+          ...session.liveLog,
+          title: "セレスト辺境譚 第1話",
+        },
+      },
+    ],
+    activeSessionId: session.id,
+    chronicle: {
+      events: [
+        "辺境都市セレストで、北砦からの補給隊が戻らない問題が起きた。",
+        "黒鷲商会が街への支援と引き換えに、古い鉱山の採掘権を求めている。",
+      ],
+      npcs: [
+        {
+          name: "ギルド長マレク",
+          role: "セレスト冒険者ギルドの責任者",
+          publicKnowledge: "北砦の補給路を取り戻せる冒険者を探している。",
+          gmSecret: "領主家と黒鷲商会の取引に疑念を持っている。",
+          attitude: "PCを試しつつ、街を守る実力者として期待している。",
+        },
+      ],
+      clues: [
+        {
+          title: "北砦の補給路",
+          detail: "補給隊が戻らず、街の食料と防衛に影響が出始めている。",
+          status: "known",
+        },
+        {
+          title: "黒鷲商会の採掘権要求",
+          detail: "商会は支援の見返りに、古い鉱山の権利を求めている。",
+          status: "partial",
+        },
+        {
+          title: "古い鉱山の封印",
+          detail: "鉱山の奥には、旧王国時代の地下門が封じられている。",
+          status: "hidden",
+        },
+      ],
+      locations: [
+        {
+          name: "セレスト",
+          detail: "山道と交易路の分岐にある辺境都市。北砦と古い鉱山に依存している。",
+        },
+        {
+          name: "北砦",
+          detail: "魔物の進行を防ぐ前線拠点。補給が途絶えると街道全体が危うい。",
+        },
+      ],
+      threads: [
+        {
+          title: "黒鷲商会の狙い",
+          detail: "商会は補給危機を利用して、鉱山と地下門に近づこうとしている。",
+          nextMove: "補給隊の救出後、商会の護衛が鉱山方面へ動く場面を入れる。",
+        },
+      ],
+    },
+    quickResult: "北砦から逃げ延びた若い伝令。凍傷を負っており、補給隊を襲ったのは魔物だけではないと訴える。",
   };
 }
 
@@ -508,6 +883,24 @@ export function normalizeCampaignLibraryState(rawState: unknown): CampaignLibrar
   };
 }
 
+export function sanitizeCampaignStateForExport(campaign: CampaignState): CampaignState {
+  return {
+    ...campaign,
+    extractionProvider: {
+      endpoint: campaign.extractionProvider.endpoint,
+      model: campaign.extractionProvider.model,
+      providerId: campaign.extractionProvider.providerId,
+    },
+  };
+}
+
+export function sanitizeCampaignLibraryStateForExport(campaignLibrary: CampaignLibraryState): CampaignLibraryState {
+  return {
+    ...campaignLibrary,
+    campaigns: campaignLibrary.campaigns.map(sanitizeCampaignStateForExport),
+  };
+}
+
 export type ImportPreview =
   | {
       approvedCount: number;
@@ -627,6 +1020,9 @@ export function formatCampaignLibraryMarkdown(campaignLibrary: CampaignLibrarySt
     ...campaignLibrary.campaigns.flatMap((campaign, index) => {
       const isActive = campaign.id === campaignLibrary.activeCampaignId;
       const stats = getCampaignSummaryStats(campaign);
+      const activeSession = campaign.sessions.find((session) => session.id === campaign.activeSessionId) ?? campaign.sessions[0];
+      const prepNote = generatePrepNote(campaign.chronicle, campaign.sessions, activeSession, campaign.campaignMode);
+      const nextContinuityItem = buildContinuityQueue(campaign, activeSession, prepNote)[0] ?? null;
       const sessionLines = campaign.sessions.map(
         (session) =>
           `  - ${session.title} (${session.date}) / 候補 ${session.extractionItems.length} / 採用 ${session.approvedIds.length}`,
@@ -641,6 +1037,7 @@ export function formatCampaignLibraryMarkdown(campaignLibrary: CampaignLibrarySt
         `- 候補: ${stats.candidateCount}`,
         `- 採用済み: ${stats.approvedCount}`,
         `- 文字起こし済み: ${stats.transcribedSessionCount}`,
+        ...(nextContinuityItem ? [`- 次アクション: ${nextContinuityItem.title} - ${nextContinuityItem.detail}`] : []),
         "",
         ...sessionLines,
         "",
@@ -651,6 +1048,11 @@ export function formatCampaignLibraryMarkdown(campaignLibrary: CampaignLibrarySt
 
 export function formatCampaignMarkdown(campaign: CampaignState): string {
   const stats = getCampaignSummaryStats(campaign);
+  const activeSession = campaign.sessions.find((session) => session.id === campaign.activeSessionId) ?? campaign.sessions[0];
+  const prepNote = activeSession
+    ? generatePrepNote(campaign.chronicle, campaign.sessions, activeSession, campaign.campaignMode)
+    : { hooks: [], openQuestions: [], reminders: [], shortRecap: [] };
+  const continuityQueue = activeSession ? buildContinuityQueue(campaign, activeSession, prepNote) : [];
 
   return [
     `# ${campaign.campaignName.trim() || "キャンペーン"}`,
@@ -677,7 +1079,212 @@ export function formatCampaignMarkdown(campaign: CampaignState): string {
       ...(session.transcriptionRun ? [`- 文字起こし: ${session.transcriptionRun.providerLabel} / ${session.transcriptionRun.segmentCount}発話`] : []),
       "",
     ]),
+    ...(continuityQueue.length > 0
+      ? [
+          "## 継続運用キュー",
+          "",
+          ...continuityQueue.map((item) => {
+            const countLabel = typeof item.count === "number" ? ` / ${item.count}件` : "";
+            return `- [${item.priority}] ${item.title}${countLabel}: ${item.detail}`;
+          }),
+          "",
+        ]
+      : []),
     formatChronicleMarkdown(campaign.chronicle, "キャンペーン記憶").replace(/^# /m, "## "),
+  ].join("\n").trimEnd();
+}
+
+export function formatPlayerHandoutMarkdown(campaign: CampaignState): string {
+  const activeSession = campaign.sessions.find((session) => session.id === campaign.activeSessionId) ?? campaign.sessions[0];
+  const prepNote = activeSession
+    ? generatePrepNote(campaign.chronicle, campaign.sessions, activeSession, campaign.campaignMode)
+    : { hooks: [], openQuestions: [], reminders: [], shortRecap: [] };
+  const knownClues = campaign.chronicle.clues.filter((clue) => clue.status === "known");
+  const publicNpcs = campaign.chronicle.npcs.map((npc) => `${npc.name}: ${npc.publicKnowledge}`);
+  const sections: Array<[string, string[]]> = [
+    ["前回までのあらすじ", prepNote.shortRecap],
+    ["共有済みの出来事", campaign.chronicle.events],
+    ["共有済みの手がかり", knownClues.map((clue) => `${clue.title}: ${clue.detail}`)],
+    ["NPCメモ", publicNpcs],
+    ["場所メモ", campaign.chronicle.locations.map((location) => `${location.name}: ${location.detail}`)],
+  ];
+
+  return [
+    `# ${campaign.campaignName.trim() || "キャンペーン"} PL共有メモ`,
+    "",
+    activeSession ? `- 対象セッション: ${activeSession.title} (${activeSession.date})` : "- 対象セッション: 未設定",
+    "- GM秘密、未開示候補、伏線の次手は含めていません。",
+    "",
+    ...sections.flatMap(([sectionTitle, items]) => {
+      const visibleItems = items.map((item) => item.trim()).filter(Boolean);
+
+      return [
+        `## ${sectionTitle}`,
+        "",
+        ...(visibleItems.length > 0
+          ? visibleItems.map((item) => `- ${item}`)
+          : ["- 共有できる記録はありません。"]),
+        "",
+      ];
+    }),
+  ].join("\n").trimEnd();
+}
+
+function getLeakProbeText(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function isUsefulLeakProbe(value: string): boolean {
+  const normalized = getLeakProbeText(value);
+  return normalized.length >= 6;
+}
+
+export function buildPlayerHandoutSafetyWarnings(
+  campaign: CampaignState,
+  handoutMarkdown = formatPlayerHandoutMarkdown(campaign),
+): PlayerHandoutSafetyWarning[] {
+  const handoutText = getLeakProbeText(handoutMarkdown);
+  const warningCandidates: PlayerHandoutSafetyWarning[] = [
+    ...campaign.chronicle.npcs.flatMap((npc, index) => [
+      {
+        id: `npc-secret:${index}:role`,
+        label: `${npc.name} / GM秘密`,
+        leakedText: npc.gmSecret,
+        source: "gm-secret" as const,
+      },
+      {
+        id: `npc-secret:${index}:attitude`,
+        label: `${npc.name} / 態度`,
+        leakedText: npc.attitude,
+        source: "gm-secret" as const,
+      },
+    ]),
+    ...campaign.chronicle.clues
+      .filter((clue) => clue.status !== "known")
+      .flatMap((clue, index) => [
+        {
+          id: `clue:${clue.status}:${index}:title`,
+          label: clue.title,
+          leakedText: clue.title,
+          source: clue.status === "hidden" ? "hidden-clue" as const : "partial-clue" as const,
+        },
+        {
+          id: `clue:${clue.status}:${index}:detail`,
+          label: clue.title,
+          leakedText: clue.detail,
+          source: clue.status === "hidden" ? "hidden-clue" as const : "partial-clue" as const,
+        },
+      ]),
+    ...campaign.chronicle.threads.flatMap((thread, index) => [
+      {
+        id: `thread:${index}:detail`,
+        label: thread.title,
+        leakedText: thread.detail,
+        source: "thread" as const,
+      },
+      {
+        id: `thread:${index}:next`,
+        label: `${thread.title} / 次手`,
+        leakedText: thread.nextMove,
+        source: "thread" as const,
+      },
+    ]),
+  ];
+  const seenTexts = new Set<string>();
+
+  return warningCandidates.filter((candidate) => {
+    const probe = getLeakProbeText(candidate.leakedText);
+    if (!isUsefulLeakProbe(probe) || seenTexts.has(probe)) {
+      return false;
+    }
+    seenTexts.add(probe);
+
+    return handoutText.includes(probe);
+  });
+}
+
+export function buildPlayerHandoutShareStatus(
+  campaign: CampaignState,
+  handoutMarkdown = formatPlayerHandoutMarkdown(campaign),
+): PlayerHandoutShareStatus {
+  const warningCount = buildPlayerHandoutSafetyWarnings(campaign, handoutMarkdown).length;
+
+  if (!handoutMarkdown.trim()) {
+    return {
+      canShare: false,
+      message: "PL共有メモを生成できませんでした。",
+      warningCount,
+    };
+  }
+
+  if (warningCount > 0) {
+    return {
+      canShare: false,
+      message: "PL共有メモに要確認項目があります。共有前に内容を確認してください。",
+      warningCount,
+    };
+  }
+
+  return {
+    canShare: true,
+    message: "PL共有メモは共有できます。",
+    warningCount,
+  };
+}
+
+export function formatSessionWrapUpMarkdown(
+  campaign: CampaignState,
+  activeSession: SessionState,
+  prepNote: PrepNote,
+): string {
+  const checklist = buildSessionWrapUpChecklist(campaign, activeSession, prepNote);
+  const completedCount = checklist.filter((item) => item.status === "done").length;
+  const continuityQueue = buildContinuityQueue(campaign, activeSession, prepNote);
+  const handoutWarnings = buildPlayerHandoutSafetyWarnings(campaign);
+
+  return [
+    `# ${activeSession.title} セッション締めメモ`,
+    "",
+    `- キャンペーン: ${campaign.campaignName}`,
+    `- 日付: ${activeSession.date}`,
+    `- 締め進捗: ${completedCount}/${checklist.length}`,
+    "",
+    "## 締めチェック",
+    "",
+    ...checklist.map((item) => `- [${item.status === "done" ? "x" : " "}] ${item.label}: ${item.detail}`),
+    "",
+    "## 次アクション",
+    "",
+    ...(continuityQueue.length > 0
+      ? continuityQueue.map((item) => {
+          const countLabel = typeof item.count === "number" ? ` / ${item.count}件` : "";
+          return `- [${item.priority}] ${item.title}${countLabel}: ${item.detail}`;
+        })
+      : ["- 次アクションはありません。"]),
+    "",
+    "## PL共有安全性",
+    "",
+    ...(handoutWarnings.length > 0
+      ? handoutWarnings.map((warning) => `- [要確認] ${warning.label}: ${warning.leakedText}`)
+      : ["- PL共有メモに秘密由来テキスト候補は検出されていません。"]),
+    "",
+    "## 次回準備",
+    "",
+    "### あらすじ",
+    "",
+    ...(prepNote.shortRecap.length > 0 ? prepNote.shortRecap.map((item) => `- ${item}`) : ["- 記録はありません。"]),
+    "",
+    "### 導入案",
+    "",
+    ...(prepNote.hooks.length > 0 ? prepNote.hooks.map((item) => `- ${item}`) : ["- 記録はありません。"]),
+    "",
+    "### 未解決",
+    "",
+    ...(prepNote.openQuestions.length > 0 ? prepNote.openQuestions.map((item) => `- ${item}`) : ["- 記録はありません。"]),
+    "",
+    "### GM確認メモ",
+    "",
+    ...(prepNote.reminders.length > 0 ? prepNote.reminders.map((item) => `- ${item}`) : ["- 記録はありません。"]),
   ].join("\n").trimEnd();
 }
 
