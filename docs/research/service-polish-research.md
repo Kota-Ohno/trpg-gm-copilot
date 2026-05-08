@@ -89,7 +89,7 @@ Actionable takeaways:
 
 Design decisions applied:
 
-- Palette: kept teal/amber/violet as functional accents instead of a one-hue theme; darkened muted/destructive foreground tokens for stronger legibility.
+- Palette: kept teal/amber/violet as functional accents instead of a one-hue theme; darkened muted/destructive/primary tokens for stronger legibility and AA control contrast.
 - Typography: kept Japanese UI stack with display serif reserved for the public entry hero; dense workbench text stays sans-serif.
 - Radius/spacing: retained 8px or smaller rounding for operational cards/buttons; richer styling comes from surface depth and grouping rather than oversized rounded cards.
 - Grouping: `Session Command`, priority alerts, continuity queue, and workflow detail now have distinct surface treatments so the user can scan action, risk, and context separately.
