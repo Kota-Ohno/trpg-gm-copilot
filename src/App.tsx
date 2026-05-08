@@ -5303,7 +5303,7 @@ function HomeDashboard({
 
         <div className="grid gap-4">
           {priorityAlerts.length > 0 && (
-            <Card className="border-amber-200 bg-white shadow-sm">
+            <Card className="priority-panel border-amber-200 bg-white shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-sm text-amber-800">
                   <AlertTriangle className="h-4 w-4 text-amber-600" />
@@ -5314,7 +5314,7 @@ function HomeDashboard({
               <CardContent className="grid gap-2">
                 {priorityAlerts.slice(0, 5).map((alert) => (
                   <button
-                    className="min-h-9 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left text-xs font-medium leading-5 text-amber-900 transition-colors hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="priority-action min-h-9 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left text-xs font-medium leading-5 text-amber-900 transition-colors hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     key={alert.label}
                     onClick={alert.onOpen}
                     type="button"
@@ -5327,7 +5327,7 @@ function HomeDashboard({
           )}
 
           {continuityQueue.length > 0 && (
-            <Card className="shadow-sm">
+            <Card className="queue-panel shadow-sm">
               <CardHeader>
                 <div className="flex items-center justify-between gap-2">
                   <div>
@@ -5340,7 +5340,7 @@ function HomeDashboard({
               <CardContent className="grid gap-2">
                 {continuityQueue.slice(0, 4).map((item) => (
                   <button
-                    className="grid min-w-0 gap-2 rounded-md border bg-background/80 px-3 py-2 text-left transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="queue-action grid min-w-0 gap-2 rounded-md border bg-background/80 px-3 py-2 text-left transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     key={item.id}
                     onClick={() => openContinuityTarget(item.target)}
                     type="button"
@@ -5359,11 +5359,11 @@ function HomeDashboard({
         </div>
       </div>
 
-      <details className="rounded-md border bg-card/80 p-3">
+      <details className="flow-panel rounded-md border bg-card/80 p-3">
         <summary className="cursor-pointer text-sm font-semibold text-muted-foreground">ワークフロー詳細</summary>
         <div className="mt-3 grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-md:grid-cols-1">
           {workflowSteps.map((step, index) => (
-            <Card className={step.isReady ? "border-primary/20" : "opacity-85"} key={step.label}>
+            <Card className={step.isReady ? "workflow-step-card border-primary/20" : "workflow-step-card opacity-85"} key={step.label}>
               <CardContent className="grid h-full gap-3 py-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
