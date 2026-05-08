@@ -183,7 +183,6 @@ type ReviewWorkspaceMode = "inspect" | "manage";
 type RightPanelMode = "rescue" | "settings";
 type SettingsPanelMode = "extraction" | "transcription" | "roadmap";
 type SessionArchiveFilter = "active" | "all" | "archived";
-type SessionListDensity = "compact" | "detailed";
 type SessionTranscriptionFilter = "all" | "transcribed" | "untranscribed";
 type ReviewKindFilter = "all" | ExtractionItem["kind"];
 type ReviewVisibilityFilter = "all" | ExtractionItem["visibility"];
@@ -211,7 +210,6 @@ type UiPreferences = {
   reviewWorkspaceMode: ReviewWorkspaceMode;
   rightPanelMode: RightPanelMode;
   sessionArchiveFilter: SessionArchiveFilter;
-  sessionListDensity: SessionListDensity;
   sessionSortMode: SessionSortMode;
   sessionTranscriptionFilter: SessionTranscriptionFilter;
   settingsPanelMode: SettingsPanelMode;
@@ -404,16 +402,17 @@ const sessionArchiveOptions: Array<{ value: SessionArchiveFilter; label: string 
   { value: "archived", label: "アーカイブ" },
 ];
 
+const sessionTranscriptionOptions: Array<{ value: SessionTranscriptionFilter; label: string }> = [
+  { value: "all", label: "すべて" },
+  { value: "transcribed", label: "済み" },
+  { value: "untranscribed", label: "未処理" },
+];
+
 const sessionSortOptions: Array<{ value: SessionSortMode; label: string }> = [
   { value: "date-desc", label: "新しい順" },
   { value: "size-desc", label: "サイズ順" },
   { value: "review-debt", label: "要確認順" },
   { value: "title", label: "タイトル順" },
-];
-
-const sessionListDensityOptions: Array<{ value: SessionListDensity; label: string }> = [
-  { value: "compact", label: "簡潔" },
-  { value: "detailed", label: "詳細" },
 ];
 
 const prepWorkspaceOptions: Array<{ value: PrepWorkspaceMode; label: string }> = [
@@ -504,7 +503,6 @@ const defaultUiPreferences: UiPreferences = {
   reviewWorkspaceMode: "inspect",
   rightPanelMode: "rescue",
   sessionArchiveFilter: "active",
-  sessionListDensity: "compact",
   sessionSortMode: "date-desc",
   sessionTranscriptionFilter: "all",
   settingsPanelMode: "extraction",
@@ -609,11 +607,6 @@ function loadUiPreferences(): UiPreferences {
         parsedPreferences.sessionSortMode,
         sessionSortOptions,
         defaultUiPreferences.sessionSortMode,
-      ),
-      sessionListDensity: readOptionValue(
-        parsedPreferences.sessionListDensity,
-        sessionListDensityOptions,
-        defaultUiPreferences.sessionListDensity,
       ),
       sessionTranscriptionFilter: readOptionValue(
         parsedPreferences.sessionTranscriptionFilter,
@@ -890,9 +883,6 @@ export function App() {
   const [sessionQuery, setSessionQuery] = useState("");
   const [sessionArchiveFilter, setSessionArchiveFilter] = useState<SessionArchiveFilter>(
     initialUiPreferences.sessionArchiveFilter,
-  );
-  const [sessionListDensity, setSessionListDensity] = useState<SessionListDensity>(
-    initialUiPreferences.sessionListDensity,
   );
   const [sessionSortMode, setSessionSortMode] = useState<SessionSortMode>(initialUiPreferences.sessionSortMode);
   const [sessionTranscriptionFilter, setSessionTranscriptionFilter] = useState<SessionTranscriptionFilter>(
@@ -1186,6 +1176,14 @@ export function App() {
   const memoryItemCount = countChronicleItems(chronicle);
   const hiddenClueCount = chronicle.clues.filter((clue) => clue.status !== "known").length;
   const hasPrepContent = dynamicPrepNote.shortRecap.length > 0 || dynamicPrepNote.hooks.length > 0;
+  const sessionFilterSummary = [
+    sessionArchiveFilter !== "active"
+      ? `状態:${findOptionLabel(sessionArchiveOptions, sessionArchiveFilter, "有効")}`
+      : null,
+    sessionTranscriptionFilter !== "all"
+      ? `文字:${findOptionLabel(sessionTranscriptionOptions, sessionTranscriptionFilter, "すべて")}`
+      : null,
+  ].filter((item): item is string => item !== null);
   const sideWorkspaceLabel =
     rightPanelMode === "settings"
       ? `サイドデスク / 運用 / ${settingsPanelLabels[settingsPanelMode]}`
@@ -1357,7 +1355,6 @@ export function App() {
           reviewWorkspaceMode,
           rightPanelMode,
           sessionArchiveFilter,
-          sessionListDensity,
           sessionSortMode,
           sessionTranscriptionFilter,
           settingsPanelMode,
@@ -1379,7 +1376,6 @@ export function App() {
     reviewWorkspaceMode,
     rightPanelMode,
     sessionArchiveFilter,
-    sessionListDensity,
     sessionSortMode,
     sessionTranscriptionFilter,
     settingsPanelMode,
@@ -1701,7 +1697,7 @@ export function App() {
       releaseQaEvidenceNotes,
       rightPanelMode,
       sessionArchiveFilter,
-      sessionListDensity,
+      sessionListDensity: "single",
       sessionSortMode,
       sessionTranscriptionFilter,
       settingsPanelMode,
@@ -2936,7 +2932,6 @@ export function App() {
     setReviewWorkspaceMode(defaultUiPreferences.reviewWorkspaceMode);
     setRightPanelMode(defaultUiPreferences.rightPanelMode);
     setSessionArchiveFilter(defaultUiPreferences.sessionArchiveFilter);
-    setSessionListDensity(defaultUiPreferences.sessionListDensity);
     setSessionSortMode(defaultUiPreferences.sessionSortMode);
     setSessionTranscriptionFilter(defaultUiPreferences.sessionTranscriptionFilter);
     setSettingsPanelMode(defaultUiPreferences.settingsPanelMode);
@@ -2952,7 +2947,13 @@ export function App() {
         }
       >
         {!isFocusMode && (
-        <aside className="bg-sidebar px-4 py-5 shadow-[inset_-1px_0_0_hsl(var(--border))] max-lg:order-2 max-lg:border-t max-lg:shadow-none">
+        <aside
+          className={
+            navigationPanelMode === "sessions"
+              ? "bg-sidebar px-4 py-5 shadow-[inset_-1px_0_0_hsl(var(--border))] max-lg:order-1 max-lg:border-b max-lg:shadow-none"
+              : "bg-sidebar px-4 py-5 shadow-[inset_-1px_0_0_hsl(var(--border))] max-lg:order-2 max-lg:border-t max-lg:shadow-none"
+          }
+        >
           <div className="surface-elevated rounded-md border p-3">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
@@ -2963,7 +2964,7 @@ export function App() {
                 <p className="truncate text-xs text-muted-foreground">{PRODUCT_TAGLINE}</p>
               </div>
             </div>
-            <div className="mt-4 grid gap-2 text-center sm:grid-cols-3">
+            <div className={navigationPanelMode === "sessions" ? "hidden" : "mt-4 grid gap-2 text-center sm:grid-cols-3"}>
               <div className="rounded-md border bg-background/80 px-2 py-2">
                 <p className="text-[11px] text-muted-foreground">記憶</p>
                 <p className="text-sm font-semibold">{memoryItemCount}</p>
@@ -3246,63 +3247,83 @@ export function App() {
                 onChange={(event) => setSessionQuery(event.target.value)}
               />
             </div>
-            <div className="flex flex-wrap gap-1">
-              {sessionArchiveOptions.map((option) => (
-                <Button
-                  disabled={isExtracting}
-                  key={option.value}
-                  onClick={() => setSessionArchiveFilter(option.value)}
-                  size="sm"
-                  variant={sessionArchiveFilter === option.value ? "default" : "outline"}
-                >
-                  {option.label}
-                </Button>
-              ))}
-              {[
-                { value: "all", label: "すべて" },
-                { value: "transcribed", label: "文字起こし済み" },
-                { value: "untranscribed", label: "未文字起こし" },
-              ].map((option) => (
-                <Button
-                  disabled={isExtracting}
-                  key={option.value}
-                  onClick={() => setSessionTranscriptionFilter(option.value as SessionTranscriptionFilter)}
-                  size="sm"
-                  variant={sessionTranscriptionFilter === option.value ? "default" : "outline"}
-                >
-                  {option.label}
-                </Button>
-              ))}
-              <select
-                aria-label="セッションの並び順"
-                className="h-8 rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                disabled={isExtracting}
-                value={sessionSortMode}
-                onChange={(event) => setSessionSortMode(event.target.value as SessionSortMode)}
-              >
-                {sessionSortOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    並び: {option.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                aria-label="セッション一覧の表示密度"
-                className="h-8 rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                disabled={isExtracting}
-                value={sessionListDensity}
-                onChange={(event) => setSessionListDensity(event.target.value as SessionListDensity)}
-              >
-                {sessionListDensityOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    表示: {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <details className="rounded-md border bg-card/70 p-2">
+              <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+                絞り込み・表示
+                {sessionFilterSummary.length > 0 && (
+                  <span className="ml-2 text-[11px] text-foreground">{sessionFilterSummary.join(" / ")}</span>
+                )}
+              </summary>
+              <div className="mt-3 grid gap-3">
+                <div className="grid gap-2">
+                  <p className="text-[11px] font-medium text-muted-foreground">絞り込み</p>
+                  <div className="grid gap-2">
+                    <div className="grid grid-cols-3 gap-1 rounded-md bg-muted/70 p-1">
+                      {sessionArchiveOptions.map((option) => (
+                        <button
+                          className={
+                            sessionArchiveFilter === option.value
+                              ? "rounded-sm bg-background px-2 py-1.5 text-xs font-medium text-foreground shadow-sm"
+                              : "rounded-sm px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-background/60 hover:text-foreground"
+                          }
+                          disabled={isExtracting}
+                          key={option.value}
+                          onClick={() => setSessionArchiveFilter(option.value)}
+                          type="button"
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-muted-foreground" htmlFor="session-transcription-filter">
+                        文字起こし
+                      </label>
+                      <select
+                        aria-label="文字起こし状態"
+                        className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        disabled={isExtracting}
+                        id="session-transcription-filter"
+                        value={sessionTranscriptionFilter}
+                        onChange={(event) => setSessionTranscriptionFilter(event.target.value as SessionTranscriptionFilter)}
+                      >
+                        {sessionTranscriptionOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid gap-2 border-t pt-3">
+                  <p className="text-[11px] font-medium text-muted-foreground">表示</p>
+                <div>
+                  <label className="text-[11px] font-medium text-muted-foreground" htmlFor="session-sort-mode">
+                    並び
+                  </label>
+                  <select
+                    aria-label="セッションの並び順"
+                    className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    disabled={isExtracting}
+                    id="session-sort-mode"
+                    value={sessionSortMode}
+                    onChange={(event) => setSessionSortMode(event.target.value as SessionSortMode)}
+                  >
+                    {sessionSortOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                </div>
+              </div>
+            </details>
             <div className="max-h-[42vh] space-y-1 overflow-auto pr-1 scrollbar-thin max-lg:max-h-none">
               {visibleSessions.map((session) => (
                 (() => {
+                  const isActiveSession = session.id === campaignState.activeSessionId;
                   const liveLogSummary = summarizeLiveLog(session.liveLog);
                   const speakerIssueCount = getSpeakerLogIssues(session.liveLog).length;
                   const sizeDiagnostic = sessionStorageDiagnosticById.get(session.id);
@@ -3311,125 +3332,128 @@ export function App() {
                   return (
                     <div
                       className={
-                        session.id === campaignState.activeSessionId
-                          ? "flex items-center gap-1 rounded-md border border-primary bg-primary px-2 py-2 text-sm text-primary-foreground shadow-sm"
-                          : "flex items-center gap-1 rounded-md border border-transparent bg-card/45 px-2 py-2 text-sm text-muted-foreground transition-colors hover:border-border hover:bg-card hover:text-foreground"
+                        isActiveSession
+                          ? "rounded-md border border-primary bg-primary p-2 text-sm text-primary-foreground shadow-sm"
+                          : "rounded-md border border-transparent bg-card/55 p-2 text-sm text-muted-foreground transition-colors hover:border-border hover:bg-card hover:text-foreground"
                       }
                       key={session.id}
                     >
-                      <button className="min-w-0 flex-1 text-left" onClick={() => switchSession(session.id)} type="button">
-                        <span className="block truncate font-medium">{session.title}</span>
+                      <button className="grid w-full min-w-0 gap-1.5 text-left" onClick={() => switchSession(session.id)} type="button">
+                        <span className="truncate font-medium">{session.title}</span>
                         <span
                           className={
-                            session.id === campaignState.activeSessionId
-                              ? "block text-xs opacity-80"
-                              : "block text-xs text-muted-foreground"
+                            isActiveSession
+                              ? "flex flex-wrap items-center gap-x-2 gap-y-1 text-xs opacity-85"
+                              : "flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
                           }
                         >
-                          {session.date} / {session.approvedIds.length}採用 / {session.extractionItems.length}候補 /{" "}
-                          {liveLogSummary.nonEmptySegmentCount}発話
-                          {liveLogSummary.averageConfidence !== null
-                            ? ` / 平均${Math.round(liveLogSummary.averageConfidence * 100)}%`
-                            : ""}
-                          {liveLogSummary.lowConfidenceCount > 0 ? ` / 要確認${liveLogSummary.lowConfidenceCount}` : ""}
-                          {speakerIssueCount > 0 ? ` / ログ確認${speakerIssueCount}` : ""}
-                          {session.transcriptionRun ? ` / 文字起こし${session.transcriptionRun.segmentCount}` : ""}
-                          {reviewQualityDiagnostic
-                            ? ` / レビュー品質${
-                                reviewQualityDiagnostic.approvedInvalidCount +
+                          <span className="flex items-center gap-1">
+                            <Clock3 className="h-3.5 w-3.5" />
+                            {session.date}
+                            {session.archivedAt ? " / アーカイブ" : ""}
+                          </span>
+                          <span>{liveLogSummary.nonEmptySegmentCount}発話</span>
+                          {session.extractionItems.length > 0 && (
+                            <span>
+                              {session.approvedIds.length}/{session.extractionItems.length}採用
+                            </span>
+                          )}
+                          {sessionSortMode === "size-desc" && sizeDiagnostic && (
+                            <span>{formatFileSize(sizeDiagnostic.totalBytes)}</span>
+                          )}
+                          {sessionSortMode === "review-debt" && reviewQualityDiagnostic && (
+                            <span>
+                              要確認
+                              {reviewQualityDiagnostic.approvedInvalidCount +
                                 reviewQualityDiagnostic.approvedDuplicateCount +
                                 reviewQualityDiagnostic.pendingInvalidCount +
-                                reviewQualityDiagnostic.pendingDuplicateCount
-                              }`
-                            : ""}
-                          {sizeDiagnostic ? ` / ${formatFileSize(sizeDiagnostic.totalBytes)}` : ""}
-                          {session.archivedAt ? " / アーカイブ" : ""}
+                                reviewQualityDiagnostic.pendingDuplicateCount}
+                            </span>
+                          )}
+                          {session.transcriptionRun && <span>文字起こし済み</span>}
                         </span>
-                        {sessionListDensity === "detailed" && sizeDiagnostic && (
-                          <span
-                            className={
-                              session.id === campaignState.activeSessionId
-                                ? "mt-1 block text-[11px] opacity-75"
-                                : "mt-1 block text-[11px] text-muted-foreground"
-                            }
-                          >
-                            通常 {formatFileSize(sizeDiagnostic.logBytes)} / 話者{" "}
-                            {formatFileSize(sizeDiagnostic.speakerLogBytes)} / レビュー{" "}
-                            {formatFileSize(sizeDiagnostic.reviewBytes)} / 文字起こし{" "}
-                            {formatFileSize(sizeDiagnostic.transcriptionBytes)}
-                          </span>
-                        )}
-                        {sessionListDensity === "detailed" && reviewQualityDiagnostic && (
-                          <span
-                            className={
-                              session.id === campaignState.activeSessionId
-                                ? "mt-1 block text-[11px] opacity-75"
-                                : "mt-1 block text-[11px] text-muted-foreground"
-                            }
-                          >
-                            品質: 承認済み未入力 {reviewQualityDiagnostic.approvedInvalidCount} / 承認済み重複{" "}
-                            {reviewQualityDiagnostic.approvedDuplicateCount} / 未承認未入力{" "}
-                            {reviewQualityDiagnostic.pendingInvalidCount} / 未承認重複{" "}
-                            {reviewQualityDiagnostic.pendingDuplicateCount}
-                          </span>
-                        )}
                       </button>
-                      <Button
-                        aria-label={`${session.title}を書き出し`}
-                        disabled={isExtracting}
-                        onClick={() => exportSessionMarkdown(session)}
-                        size="icon"
-                        variant="ghost"
+                      <details
+                        className={
+                          isActiveSession
+                            ? "mt-2 border-t border-primary-foreground/20 pt-2"
+                            : "mt-2 border-t border-border/70 pt-2"
+                        }
                       >
-                        <FileText className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        aria-label={`${session.title}をJSONで書き出し`}
-                        disabled={isExtracting}
-                        onClick={() => exportSessionJson(session)}
-                        size="icon"
-                        variant="ghost"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        aria-label={`${session.title}を複製`}
-                        disabled={isExtracting}
-                        onClick={() => duplicateSession(session.id)}
-                        size="icon"
-                        variant="ghost"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        aria-label={session.archivedAt ? `${session.title}を有効化` : `${session.title}をアーカイブ`}
-                        disabled={isExtracting || (!session.archivedAt && activeSessionCount <= 1)}
-                        onClick={() => setSessionArchived(session.id, !session.archivedAt)}
-                        size="icon"
-                        variant="ghost"
-                      >
-                        {session.archivedAt ? <RotateCcw className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-                      </Button>
-                      {!session.archivedAt && (
-                        <Button
-                          aria-label={`${session.title}を書き出してアーカイブ`}
-                          disabled={isExtracting || activeSessionCount <= 1}
-                          onClick={() => exportAndArchiveSession(session.id)}
-                          size="icon"
-                          variant="ghost"
-                        >
-                          <Archive className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        aria-label={`${session.title}を削除`}
-                        disabled={isExtracting || campaignState.sessions.length <= 1}
-                        onClick={() => deleteSession(session.id)}
-                        size="icon"
-                        variant="ghost"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        <summary className={isActiveSession ? "cursor-pointer text-xs opacity-85" : "cursor-pointer text-xs text-muted-foreground"}>
+                          管理
+                        </summary>
+                        <div className="mt-2 grid gap-1">
+                          <Button
+                            aria-label={`${session.title}を書き出し`}
+                            className={isActiveSession ? "justify-start text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground" : "justify-start"}
+                            disabled={isExtracting}
+                            onClick={() => exportSessionMarkdown(session)}
+                            size="sm"
+                            variant="ghost"
+                          >
+                            <FileText className="h-4 w-4" />
+                            Markdown
+                          </Button>
+                          <Button
+                            aria-label={`${session.title}をJSONで書き出し`}
+                            className={isActiveSession ? "justify-start text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground" : "justify-start"}
+                            disabled={isExtracting}
+                            onClick={() => exportSessionJson(session)}
+                            size="sm"
+                            variant="ghost"
+                          >
+                            <Download className="h-4 w-4" />
+                            JSON
+                          </Button>
+                          <Button
+                            aria-label={`${session.title}を複製`}
+                            className={isActiveSession ? "justify-start text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground" : "justify-start"}
+                            disabled={isExtracting}
+                            onClick={() => duplicateSession(session.id)}
+                            size="sm"
+                            variant="ghost"
+                          >
+                            <Copy className="h-4 w-4" />
+                            複製
+                          </Button>
+                          <Button
+                            aria-label={session.archivedAt ? `${session.title}を有効化` : `${session.title}をアーカイブ`}
+                            className={isActiveSession ? "justify-start text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground" : "justify-start"}
+                            disabled={isExtracting || (!session.archivedAt && activeSessionCount <= 1)}
+                            onClick={() => setSessionArchived(session.id, !session.archivedAt)}
+                            size="sm"
+                            variant="ghost"
+                          >
+                            {session.archivedAt ? <RotateCcw className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+                            {session.archivedAt ? "有効化" : "アーカイブ"}
+                          </Button>
+                          {!session.archivedAt && (
+                          <Button
+                            aria-label={`${session.title}を書き出してアーカイブ`}
+                            className={isActiveSession ? "justify-start text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground" : "justify-start"}
+                            disabled={isExtracting || activeSessionCount <= 1}
+                            onClick={() => exportAndArchiveSession(session.id)}
+                            size="sm"
+                            variant="ghost"
+                          >
+                            <Archive className="h-4 w-4" />
+                            書き出して整理
+                          </Button>
+                          )}
+                          <Button
+                            aria-label={`${session.title}を削除`}
+                            className="justify-start text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            disabled={isExtracting || campaignState.sessions.length <= 1}
+                            onClick={() => deleteSession(session.id)}
+                            size="sm"
+                            variant="ghost"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            削除
+                          </Button>
+                        </div>
+                      </details>
                     </div>
                   );
                 })()
@@ -3442,32 +3466,35 @@ export function App() {
             </div>
           </div>
 
-          <nav className="mt-6 space-y-1 rounded-md border bg-card/72 p-2">
-            {[
-              { icon: Search, label: memoryNavLabels.clues, count: chronicle.clues.length, viewMode: "clues" },
-              { icon: UserRound, label: "NPC", count: chronicle.npcs.length, viewMode: "npcs" },
-              { icon: MapIcon, label: memoryNavLabels.locations, count: chronicle.locations.length, viewMode: "locations" },
-              { icon: Clock3, label: "年表", count: chronicle.events.length, viewMode: "events" },
-              { icon: Sparkles, label: memoryNavLabels.threads, count: chronicle.threads.length, viewMode: "threads" },
-            ].map((item) => (
-              <button
-                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                key={item.label}
-                onClick={() => {
-                  setChronicleClueStatusFilter("all");
-                  setChronicleViewMode(item.viewMode as ChronicleViewMode);
-                  setActiveTab("chronicle");
-                }}
-                type="button"
-              >
-                <span className="flex items-center gap-2">
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </span>
-                <Badge variant="muted">{item.count}</Badge>
-              </button>
-            ))}
-          </nav>
+          <details className="mt-6 rounded-md border bg-card/72 p-2">
+            <summary className="cursor-pointer px-1 text-xs font-medium text-muted-foreground">記憶ナビ</summary>
+            <nav className="mt-2 space-y-1">
+              {[
+                { icon: Search, label: memoryNavLabels.clues, count: chronicle.clues.length, viewMode: "clues" },
+                { icon: UserRound, label: "NPC", count: chronicle.npcs.length, viewMode: "npcs" },
+                { icon: MapIcon, label: memoryNavLabels.locations, count: chronicle.locations.length, viewMode: "locations" },
+                { icon: Clock3, label: "年表", count: chronicle.events.length, viewMode: "events" },
+                { icon: Sparkles, label: memoryNavLabels.threads, count: chronicle.threads.length, viewMode: "threads" },
+              ].map((item) => (
+                <button
+                  className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                  key={item.label}
+                  onClick={() => {
+                    setChronicleClueStatusFilter("all");
+                    setChronicleViewMode(item.viewMode as ChronicleViewMode);
+                    setActiveTab("chronicle");
+                  }}
+                  type="button"
+                >
+                  <span className="flex items-center gap-2">
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </span>
+                  <Badge variant="muted">{item.count}</Badge>
+                </button>
+              ))}
+            </nav>
+          </details>
 
           <div className="mt-6 rounded-md border bg-card/80 p-3 shadow-sm">
             <div className="flex items-center justify-between text-sm">
@@ -3486,7 +3513,13 @@ export function App() {
         </aside>
         )}
 
-        <section className="min-w-0 max-w-full px-6 py-5 max-lg:order-1 max-lg:px-4">
+        <section
+          className={
+            navigationPanelMode === "sessions"
+              ? "min-w-0 max-w-full px-6 py-5 max-lg:order-2 max-lg:px-4"
+              : "min-w-0 max-w-full px-6 py-5 max-lg:order-1 max-lg:px-4"
+          }
+        >
           <header className="surface-elevated w-full max-w-full overflow-hidden rounded-md border p-4">
             <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
