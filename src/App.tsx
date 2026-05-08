@@ -2370,6 +2370,9 @@ export function App() {
     updateCurrentSession({ liveLog: cloneJson(sampleLiveLog) });
   };
 
+  const hasCurrentSessionLogContent = (): boolean =>
+    log.trim().length > 0 || liveLog.segments.some((segment) => segment.text.trim().length > 0);
+
   const mergeAdjacentSpeakerLogSegments = (): void => {
     updateLiveLog(mergeAdjacentTranscriptSegments);
   };
@@ -3035,12 +3038,26 @@ export function App() {
       return;
     }
 
-    setIsFocusMode(false);
-    restoreSampleLiveLog();
-    setLogInputMode("speaker");
-    setLogWorkspaceMode("editor");
-    setActiveTab("home");
-    closePublicEntry();
+    const startInvestigationDemo = (): void => {
+      setIsFocusMode(false);
+      restoreSampleLiveLog();
+      setLogInputMode("speaker");
+      setLogWorkspaceMode("editor");
+      setActiveTab("home");
+      closePublicEntry();
+    };
+
+    if (hasCurrentSessionLogContent()) {
+      setConfirmation({
+        title: "現在のログをデモで置き換えますか",
+        message: "既存のログが灯台サンプルで上書きされます。必要なら先に書き出してください。",
+        confirmLabel: "置き換える",
+        onConfirm: startInvestigationDemo,
+      });
+      return;
+    }
+
+    startInvestigationDemo();
   };
 
   if (isPublicEntryVisible) {

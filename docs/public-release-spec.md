@@ -102,7 +102,7 @@ Assets:
 - Generate empty-state illustrations for no log, no candidates, no approved memory, no prep.
 - Store final assets under `src/assets/public-release/`.
 - Maintain `src/assets/public-release/manifest.json` with prompt, model/tool, generation date, source/ownership note, dimensions, optimized file size, alt text, decorative/non-decorative classification, and intended UI location.
-- Asset budget: public-entry hero/background target <= 350 KB after optimization; each emblem/empty-state target <= 120 KB. Any exception requires documented visual value and performance review.
+- Asset budget: public-entry hero/background target <= 350 KB after optimization; each emblem/empty-state target <= 120 KB. Any exception requires a documented visual value and performance review.
 
 Typography:
 

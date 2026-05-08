@@ -134,7 +134,6 @@ body {
   min-width: 0;
   overflow-wrap: anywhere;
   white-space: normal;
-  word-break: break-word;
 }
 
 .public-mode-card:hover {

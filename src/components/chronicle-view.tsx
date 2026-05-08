@@ -195,6 +195,7 @@ export function ChronicleView({
       label: labels.thread,
     })),
   ].slice(0, 6);
+  const showGlobalEmptyState = totalCount === 0 && !hasFilter;
 
   return (
     <div className="grid gap-4">
@@ -276,7 +277,7 @@ export function ChronicleView({
         </CardContent>
       </Card>
 
-      {totalCount === 0 && !hasFilter && (
+      {showGlobalEmptyState && (
         <Card>
           <CardContent className="py-4">
             <div className="illustrated-empty-state rounded-md border border-dashed bg-background/82 p-4">
@@ -296,7 +297,7 @@ export function ChronicleView({
         </Card>
       )}
 
-      {viewMode === "overview" && (
+      {!showGlobalEmptyState && viewMode === "overview" && (
       <Card>
         <CardHeader>
           <SectionTitle count={nextRevealCandidates.length} label={labels.nextReveal} total={nextRevealCandidates.length} />
@@ -339,7 +340,7 @@ export function ChronicleView({
       </Card>
       )}
 
-      {viewMode === "events" && (
+      {!showGlobalEmptyState && viewMode === "events" && (
       <Card>
         <CardHeader>
           <SectionTitle count={filteredChronicle.events.length} label="出来事" total={chronicle.events.length} />
@@ -358,7 +359,7 @@ export function ChronicleView({
       </Card>
       )}
 
-      {viewMode === "clues" && (
+      {!showGlobalEmptyState && viewMode === "clues" && (
       <Card>
         <CardHeader>
           <SectionTitle count={filteredChronicle.clues.length} label={labels.cluePlural} total={chronicle.clues.length} />
@@ -399,7 +400,7 @@ export function ChronicleView({
       </Card>
       )}
 
-      {(viewMode === "npcs" || viewMode === "locations" || viewMode === "threads") && (
+      {!showGlobalEmptyState && (viewMode === "npcs" || viewMode === "locations" || viewMode === "threads") && (
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         {viewMode === "npcs" && (
         <Card>
