@@ -66,3 +66,5 @@ Operational checks:
 ## Product Direction
 
 The tool supports the GM rather than replacing them. AI/provider output is treated as a draft, and only GM-approved items enter campaign memory.
+
+The current working service name is `Loreline`. Naming rationale and alternatives are tracked in `docs/brand-naming-review.md`.
