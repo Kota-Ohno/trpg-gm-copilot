@@ -140,6 +140,32 @@ describe("buildSupportDiagnostics", () => {
     expect(Object.keys(diagnostics)).not.toContain(["release", "Qa", "Summary"].join(""));
     expect(diagnostics.sessionStorage[0].totalBytes).toBeGreaterThan(0);
   });
+
+  it("does not serialize secret-like fields from contaminated campaign state", () => {
+    const input = createSupportDiagnosticsInput();
+    const contaminatedSession = {
+      ...input.currentSession,
+      apiKey: "sk-session-diagnostic",
+    };
+    const contaminatedCampaign = {
+      ...input.campaignState,
+      providerSecrets: { openAiApiKey: "sk-campaign-diagnostic" },
+      sessions: [contaminatedSession],
+    };
+    const diagnostics = buildSupportDiagnostics({
+      ...input,
+      campaignLibrary: {
+        activeCampaignId: contaminatedCampaign.id,
+        campaigns: [contaminatedCampaign],
+      } as unknown as SupportDiagnosticsInput["campaignLibrary"],
+      campaignState: contaminatedCampaign as unknown as SupportDiagnosticsInput["campaignState"],
+      currentSession: contaminatedSession as unknown as SupportDiagnosticsInput["currentSession"],
+    });
+
+    expect(JSON.stringify(diagnostics)).not.toContain("sk-");
+    expect(diagnostics).not.toHaveProperty("campaignLibrary");
+    expect(diagnostics).not.toHaveProperty("campaignState");
+  });
 });
 
 describe("buildSessionStorageDiagnostics", () => {
