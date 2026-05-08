@@ -986,7 +986,7 @@ export function sanitizeCampaignStateForExport(campaign: CampaignState): Campaig
 
 export function sanitizeCampaignLibraryStateForExport(campaignLibrary: CampaignLibraryState): CampaignLibraryState {
   return {
-    ...campaignLibrary,
+    activeCampaignId: campaignLibrary.activeCampaignId,
     campaigns: campaignLibrary.campaigns.map(sanitizeCampaignStateForExport),
   };
 }

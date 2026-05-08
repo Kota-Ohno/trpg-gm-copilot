@@ -611,6 +611,21 @@ describe("export sanitizers", () => {
 
     expect(exportedLibrary.campaigns[0].extractionProvider.apiKey).toBeUndefined();
   });
+
+  it("drops unknown secret-like fields from library exports", () => {
+    const campaign = normalizeCampaignState({ id: "campaign-secret" });
+    const exportedLibrary = sanitizeCampaignLibraryStateForExport({
+      activeCampaignId: campaign.id,
+      campaigns: [campaign],
+      providerSecrets: { openAiApiKey: "sk-library-secret" },
+    } as unknown as Parameters<typeof sanitizeCampaignLibraryStateForExport>[0] & {
+      providerSecrets?: unknown;
+    }) as ReturnType<typeof sanitizeCampaignLibraryStateForExport> & {
+      providerSecrets?: unknown;
+    };
+
+    expect(exportedLibrary.providerSecrets).toBeUndefined();
+  });
 });
 
 describe("createExportFileName", () => {
