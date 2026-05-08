@@ -21,13 +21,13 @@ Finish `つぎたく` as a Japan-first TRPG GM workbench by grounding product de
 | API-key risk minimization. | `src/App.tsx`, `src/components/provider-settings-card.tsx`, `src/lib/campaign.ts`, `src/lib/diagnostics.ts`, tests. | Provider keys are session-only; legacy storage keys are removed; unknown secret-like JSON fields are stripped from normalization, exports, and diagnostics serialization. | Covered |
 | Tests and build quality. | Latest `npx pnpm@11.0.8 run check`: 15 test files, 129 tests, production build. `git diff --check origin/feature/voice-transcription-research...HEAD` passed. | Focused regression tests cover provider copy, diagnostics, export sanitization, contrast tokens, and unknown secret-field stripping; patch whitespace is clean. | Covered |
 | Dependency vulnerability check. | `npx pnpm@11.0.8 audit --prod` and `npx pnpm@11.0.8 audit --dev`. | Both reported no known vulnerabilities. | Covered |
-| Enemy/adversarial review. | Manual review found and fixed unknown-field secret smuggling; CodeRabbit was triggered. | CodeRabbit currently reports non-default-base skip/rate-limit behavior and has no PR review threads. Automated external review is not complete. | Incomplete |
+| Enemy/adversarial review. | Manual review found and fixed unknown-field secret smuggling; PR `@codex review` returned no major issues; CodeRabbit was triggered. | Codex external review is clean. CodeRabbit currently reports non-default-base skip/rate-limit behavior and has no PR review threads. | Partially covered |
 | Commit/push appropriate granularity. | Git log on PR branch. | Security, visual, docs, CodeRabbit config, and contrast work are separate commits. | Covered |
 | PR state. | `gh pr view 3`: PR open and mergeable; GitGuardian success. | PR exists and is mergeable. | Covered |
 
 ## Missing Or Weakly Verified Items
 
-- CodeRabbit external review is not complete. It was triggered, but the PR has no review threads and the latest CodeRabbit status is still not an actionable completed review.
+- CodeRabbit external review is not complete. It was triggered, but the PR has no review threads and the latest CodeRabbit status is still not an actionable completed review. A separate `@codex review` completed with no major issues.
 - Full per-component visual accessibility scanning is not implemented. Current evidence is automated token contrast coverage plus rendered smoke screenshots.
 - The current branch's `.coderabbit.yaml` change will not affect this PR's base configuration until merged into the target base branch; this is documented in `docs/research/coderabbit-auto-review-branches.md`.
 
