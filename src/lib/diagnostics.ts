@@ -334,7 +334,7 @@ export function buildReleaseQaChecklist(): ReleaseQaChecklistItem[] {
     {
       id: "local-check",
       label: "ローカルチェック",
-      detail: "npm run check を実行してテストとproduction buildを通す。",
+      detail: "pnpm run check を実行してテストとproduction buildを通す。",
     },
     {
       id: "starter-flow",

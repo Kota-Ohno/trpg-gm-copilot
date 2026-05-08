@@ -32,31 +32,31 @@ Differentiators:
 ## Development
 
 ```sh
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 Tests:
 
 ```sh
-npm run test
+pnpm run test
 ```
 
 Full local check:
 
 ```sh
-npm run check
+pnpm run check
 ```
 
 Production build:
 
 ```sh
-npm run build
+pnpm run build
 ```
 
 Release QA:
 
-- Run `npm run check`.
+- Run `pnpm run check`.
 - Open the local app in a fresh browser profile and verify the public entry, 10-second comprehension, starter creation, extraction, review approval, memory, prep, player handout, wrap-up, export/import, and settings panels.
 - Complete the sample or pasted-log activation path without API keys, account creation, or external campaign-text upload.
 - Verify `src/assets/public-release/manifest.json` covers every committed public-release image and that the hero stays under 350KB while each emblem/empty-state image stays under 120KB.

@@ -16,7 +16,7 @@ Transform the MVP into a public release that can credibly attract real GM users:
 - Visual assets are original or properly licensed, optimized, and useful. Generated imagery must support story, not decoration.
 - The core workbench remains practical for repeated GM use: quiet, dense, scannable, keyboard-accessible, and mobile-safe.
 - Local-first privacy boundaries remain explicit and intact.
-- `npm run check` passes.
+- `pnpm run check` passes.
 - Real rendered desktop and mobile UI are inspected for hierarchy, overflow, focus, accessible labels, touch target practicality, empty/loading/error/destructive states, and performance-risk regressions.
 - SubAgent plan review and adversarial implementation review produce no unresolved material blockers.
 
@@ -222,7 +222,7 @@ Verification:
 - No provider key, account, or external network call is needed for the sample activation path.
 - Keyboard-only path works.
 - No horizontal overflow at mobile widths.
-- `npm run check` passes.
+- `pnpm run check` passes.
 
 ### M4: Workbench Public Polish
 
@@ -249,7 +249,7 @@ Deliverables:
 
 Verification:
 
-- `npm run check`.
+- `pnpm run check`.
 - Production build inspected.
 - SubAgent adversarial review loop converged.
 - Completion audit maps every user requirement to evidence.
@@ -289,7 +289,7 @@ Status: completed with role-based adversarial review fallback.
 Evidence inspected:
 
 - Commits: `250916a feat: add public release entry experience`, `eb10e7d feat: illustrate public empty states`, `30af173 chore: expand public release QA gates`.
-- Verification command: `npm run check` passed with 128 tests and production build.
+- Verification command: `pnpm run check` passed with 128 tests and production build.
 - Rendered screenshots inspected with local Chrome headless:
   - Desktop public entry at 1440 x 1100: `/tmp/loreline-entry-desktop-3.png`.
   - Mobile public entry at 390 x 844: `/tmp/loreline-entry-mobile-6.png`.

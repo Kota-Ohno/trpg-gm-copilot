@@ -14,7 +14,7 @@ Branch: `feature/public-release`
 
 ## Verification
 
-- `npm run check` passed: 128 tests plus production build.
+- `pnpm run check` passed: 128 tests plus production build.
 - Production build asset output confirmed budgets:
   - `loreline-hero.jpg`: 331.14 KB, target <= 350 KB.
   - Mode emblems: 73.08-93.59 KB, target <= 120 KB each.

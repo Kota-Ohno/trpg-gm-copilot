@@ -86,7 +86,7 @@ describe("buildReleaseQaChecklist", () => {
 describe("formatReleaseQaMarkdown", () => {
   it("exports release QA gates as a portable checklist", () => {
     const markdown = formatReleaseQaMarkdown([
-      { id: "local-check", label: "ローカルチェック", detail: "npm run check を実行する。" },
+      { id: "local-check", label: "ローカルチェック", detail: "pnpm run check を実行する。" },
       { id: "provider-live-check", label: "Provider実地確認", detail: "ユーザー所有のAPIキーで確認する。" },
     ], "Loreline Release QA", ["local-check"], {
       "local-check": "12 files / 118 tests passed",
@@ -99,7 +99,7 @@ describe("formatReleaseQaMarkdown", () => {
     expect(markdown).toContain("Evidence: 1/2");
     expect(markdown).toContain("Incomplete checks: Provider実地確認");
     expect(markdown).toContain("Missing evidence: Provider実地確認");
-    expect(markdown).toContain("- [x] ローカルチェック: npm run check を実行する。");
+    expect(markdown).toContain("- [x] ローカルチェック: pnpm run check を実行する。");
     expect(markdown).toContain("  - Evidence: 12 files / 118 tests passed");
     expect(markdown).toContain("- [ ] Provider実地確認: ユーザー所有のAPIキーで確認する。");
   });
@@ -119,7 +119,7 @@ describe("formatReleaseQaMarkdown", () => {
 
   it("marks release QA markdown ready only when every check has evidence", () => {
     const markdown = formatReleaseQaMarkdown([
-      { id: "local-check", label: "ローカルチェック", detail: "npm run check を実行する。" },
+      { id: "local-check", label: "ローカルチェック", detail: "pnpm run check を実行する。" },
     ], "Loreline Release QA", ["local-check"], {
       "local-check": "123 tests passed",
     }, "2026-05-05T00:00:00.000Z");
