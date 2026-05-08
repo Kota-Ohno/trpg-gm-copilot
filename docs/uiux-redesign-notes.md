@@ -1,4 +1,4 @@
-# Loreline UI/UX redesign notes
+# つぎたく UI/UX redesign notes
 
 ## Objective
 
@@ -13,14 +13,14 @@ Everything else is secondary and should be revealed only when the user asks for 
 
 ## Research synthesis
 
-- Progressive disclosure is the central pattern for this product. Show essential controls first and reveal advanced or rare actions on demand. This is especially important because Loreline has many power-user features: exports, provider checks, templates, storage diagnostics, and detailed review management.
-- Material responsive guidance says compact layouts should usually show a single level of content hierarchy, while wider layouts can show more than one level. Loreline should not force left navigation, main dashboard, and live side tools into the same first viewport on small screens.
+- Progressive disclosure is the central pattern for this product. Show essential controls first and reveal advanced or rare actions on demand. This is especially important because つぎたく has many power-user features: exports, provider checks, templates, storage diagnostics, and detailed review management.
+- Material responsive guidance says compact layouts should usually show a single level of content hierarchy, while wider layouts can show more than one level. つぎたく should not force left navigation, main dashboard, and live side tools into the same first viewport on small screens.
 - Apple HIG emphasizes hierarchy, consistency, and accessibility. For cognition specifically, it recommends simple, familiar, consistent interactions and minimizing complexity.
-- Apple tab guidance treats tabs as navigation, not actions. Loreline should keep workspace tabs for destination switching and place extraction/export/focus commands in a toolbar.
+- Apple tab guidance treats tabs as navigation, not actions. つぎたく should keep workspace tabs for destination switching and place extraction/export/focus commands in a toolbar.
 - Material/SAP navigation rail guidance fits medium and large screens, but compact screens should not use a rail as a permanent panel. On mobile, the app should stack summary first and reveal secondary panels later.
 - Dashboard guidance consistently points to simplicity, clear hierarchy, actionability, and limiting visible metrics. If a metric does not help the user decide what to do, it should not be prominent.
 
-## Design principles for Loreline
+## Design principles for つぎたく
 
 1. **One primary task per viewport.** The first viewport should be the current session command surface, not a full control inventory.
 2. **Summary first, details on demand.** Campaign setup, export/import, workflow explanation, provider settings, and operational checks should be collapsed or moved behind explicit navigation.

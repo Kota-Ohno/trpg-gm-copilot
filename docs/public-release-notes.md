@@ -1,4 +1,4 @@
-# Loreline Public Release Notes
+# つぎたく Public Release Notes
 
 Date: 2026-05-08
 Branch: `feature/public-release`
@@ -16,7 +16,7 @@ Branch: `feature/public-release`
 
 - `pnpm run check` passed: 128 tests plus production build.
 - Production build asset output confirmed budgets:
-  - `loreline-hero.jpg`: 331.14 KB, target <= 350 KB.
+  - `tsugitaku-hero.jpg`: 331.14 KB, target <= 350 KB.
   - Mode emblems: 73.08-93.59 KB, target <= 120 KB each.
   - Empty-state images: 63.31-80.52 KB, target <= 120 KB each.
 - Desktop public-entry screenshot inspected at 1440 x 1100.

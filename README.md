@@ -1,10 +1,10 @@
-# Loreline
+# つぎたく
 
-Loreline is a local-first TRPG campaign assistant for human GMs. It helps turn session logs into reviewed campaign memory, while keeping AI output behind a GM approval flow.
+つぎたくは、人間のGMが運営するTRPGキャンペーン向けのローカルファーストな支援ツールです。セッションログを、GMが確認したキャンペーン記憶と次回準備へつなげます。
 
 ## Market Position
 
-Loreline is for GMs who already run human-led campaigns and need continuity, not an AI GM replacement. Its core value is reducing post-session bookkeeping and making the next session easier to resume.
+つぎたくはAI GMではありません。人間主導の卓を続けるGMが、卓後の整理を減らし、次回の再開を楽にするための作業台です。
 
 Differentiators:
 
@@ -67,4 +67,4 @@ Operational checks:
 
 The tool supports the GM rather than replacing them. AI/provider output is treated as a draft, and only GM-approved items enter campaign memory.
 
-The current working service name is `Loreline`. Naming rationale and alternatives are tracked in `docs/brand-naming-review.md`.
+Service naming rationale and alternatives are tracked in `docs/brand-naming-review.md`.

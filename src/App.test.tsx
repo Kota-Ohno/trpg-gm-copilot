@@ -32,7 +32,7 @@ describe("App smoke render", () => {
   it("renders core product workflows and continuity surfaces", () => {
     const html = renderToString(<App />);
 
-    expect(html).toContain("Loreline");
+    expect(html).toContain("つぎたく");
     expect(html).toContain("テンプレート");
     expect(html).toContain("調査サンプル");
     expect(html).toContain("ファンタジー雛形");

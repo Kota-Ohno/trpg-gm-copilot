@@ -1,4 +1,4 @@
-# Loreline Public Release SPEC
+# つぎたく Public Release SPEC
 
 Date: 2026-05-08
 Branch: `feature/public-release`
@@ -10,7 +10,7 @@ Transform the MVP into a public release that can credibly attract real GM users:
 
 ## Success Criteria
 
-- A first-time user understands Loreline's value within 10 seconds of the public entry screen.
+- A first-time user understands つぎたく's value within 10 seconds of the public entry screen.
 - A first-time user can complete the no-account/no-provider activation path in under 5 minutes: choose campaign style, use sample or pasted log, run local/sample extraction, approve memory, generate next-session prep.
 - The app no longer reads as a generic CSS-library dashboard in the public-facing entry, onboarding, empty states, and key workbench surfaces.
 - Visual assets are original or properly licensed, optimized, and useful. Generated imagery must support story, not decoration.
@@ -53,7 +53,7 @@ Tagline direction:
 
 Promise:
 
-- Loreline turns messy session logs into approved campaign memory, next-session prep, and player-safe recaps while keeping the GM in control.
+- つぎたく turns messy session logs into approved campaign memory, next-session prep, and player-safe recaps while keeping the GM in control.
 
 Category:
 
@@ -88,7 +88,7 @@ Then land directly in the workbench with the next key action highlighted.
 
 Brand direction:
 
-- `Loreline` should feel like a campaign cartographer, continuity archivist, and table-side producer.
+- `つぎたく` should feel like a campaign cartographer, continuity archivist, and table-side producer.
 - Avoid generic SaaS blue-purple gradients, beige fantasy parchment clichés, and dark slate dashboards.
 - Use a balanced palette: ink, sea-glass, signal amber, paper, and one vivid story accent per campaign mode.
 
@@ -291,8 +291,8 @@ Evidence inspected:
 - Commits: `250916a feat: add public release entry experience`, `eb10e7d feat: illustrate public empty states`, `30af173 chore: expand public readiness guidance`.
 - Verification command: `pnpm run check` passed with 128 tests and production build.
 - Rendered screenshots inspected with local Chrome headless:
-  - Desktop public entry at 1440 x 1100: `/tmp/loreline-entry-desktop-3.png`.
-  - Mobile public entry at 390 x 844: `/tmp/loreline-entry-mobile-6.png`.
+  - Desktop public entry at 1440 x 1100: `/tmp/tsugitaku-entry-desktop-3.png`.
+  - Mobile public entry at 390 x 844: `/tmp/tsugitaku-entry-mobile-6.png`.
 - Asset budget output from production build:
   - Hero: 331.14 KB.
   - Mode emblems: 73.08 KB, 87.77 KB, 93.59 KB.

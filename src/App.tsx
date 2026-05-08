@@ -42,7 +42,7 @@ import { Tabs } from "./components/ui/tabs";
 import { Textarea } from "./components/ui/textarea";
 import emptyNoCandidatesImage from "./assets/public-release/empty-no-candidates.jpg";
 import emptyNoLogImage from "./assets/public-release/empty-no-log.jpg";
-import lorelineHeroImage from "./assets/public-release/loreline-hero.jpg";
+import tsugitakuHeroImage from "./assets/public-release/tsugitaku-hero.jpg";
 import customModeImage from "./assets/public-release/mode-custom.jpg";
 import fantasyModeImage from "./assets/public-release/mode-fantasy.jpg";
 import investigationModeImage from "./assets/public-release/mode-investigation.jpg";
@@ -163,8 +163,8 @@ const LAST_BACKUP_STORAGE_KEY = "chronicle-gm.last-backup.v1";
 const PROVIDER_SECRETS_STORAGE_KEY = "chronicle-gm.provider-secrets.v1";
 const UI_PREFERENCES_STORAGE_KEY = "chronicle-gm.ui-preferences.v1";
 const PUBLIC_ENTRY_SEEN_STORAGE_KEY = "chronicle-gm.public-entry-seen.v1";
-const PRODUCT_NAME = "Loreline";
-const PRODUCT_TAGLINE = "GM Continuity Studio";
+const PRODUCT_NAME = "つぎたく";
+const PRODUCT_TAGLINE = "前回のログを、次回の卓へ。";
 const maxJsonImportFileSizeBytes = 8 * 1024 * 1024;
 const campaignNameInputId = "campaign-name";
 const campaignImportInputId = "campaign-json-import";
@@ -3379,7 +3379,7 @@ export function App() {
           <header
             className="workbench-header surface-elevated w-full max-w-full overflow-hidden rounded-md border p-4"
             style={{
-              backgroundImage: `linear-gradient(90deg, rgb(255 255 255 / 0.97), rgb(255 255 255 / 0.9) 58%, rgb(255 255 255 / 0.64)), url(${lorelineHeroImage})`,
+              backgroundImage: `linear-gradient(90deg, rgb(255 255 255 / 0.97), rgb(255 255 255 / 0.9) 58%, rgb(255 255 255 / 0.64)), url(${tsugitakuHeroImage})`,
             }}
           >
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -4893,7 +4893,7 @@ function PublicEntry({
 }) {
   return (
     <div className="public-entry">
-      <section className="public-entry-hero" style={{ backgroundImage: `url(${lorelineHeroImage})` }}>
+      <section className="public-entry-hero" style={{ backgroundImage: `url(${tsugitakuHeroImage})` }}>
         <div className="public-entry-hero__scrim">
           <nav className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-5 py-5 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
@@ -4922,7 +4922,7 @@ function PublicEntry({
                 ローカル保存 / GM承認 / PL共有ガード
               </Badge>
               <h1 className="mt-5 text-5xl font-semibold leading-[1.02] tracking-normal max-md:text-4xl">
-                Loreline
+                つぎたく
               </h1>
               <p className="mt-5 max-w-2xl text-xl leading-8 text-white/82 max-md:text-base max-md:leading-7">
                 セッションログの混線を、次回卓の一本道へ。

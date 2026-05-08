@@ -1,4 +1,4 @@
-# Loreline frontend restructure plan
+# つぎたく frontend restructure plan
 
 ## Success criteria
 
@@ -48,8 +48,8 @@
 Evidence:
 
 - `pnpm run check` passed.
-- Desktop screenshot: `/private/tmp/loreline-redesign-desktop-1.png`
-- Mobile screenshot: `/private/tmp/loreline-redesign-mobile-1.png`
+- Desktop screenshot: `/private/tmp/tsugitaku-redesign-desktop-1.png`
+- Mobile screenshot: `/private/tmp/tsugitaku-redesign-mobile-1.png`
 
 Adversarial findings:
 
@@ -65,7 +65,7 @@ Fix:
 Evidence:
 
 - `pnpm run check` passed.
-- Mobile screenshot: `/private/tmp/loreline-redesign-mobile-2.png`
+- Mobile screenshot: `/private/tmp/tsugitaku-redesign-mobile-2.png`
 
 Adversarial findings:
 
@@ -83,9 +83,9 @@ Fix:
 Evidence:
 
 - `pnpm run check` passed.
-- Mobile screenshot: `/private/tmp/loreline-redesign-mobile-3.png`
-- Mobile screenshot after width simplification: `/private/tmp/loreline-redesign-mobile-4.png`
-- Scale-fixed mobile screenshot: `/private/tmp/loreline-redesign-mobile-4-scale1.png`
+- Mobile screenshot: `/private/tmp/tsugitaku-redesign-mobile-3.png`
+- Mobile screenshot after width simplification: `/private/tmp/tsugitaku-redesign-mobile-4.png`
+- Scale-fixed mobile screenshot: `/private/tmp/tsugitaku-redesign-mobile-4-scale1.png`
 
 Adversarial findings:
 
