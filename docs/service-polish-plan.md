@@ -40,12 +40,13 @@ SubAgents were not used because current runtime instructions permit them only wh
 
 - `npx pnpm@11.0.8 run check` passed after API-key persistence hardening:
   - 14 test files passed.
-  - 129 tests passed in the latest full check.
+  - 128 tests passed in the latest full check after removing the obsolete provider-secret normalization helper.
   - Production build completed.
 - Static search confirmed no active `localStorage.setItem` path for provider secrets remains; the only provider-secret storage key is the legacy removal key.
 - Current startup save path removes both the legacy provider-secret key and the legacy single-campaign storage key after migrating to the library save format.
 - Manual adversarial review found that unknown secret-like fields in imported JSON could survive via object spreads. Normalization/export now rebuild library/campaign/session/live-log/extraction objects from allowlisted fields only, with regression tests.
 - Support diagnostics now has a regression test proving contaminated `sk-`-like fields are not serialized into diagnostics JSON.
+- Removed the unused `normalizeProviderSecretSettings` helper so provider secrets have no remaining import/persistence normalization path.
 - Rendered UI smoke check captured public entry and workbench at desktop/mobile widths via Playwright CLI against `http://localhost:5174/`; workbench screenshots were regenerated after the normal-page visual hierarchy pass.
 - Color contrast spot check found white text on `public-seaglass` at 3.34:1; the token was darkened to 4.87:1, and `src/styles-contrast.test.ts` now keeps core CSS token pairs above WCAG AA for normal text.
 - `git diff --check origin/feature/voice-transcription-research...HEAD`, `npx pnpm@11.0.8 audit --prod`, and `npx pnpm@11.0.8 audit --dev` passed.
