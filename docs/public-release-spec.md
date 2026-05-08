@@ -242,7 +242,7 @@ Verification:
 
 Deliverables:
 
-- README and release QA updated for public release.
+- README and manual verification guidance updated for public release.
 - Pricing-ready copy and plan boundaries documented.
 - Changelog/release notes.
 - Final PR from `feature/public-release`.
@@ -288,7 +288,7 @@ Status: completed with role-based adversarial review fallback.
 
 Evidence inspected:
 
-- Commits: `250916a feat: add public release entry experience`, `eb10e7d feat: illustrate public empty states`, `30af173 chore: expand public release QA gates`.
+- Commits: `250916a feat: add public release entry experience`, `eb10e7d feat: illustrate public empty states`, `30af173 chore: expand public readiness guidance`.
 - Verification command: `pnpm run check` passed with 128 tests and production build.
 - Rendered screenshots inspected with local Chrome headless:
   - Desktop public entry at 1440 x 1100: `/tmp/loreline-entry-desktop-3.png`.
@@ -300,7 +300,7 @@ Evidence inspected:
 
 Findings:
 
-- **High: Release QA did not cover public-release-specific claims.** The previous QA checklist covered MVP workflows but not 10-second comprehension, no-provider activation, image manifest budgets, or privacy/network boundaries. `buildReleaseQaChecklist` now includes those gates and tests assert the expanded checklist.
+- **High: Public-readiness verification did not cover public-release-specific claims.** Manual verification guidance now covers 10-second comprehension, no-provider activation, image manifest budgets, and privacy/network boundaries without shipping a dedicated release checklist UI.
 - **Medium: Mobile public entry initially clipped the skip button and card text.** The narrow layout now hides the secondary button label and simplifies mode-card copy below compact widths; mobile screenshot inspection confirmed no visible text clipping in the first viewport.
 - **Medium: Empty states were still generic text panels.** Home, review, memory, and prep empty states now use optimized generated illustrations with useful alt text and next actions.
 - **Medium: Asset ownership evidence was incomplete for new empty-state images.** `src/assets/public-release/manifest.json` now includes source path, prompt, dimensions, optimized bytes, budget, alt text, classification, and intended use for every public-release image.

@@ -9,7 +9,7 @@ Branch: `feature/public-release`
 - Added generated public-release assets for hero, campaign modes, and empty states, all tracked in `src/assets/public-release/manifest.json`.
 - Replaced generic empty panels in the log, review, memory, and prep loops with illustrated, action-oriented states.
 - Updated the visual foundation with public palette, Japanese-first font stacks, display typography, compact mobile behavior, and reduced-motion handling.
-- Expanded Release QA to cover public-specific gates: 10-second comprehension, 5-minute provider-free activation, image manifest/budgets, responsive screenshots, and privacy/network boundaries.
+- Kept public-readiness checks as documentation and manual verification guidance instead of shipping a dedicated release checklist UI.
 - Kept monetization pricing-ready but out of scope for this branch: no billing, accounts, hosted storage, sync, or payment code.
 
 ## Verification

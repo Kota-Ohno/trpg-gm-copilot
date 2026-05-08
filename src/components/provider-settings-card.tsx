@@ -269,9 +269,7 @@ export function ProviderSettingsCard({
             </Badge>
           )}
           {connectionResult?.ok && (
-            <Badge variant={connectionResult.isReleaseQaEvidence ? "secondary" : "muted"}>
-              {connectionResult.isReleaseQaEvidence ? "Release QA証跡" : "ローカル確認"}
-            </Badge>
+            <Badge variant="muted">接続確認済み</Badge>
           )}
         </div>
 

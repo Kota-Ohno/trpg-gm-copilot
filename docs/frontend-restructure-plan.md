@@ -16,7 +16,7 @@
 
 2. **Progressive disclosure**
    - Keep `Campaign Setup`, `Export / Import`, and `ワークフロー詳細` collapsed by default.
-   - Keep Provider/QA controls behind the side desk’s `運用` tab.
+   - Keep Provider and operational controls behind the side desk’s `運用` tab.
 
 3. **Action hierarchy**
    - Preserve the top toolbar for `抽出`, `出力`, and `集中`.

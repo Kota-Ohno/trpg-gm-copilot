@@ -35,7 +35,6 @@ export type ProviderConnectionTestRequest = {
 };
 
 export type ProviderConnectionTestResult = {
-  isReleaseQaEvidence: boolean;
   ok: boolean;
   message: string;
 };
@@ -434,7 +433,6 @@ export async function testExtractionProviderConnection({
 
   if (provider.id === "rule-based") {
     return {
-      isReleaseQaEvidence: false,
       ok: true,
       message: "ルールベースProviderはローカルで利用できます。model: local-rules-v1",
     };
@@ -445,7 +443,6 @@ export async function testExtractionProviderConnection({
     const model = settings.model.trim() || "gpt-4.1-mini";
     if (!apiKey) {
       return {
-        isReleaseQaEvidence: false,
         ok: false,
         message: `OpenAI API key が未入力です。model: ${model}`,
       };
@@ -475,7 +472,6 @@ export async function testExtractionProviderConnection({
 
       if (!response.ok) {
         return {
-          isReleaseQaEvidence: false,
           ok: false,
           message: getResponseErrorMessage(responseBody, response),
         };
@@ -484,7 +480,6 @@ export async function testExtractionProviderConnection({
       const responseText = extractOpenAiText(responseBody);
       const isConnectionOk = parseConnectionTestResponse(responseText);
       return {
-        isReleaseQaEvidence: isConnectionOk,
         ok: isConnectionOk,
         message: isConnectionOk
           ? `OpenAI Provider に接続できました。model: ${model}`
@@ -492,7 +487,6 @@ export async function testExtractionProviderConnection({
       };
     } catch (error) {
       return {
-        isReleaseQaEvidence: false,
         ok: false,
         message: getProviderErrorMessage(error, "OpenAI", CONNECTION_TEST_TIMEOUT_MS),
       };
@@ -518,7 +512,6 @@ export async function testExtractionProviderConnection({
 
       if (!response.ok) {
         return {
-          isReleaseQaEvidence: false,
           ok: false,
           message: getResponseErrorMessage(responseBody, response),
         };
@@ -527,7 +520,6 @@ export async function testExtractionProviderConnection({
       const responseText = typeof responseBody.response === "string" ? responseBody.response : "";
       const isConnectionOk = parseConnectionTestResponse(responseText);
       return {
-        isReleaseQaEvidence: isConnectionOk,
         ok: isConnectionOk,
         message: isConnectionOk
           ? `Ollama Provider に接続できました。model: ${model}`
@@ -535,7 +527,6 @@ export async function testExtractionProviderConnection({
       };
     } catch (error) {
       return {
-        isReleaseQaEvidence: false,
         ok: false,
         message: getProviderErrorMessage(error, "Ollama", CONNECTION_TEST_TIMEOUT_MS),
       };
@@ -543,7 +534,6 @@ export async function testExtractionProviderConnection({
   }
 
   return {
-    isReleaseQaEvidence: false,
     ok: false,
     message: `${provider.label} は未対応です。`,
   };

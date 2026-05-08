@@ -51,12 +51,9 @@ import { getBackupStatus } from "./lib/backup";
 import {
   buildCampaignOperationalRisks,
   buildProductSafetyChecklist,
-  buildReleaseQaChecklist,
   buildReviewQualityDiagnostics,
   buildSessionStorageDiagnostics,
   buildSupportDiagnostics,
-  formatReleaseQaMarkdown,
-  releaseQaItemIds,
 } from "./lib/diagnostics";
 import { sortSessions, type SessionSortMode } from "./lib/session-list";
 import {
@@ -124,12 +121,11 @@ import {
 import { buildExtractionPrompt } from "./lib/extraction-prompt";
 import {
   defaultProviderSecretSettings,
-  getExtractionProvider,
   getTranscriptionProvider,
   normalizeProviderSecretSettings,
   transcriptionProviders,
 } from "./lib/extraction-provider-settings";
-import { runExtractionProvider, type ProviderConnectionTestResult } from "./lib/extraction-providers";
+import { runExtractionProvider } from "./lib/extraction-providers";
 import {
   checkTranscriptionProviderReadiness,
   runTranscriptionProvider,
@@ -166,14 +162,9 @@ const CAMPAIGN_LIBRARY_STORAGE_KEY = "chronicle-gm.campaign-library.v1";
 const LAST_BACKUP_STORAGE_KEY = "chronicle-gm.last-backup.v1";
 const PROVIDER_SECRETS_STORAGE_KEY = "chronicle-gm.provider-secrets.v1";
 const UI_PREFERENCES_STORAGE_KEY = "chronicle-gm.ui-preferences.v1";
-const RELEASE_QA_COMPLETED_STORAGE_KEY = "chronicle-gm.release-qa-completed.v1";
-const RELEASE_QA_EVIDENCE_STORAGE_KEY = "chronicle-gm.release-qa-evidence.v1";
 const PUBLIC_ENTRY_SEEN_STORAGE_KEY = "chronicle-gm.public-entry-seen.v1";
 const PRODUCT_NAME = "Loreline";
 const PRODUCT_TAGLINE = "GM Continuity Studio";
-const LEGACY_PROVIDER_RELEASE_QA_ID = releaseQaItemIds.legacyProviderLiveCheck;
-const EXTRACTION_PROVIDER_RELEASE_QA_ID = releaseQaItemIds.extractionProviderLiveCheck;
-const TRANSCRIPTION_PROVIDER_RELEASE_QA_ID = releaseQaItemIds.transcriptionProviderLiveCheck;
 const maxJsonImportFileSizeBytes = 8 * 1024 * 1024;
 const campaignNameInputId = "campaign-name";
 const campaignImportInputId = "campaign-json-import";
@@ -474,7 +465,7 @@ const chronicleViewLabels: Record<ChronicleViewMode, string> = {
 const settingsPanelLabels: Record<SettingsPanelMode, string> = {
   extraction: "抽出",
   transcription: "文字起こし",
-  roadmap: "運用QA",
+  roadmap: "運用",
 };
 
 const reviewKindOptions: Array<{ value: ReviewKindFilter; label: string }> = [
@@ -519,7 +510,7 @@ const rightPanelOptions: Array<{ value: RightPanelMode; label: string; icon?: ty
 const settingsPanelOptions: Array<{ value: SettingsPanelMode; label: string; icon?: typeof Compass }> = [
   { value: "extraction", label: "抽出", icon: Wand2 },
   { value: "transcription", label: "文字起こし", icon: MessageSquareText },
-  { value: "roadmap", label: "運用QA", icon: ShieldCheck },
+  { value: "roadmap", label: "運用", icon: ShieldCheck },
 ];
 
 const extractionSourceLabels: Record<ExtractionRun["sourceType"], string> = {
@@ -704,9 +695,7 @@ function loadPublicEntryVisibility(): boolean {
   return (
     !window.localStorage.getItem(CAMPAIGN_LIBRARY_STORAGE_KEY) &&
     !window.localStorage.getItem(LEGACY_STORAGE_KEY) &&
-    !window.localStorage.getItem(UI_PREFERENCES_STORAGE_KEY) &&
-    !window.localStorage.getItem(RELEASE_QA_COMPLETED_STORAGE_KEY) &&
-    !window.localStorage.getItem(RELEASE_QA_EVIDENCE_STORAGE_KEY)
+    !window.localStorage.getItem(UI_PREFERENCES_STORAGE_KEY)
   );
 }
 
@@ -807,98 +796,6 @@ function loadLastBackupAt(): string | null {
   return savedValue?.trim() || null;
 }
 
-function loadReleaseQaCompletedIds(): string[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  const savedValue = window.localStorage.getItem(RELEASE_QA_COMPLETED_STORAGE_KEY);
-  if (!savedValue) {
-    return [];
-  }
-
-  try {
-    const parsedValue = JSON.parse(savedValue);
-    const completedIds = Array.isArray(parsedValue)
-      ? parsedValue.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
-      : [];
-    return completedIds.filter((id) => id !== LEGACY_PROVIDER_RELEASE_QA_ID);
-  } catch {
-    return [];
-  }
-}
-
-function mergeReleaseQaEvidenceNote(
-  notes: Record<string, string>,
-  itemId: string,
-  note: string,
-): void {
-  const normalizedNote = note.trim();
-  if (!normalizedNote) {
-    return;
-  }
-
-  notes[itemId] = notes[itemId] ? `${notes[itemId]}; ${normalizedNote}` : normalizedNote;
-}
-
-function migrateLegacyProviderEvidenceNote(
-  notes: Record<string, string>,
-  legacyNote: string,
-): void {
-  const segments = legacyNote
-    .split(/\s*;\s*/)
-    .map((segment) => segment.trim())
-    .filter(Boolean);
-  const normalizedSegments = segments.length > 0 ? segments : [legacyNote.trim()];
-
-  normalizedSegments.forEach((segment) => {
-    if (segment.includes("文字起こし/")) {
-      mergeReleaseQaEvidenceNote(notes, TRANSCRIPTION_PROVIDER_RELEASE_QA_ID, segment);
-      return;
-    }
-
-    if (segment.includes("抽出/")) {
-      mergeReleaseQaEvidenceNote(notes, EXTRACTION_PROVIDER_RELEASE_QA_ID, segment);
-      return;
-    }
-
-    mergeReleaseQaEvidenceNote(notes, EXTRACTION_PROVIDER_RELEASE_QA_ID, segment);
-    mergeReleaseQaEvidenceNote(notes, TRANSCRIPTION_PROVIDER_RELEASE_QA_ID, segment);
-  });
-}
-
-function loadReleaseQaEvidenceNotes(): Record<string, string> {
-  if (typeof window === "undefined") {
-    return {};
-  }
-
-  const savedValue = window.localStorage.getItem(RELEASE_QA_EVIDENCE_STORAGE_KEY);
-  if (!savedValue) {
-    return {};
-  }
-
-  try {
-    const parsedValue = JSON.parse(savedValue);
-    if (!parsedValue || typeof parsedValue !== "object" || Array.isArray(parsedValue)) {
-      return {};
-    }
-
-    return Object.entries(parsedValue)
-      .filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].trim().length > 0)
-      .reduce<Record<string, string>>((notes, [key, value]) => {
-        if (key === LEGACY_PROVIDER_RELEASE_QA_ID) {
-          migrateLegacyProviderEvidenceNote(notes, value);
-          return notes;
-        }
-
-        mergeReleaseQaEvidenceNote(notes, key, value);
-        return notes;
-      }, {});
-  } catch {
-    return {};
-  }
-}
-
 function downloadTextFile(content: string, fileName: string, type: string): void {
   const blob = new Blob([content], { type });
   const objectUrl = URL.createObjectURL(blob);
@@ -972,11 +869,7 @@ export function App() {
     usageBytes: null,
   });
   const [clipboardMessage, setClipboardMessage] = useState<string | null>(null);
-  const [releaseQaMessage, setReleaseQaMessage] = useState<string | null>(null);
   const [providerSecrets, setProviderSecrets] = useState<ProviderSecretSettings>(loadProviderSecrets);
-  const [releaseQaCompletedIds, setReleaseQaCompletedIds] = useState<string[]>(loadReleaseQaCompletedIds);
-  const [releaseQaEvidenceNotes, setReleaseQaEvidenceNotes] =
-    useState<Record<string, string>>(loadReleaseQaEvidenceNotes);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
 
   const campaignState =
@@ -1302,15 +1195,6 @@ export function App() {
   }, [approvedCount, items.length]);
   const storageUsagePercent = getStorageUsagePercent(storageHealth);
   const backupStatus = getBackupStatus(lastBackupAt);
-  const releaseQaChecklist = useMemo(() => buildReleaseQaChecklist(), []);
-  const releaseQaCompletedIdSet = useMemo(() => new Set(releaseQaCompletedIds), [releaseQaCompletedIds]);
-  const releaseQaCompletedCount = releaseQaChecklist.filter((item) => releaseQaCompletedIdSet.has(item.id)).length;
-  const releaseQaEvidenceCount = releaseQaChecklist.filter((item) => releaseQaEvidenceNotes[item.id]?.trim()).length;
-  const isReleaseQaReady =
-    releaseQaCompletedCount === releaseQaChecklist.length &&
-    releaseQaEvidenceCount === releaseQaChecklist.length;
-  const releaseQaIncompleteCount = releaseQaChecklist.length - releaseQaCompletedCount;
-  const releaseQaMissingEvidenceCount = releaseQaChecklist.length - releaseQaEvidenceCount;
   const productSafetyChecklist = useMemo(
     () =>
       buildProductSafetyChecklist({
@@ -1319,9 +1203,6 @@ export function App() {
         playerHandoutAvailable: playerHandoutMarkdown.trim().length > 0,
         playerHandoutWarningCount: playerHandoutSafetyWarnings.length,
         providerSecretsExcludedFromExports: true,
-        releaseQaCompletedCount,
-        releaseQaEvidenceCount,
-        releaseQaTotalCount: releaseQaChecklist.length,
         reviewQualityDebtCount,
         storageUsagePercent,
         transcriptionProviderReady: transcriptionProviderReadiness.ok,
@@ -1331,9 +1212,6 @@ export function App() {
       extractionProviderReady,
       playerHandoutMarkdown,
       playerHandoutSafetyWarnings.length,
-      releaseQaChecklist.length,
-      releaseQaCompletedCount,
-      releaseQaEvidenceCount,
       reviewQualityDebtCount,
       storageUsagePercent,
       transcriptionProviderReadiness.ok,
@@ -1449,43 +1327,6 @@ export function App() {
     sessionTranscriptionFilter,
     settingsPanelMode,
   ]);
-
-  useEffect(() => {
-    const validIds = new Set(releaseQaChecklist.map((item) => item.id));
-    const normalizedIds = releaseQaCompletedIds.filter((id, index, ids) => validIds.has(id) && ids.indexOf(id) === index);
-
-    if (normalizedIds.length !== releaseQaCompletedIds.length) {
-      setReleaseQaCompletedIds(normalizedIds);
-      return;
-    }
-
-    try {
-      window.localStorage.setItem(RELEASE_QA_COMPLETED_STORAGE_KEY, JSON.stringify(normalizedIds));
-    } catch {
-      setStorageError("Release QA の確認状態をブラウザに保存できませんでした。");
-    }
-  }, [releaseQaChecklist, releaseQaCompletedIds]);
-
-  useEffect(() => {
-    const validIds = new Set(releaseQaChecklist.map((item) => item.id));
-    const normalizedNotes = Object.fromEntries(
-      Object.entries(releaseQaEvidenceNotes)
-        .filter(([id, note]) => validIds.has(id) && note.trim().length > 0)
-        .map(([id, note]) => [id, note.trim()]),
-    );
-    const didNormalize = JSON.stringify(normalizedNotes) !== JSON.stringify(releaseQaEvidenceNotes);
-
-    if (didNormalize) {
-      setReleaseQaEvidenceNotes(normalizedNotes);
-      return;
-    }
-
-    try {
-      window.localStorage.setItem(RELEASE_QA_EVIDENCE_STORAGE_KEY, JSON.stringify(normalizedNotes));
-    } catch {
-      setStorageError("Release QA の確認メモをブラウザに保存できませんでした。");
-    }
-  }, [releaseQaChecklist, releaseQaEvidenceNotes]);
 
   const setActiveCampaignState = (updater: (current: CampaignState) => CampaignState): void => {
     setCampaignLibrary((currentLibrary) => {
@@ -1762,8 +1603,6 @@ export function App() {
       prepWorkspaceMode,
       reviewSortMode,
       reviewWorkspaceMode,
-      releaseQaCompletedIds,
-      releaseQaEvidenceNotes,
       rightPanelMode,
       sessionArchiveFilter,
       sessionListDensity: "single",
@@ -1777,118 +1616,6 @@ export function App() {
       transcriptionProviderId: transcriptionProvider.providerId,
       transcriptionProviderReadiness,
     }), createExportFileName("support-diagnostics"));
-  };
-
-  const exportReleaseQaMarkdown = (): void => {
-    downloadTextFile(
-      formatReleaseQaMarkdown(
-        releaseQaChecklist,
-        `${PRODUCT_NAME} Release QA`,
-        releaseQaCompletedIds,
-        releaseQaEvidenceNotes,
-      ),
-      `${createExportFileName("release-qa").replace(/\.json$/, "")}.md`,
-      "text/markdown;charset=utf-8",
-    );
-    setReleaseQaMessage("Release QA Markdownを書き出しました。");
-    setStorageError(null);
-  };
-
-  const copyReleaseQaMarkdown = async (): Promise<void> => {
-    const didCopy = await copyTextToClipboard(
-      "Release QA",
-      formatReleaseQaMarkdown(
-        releaseQaChecklist,
-        `${PRODUCT_NAME} Release QA`,
-        releaseQaCompletedIds,
-        releaseQaEvidenceNotes,
-      ),
-    );
-    setReleaseQaMessage(
-      didCopy
-        ? "Release QA Markdownをコピーしました。"
-        : "Release QA Markdownをコピーできませんでした。Markdown書き出しを使ってください。",
-    );
-  };
-
-  const toggleReleaseQaItem = (itemId: string): void => {
-    setReleaseQaCompletedIds((currentIds) =>
-      currentIds.includes(itemId)
-        ? currentIds.filter((currentId) => currentId !== itemId)
-        : [...currentIds, itemId],
-    );
-  };
-
-  const markReleaseQaItemCompleted = (itemId: string): void => {
-    setReleaseQaCompletedIds((currentIds) =>
-      currentIds.includes(itemId) ? currentIds : [...currentIds, itemId],
-    );
-  };
-
-  const resetReleaseQaChecklist = (): void => {
-    setReleaseQaCompletedIds([]);
-    setReleaseQaEvidenceNotes({});
-    setReleaseQaMessage("Release QAをリセットしました。");
-  };
-
-  const requestReleaseQaReset = (): void => {
-    setConfirmation({
-      title: "Release QAをリセットしますか",
-      message: "確認済み状態と証跡メモをすべて消去します。出荷判定の根拠が失われるため、必要ならMarkdownを書き出してから実行してください。",
-      confirmLabel: "リセットする",
-      onConfirm: resetReleaseQaChecklist,
-    });
-  };
-
-  const updateReleaseQaEvidenceNote = (itemId: string, note: string): void => {
-    setReleaseQaEvidenceNotes((currentNotes) => {
-      if (!note.trim()) {
-        const remainingNotes = { ...currentNotes };
-        delete remainingNotes[itemId];
-        return remainingNotes;
-      }
-
-      return {
-        ...currentNotes,
-        [itemId]: note,
-      };
-    });
-  };
-
-  const appendReleaseQaEvidenceNote = (itemId: string, note: string): void => {
-    const normalizedNote = note.trim();
-    if (!normalizedNote) {
-      return;
-    }
-
-    setReleaseQaEvidenceNotes((currentNotes) => {
-      const currentNote = currentNotes[itemId]?.trim();
-
-      return {
-        ...currentNotes,
-        [itemId]: currentNote ? `${currentNote}; ${normalizedNote}` : normalizedNote,
-      };
-    });
-  };
-
-  const recordProviderConnectionEvidence = (
-    itemId: string,
-    providerLabel: string,
-    result: ProviderConnectionTestResult | TranscriptionProviderConnectionTestResult,
-  ): void => {
-    if (!result.isReleaseQaEvidence) {
-      setReleaseQaMessage(
-        `${providerLabel}: ${result.ok ? "ローカル確認として成功" : "接続テスト失敗"}。Release QA証跡には未反映です。`,
-      );
-      return;
-    }
-
-    appendReleaseQaEvidenceNote(
-      itemId,
-      `${new Date().toISOString()} ${providerLabel}: 成功 - ${result.message}`,
-    );
-    markReleaseQaItemCompleted(itemId);
-    setReleaseQaMessage(`${providerLabel}: Release QA証跡として記録しました。`);
   };
 
   const exportTranscriptionDraftJson = (): void => {
@@ -2491,11 +2218,6 @@ export function App() {
         settings: transcriptionProvider,
       });
       setTranscriptionConnectionResult(result);
-      recordProviderConnectionEvidence(
-        TRANSCRIPTION_PROVIDER_RELEASE_QA_ID,
-        `文字起こし/${selectedTranscriptionProvider.label}`,
-        result,
-      );
     } finally {
       setIsTestingTranscriptionConnection(false);
     }
@@ -3761,9 +3483,6 @@ export function App() {
                 isExtracting={isExtracting}
                 memoryItemCount={memoryItemCount}
                 remainingCount={remainingCount}
-                releaseQaCompletedCount={releaseQaCompletedCount}
-                releaseQaEvidenceCount={releaseQaEvidenceCount}
-                releaseQaTotalCount={releaseQaChecklist.length}
                 reviewItemCount={items.length}
                 reviewQualityDebtCount={reviewQualityDebtCount}
                 sessionCount={campaignState.sessions.length}
@@ -4800,7 +4519,7 @@ export function App() {
                 サイドデスク
               </p>
               <p className="text-xs text-muted-foreground">
-                {rightPanelMode === "rescue" ? "進行中に差し込める即応ツール" : "Provider、保存、出荷QA"}
+                {rightPanelMode === "rescue" ? "進行中に差し込める即応ツール" : "Provider、保存、運用チェック"}
               </p>
             </div>
             <Tabs
@@ -4883,13 +4602,6 @@ export function App() {
               settings={extractionProvider}
               onChangeSecrets={setProviderSecrets}
               onChange={(nextSettings) => updateCampaignState({ extractionProvider: nextSettings })}
-              onConnectionTestResult={(result) =>
-                recordProviderConnectionEvidence(
-                  EXTRACTION_PROVIDER_RELEASE_QA_ID,
-                  `抽出/${getExtractionProvider(extractionProvider.providerId).label}`,
-                  result,
-                )
-              }
             />
           </div>
           )}
@@ -4934,9 +4646,7 @@ export function App() {
                   </Badge>
                 )}
                 {transcriptionConnectionResult?.ok && (
-                  <Badge variant={transcriptionConnectionResult.isReleaseQaEvidence ? "secondary" : "muted"}>
-                    {transcriptionConnectionResult.isReleaseQaEvidence ? "Release QA証跡" : "ローカル確認"}
-                  </Badge>
+                  <Badge variant="muted">接続確認済み</Badge>
                 )}
               </div>
               <p
@@ -5103,10 +4813,10 @@ export function App() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4" />
-                運用QA
+                運用チェック
               </CardTitle>
               <CardDescription className="mt-2">
-                出荷前と卓後の継続運用で確認すべき安全性、保存、導線、Provider接続をまとめます。
+                卓前後の継続運用で確認すべき安全性、保存、導線、Provider接続をまとめます。
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-muted-foreground">
@@ -5134,76 +4844,6 @@ export function App() {
                     <p className="leading-5">{item.detail}</p>
                   </div>
                 ))}
-              </div>
-              <div className="grid gap-2 rounded-md border border-border bg-background p-3 text-xs">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-medium text-foreground">Release QA</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={isReleaseQaReady ? "default" : "destructive"}>
-                      {isReleaseQaReady ? "出荷判定OK" : "出荷未完了"}
-                    </Badge>
-                    <Badge variant={releaseQaCompletedCount === releaseQaChecklist.length ? "default" : "muted"}>
-                      {releaseQaCompletedCount}/{releaseQaChecklist.length}確認済み
-                    </Badge>
-                    <Badge variant={releaseQaEvidenceCount === releaseQaChecklist.length ? "default" : "secondary"}>
-                      証跡 {releaseQaEvidenceCount}件
-                    </Badge>
-                    {!isReleaseQaReady && (
-                      <Badge variant="secondary">
-                        不足 確認{releaseQaIncompleteCount}件 / 証跡{releaseQaMissingEvidenceCount}件
-                      </Badge>
-                    )}
-                    <Button onClick={exportReleaseQaMarkdown} size="sm" variant="outline">
-                      <FileText className="h-4 w-4" />
-                      Markdown
-                    </Button>
-                    <Button onClick={() => void copyReleaseQaMarkdown()} size="sm" variant="outline">
-                      <Copy className="h-4 w-4" />
-                      コピー
-                    </Button>
-                    <Button onClick={requestReleaseQaReset} size="sm" variant="ghost">
-                      <RotateCcw className="h-4 w-4" />
-                      リセット
-                    </Button>
-                    {releaseQaMessage && (
-                      <Badge role="status" variant="secondary">
-                        {releaseQaMessage}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                {releaseQaChecklist.map((item) => {
-                  const hasEvidenceNote = Boolean(releaseQaEvidenceNotes[item.id]?.trim());
-
-                  return (
-                    <div className="grid gap-1 rounded-md border bg-muted/20 p-2" key={item.id}>
-                      <label className="flex items-start gap-2 text-foreground">
-                        <input
-                          checked={releaseQaCompletedIdSet.has(item.id)}
-                          className="mt-0.5 h-4 w-4 rounded border-input"
-                          onChange={() => toggleReleaseQaItem(item.id)}
-                          type="checkbox"
-                        />
-                        <span className="grid gap-1">
-                          <span className="flex flex-wrap items-center gap-2 font-medium">
-                            {item.label}
-                            <Badge variant={hasEvidenceNote ? "default" : "secondary"}>
-                              {hasEvidenceNote ? "証跡あり" : "証跡なし"}
-                            </Badge>
-                          </span>
-                          <span className="leading-5 text-muted-foreground">{item.detail}</span>
-                        </span>
-                      </label>
-                      <Textarea
-                        aria-label={`${item.label}の確認メモ`}
-                        className="min-h-16 text-xs"
-                        onChange={(event) => updateReleaseQaEvidenceNote(item.id, event.target.value)}
-                        placeholder="確認メモ: 実行日時、結果、対象URL、接続先など"
-                        value={releaseQaEvidenceNotes[item.id] ?? ""}
-                      />
-                    </div>
-                  );
-                })}
               </div>
               {largestSessionStorageDiagnostic && (
                 <div className="rounded-md border border-border bg-muted/20 p-3 text-xs">
@@ -5427,9 +5067,6 @@ function HomeDashboard({
   onOpenTranscriptionImport,
   onOpenTranscriptionProviderSettings,
   remainingCount,
-  releaseQaCompletedCount,
-  releaseQaEvidenceCount,
-  releaseQaTotalCount,
   reviewItemCount,
   reviewQualityDebtCount,
   sessionCount,
@@ -5471,9 +5108,6 @@ function HomeDashboard({
   onOpenTranscriptionImport: () => void;
   onOpenTranscriptionProviderSettings: () => void;
   remainingCount: number;
-  releaseQaCompletedCount: number;
-  releaseQaEvidenceCount: number;
-  releaseQaTotalCount: number;
   reviewItemCount: number;
   reviewQualityDebtCount: number;
   sessionCount: number;
@@ -5514,12 +5148,6 @@ function HomeDashboard({
       : null,
     storageUsagePercent !== null && storageUsagePercent >= 80
       ? { label: `保存容量 ${storageUsagePercent}%`, onOpen: onOpenStorageSettings }
-      : null,
-    releaseQaCompletedCount < releaseQaTotalCount || releaseQaEvidenceCount < releaseQaTotalCount
-      ? {
-          label: `Release QA ${releaseQaCompletedCount}/${releaseQaTotalCount}・証跡 ${releaseQaEvidenceCount}/${releaseQaTotalCount}`,
-          onOpen: onOpenOperationalQa,
-        }
       : null,
     backupStatus.needsBackup
       ? { label: backupStatus.label, onOpen: onOpenStorageSettings }

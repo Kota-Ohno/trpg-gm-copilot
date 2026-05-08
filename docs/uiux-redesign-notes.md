@@ -13,7 +13,7 @@ Everything else is secondary and should be revealed only when the user asks for 
 
 ## Research synthesis
 
-- Progressive disclosure is the central pattern for this product. Show essential controls first and reveal advanced or rare actions on demand. This is especially important because Loreline has many power-user features: exports, provider checks, QA evidence, templates, storage diagnostics, and detailed review management.
+- Progressive disclosure is the central pattern for this product. Show essential controls first and reveal advanced or rare actions on demand. This is especially important because Loreline has many power-user features: exports, provider checks, templates, storage diagnostics, and detailed review management.
 - Material responsive guidance says compact layouts should usually show a single level of content hierarchy, while wider layouts can show more than one level. Loreline should not force left navigation, main dashboard, and live side tools into the same first viewport on small screens.
 - Apple HIG emphasizes hierarchy, consistency, and accessibility. For cognition specifically, it recommends simple, familiar, consistent interactions and minimizing complexity.
 - Apple tab guidance treats tabs as navigation, not actions. Loreline should keep workspace tabs for destination switching and place extraction/export/focus commands in a toolbar.
@@ -23,7 +23,7 @@ Everything else is secondary and should be revealed only when the user asks for 
 ## Design principles for Loreline
 
 1. **One primary task per viewport.** The first viewport should be the current session command surface, not a full control inventory.
-2. **Summary first, details on demand.** Campaign setup, export/import, workflow explanation, provider settings, and QA should be collapsed or moved behind explicit navigation.
+2. **Summary first, details on demand.** Campaign setup, export/import, workflow explanation, provider settings, and operational checks should be collapsed or moved behind explicit navigation.
 3. **Navigation is not action.** Tabs switch workspaces; toolbar buttons perform actions.
 4. **Reduce simultaneous panels.** Permanent right-side tools create a three-column cockpit that feels powerful but expensive to parse. Side tools should be secondary.
 5. **Use risk without alarm fatigue.** Warnings should be prioritized and calm unless they block the next action.
@@ -35,7 +35,7 @@ Everything else is secondary and should be revealed only when the user asks for 
 
 - The first viewport still exposes navigation, campaign setup, export/import, session command, risk queue, workflow detail, and side desk in close proximity on desktop.
 - The permanent right side desk competes with the core workflow and makes the app look like three apps at once.
-- Warnings were too visually dominant when rendered as destructive red buttons; this made normal incomplete QA feel like emergency failure.
+- Warnings were too visually dominant when rendered as destructive red buttons; this made normal incomplete operational checks feel like emergency failure.
 - Campaign setup and export/import are not daily workflow controls but were previously visible by default.
 - Mobile still shows a lot before the user reaches the main task, so the above-the-fold experience should stay focused and stacked.
 

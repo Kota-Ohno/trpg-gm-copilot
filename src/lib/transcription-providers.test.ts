@@ -70,7 +70,6 @@ describe("testTranscriptionProviderConnection", () => {
       secrets: { openAiApiKey: "" },
       settings: { providerId: "manual", model: "manual-transcript", endpoint: "", language: "ja" },
     })).resolves.toEqual({
-      isReleaseQaEvidence: false,
       ok: true,
       message: "手動入力Providerはローカルで利用できます。model: manual-transcript",
     });
@@ -89,7 +88,6 @@ describe("testTranscriptionProviderConnection", () => {
         language: "ja",
       },
     })).resolves.toMatchObject({
-      isReleaseQaEvidence: false,
       ok: false,
       message: "OpenAI文字起こしにはAPI keyが必要です。model: gpt-4o-mini-transcribe",
     });
@@ -112,7 +110,6 @@ describe("testTranscriptionProviderConnection", () => {
         language: "ja",
       },
     })).resolves.toEqual({
-      isReleaseQaEvidence: true,
       ok: true,
       message: "OpenAI文字起こしProvider に接続できました。model: gpt-4o-mini-transcribe",
     });

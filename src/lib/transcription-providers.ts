@@ -12,7 +12,6 @@ export type TranscriptionProviderCheckResult = {
 };
 
 export type TranscriptionProviderConnectionTestResult = {
-  isReleaseQaEvidence: boolean;
   ok: boolean;
   message: string;
 };
@@ -184,7 +183,6 @@ export async function testTranscriptionProviderConnection(
 
   if (provider.id === "manual") {
     return {
-      isReleaseQaEvidence: false,
       ok: true,
       message: "手動入力Providerはローカルで利用できます。model: manual-transcript",
     };
@@ -193,7 +191,6 @@ export async function testTranscriptionProviderConnection(
   if (provider.id === "web-speech") {
     return {
       ...checkTranscriptionProviderReadiness(request.settings, request.secrets),
-      isReleaseQaEvidence: false,
     };
   }
 
@@ -202,7 +199,6 @@ export async function testTranscriptionProviderConnection(
     const model = request.settings.model.trim() || provider.defaultModel;
     if (!apiKey) {
       return {
-        isReleaseQaEvidence: false,
         ok: false,
         message: `OpenAI文字起こしにはAPI keyが必要です。model: ${model}`,
       };
@@ -223,20 +219,17 @@ export async function testTranscriptionProviderConnection(
 
       if (!response.ok) {
         return {
-          isReleaseQaEvidence: false,
           ok: false,
           message: await readTranscriptionErrorMessage(response),
         };
       }
 
       return {
-        isReleaseQaEvidence: true,
         ok: true,
         message: `OpenAI文字起こしProvider に接続できました。model: ${model}`,
       };
     } catch (error) {
       return {
-        isReleaseQaEvidence: false,
         ok: false,
         message: getTranscriptionProviderErrorMessage(error, "OpenAI文字起こし", 12_000),
       };
@@ -244,7 +237,6 @@ export async function testTranscriptionProviderConnection(
   }
 
   return {
-    isReleaseQaEvidence: false,
     ok: false,
     message: `${provider.label} は接続確認に対応していません。`,
   };
