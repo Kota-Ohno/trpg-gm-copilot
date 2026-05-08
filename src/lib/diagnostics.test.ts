@@ -69,12 +69,17 @@ describe("buildReleaseQaChecklist", () => {
     expect(buildReleaseQaChecklist()).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: "local-check" }),
       expect.objectContaining({ id: "starter-flow" }),
+      expect.objectContaining({ id: "ten-second-comprehension" }),
+      expect.objectContaining({ id: "no-provider-activation" }),
       expect.objectContaining({ id: "gm-workflow" }),
       expect.objectContaining({ id: "data-portability" }),
       expect.objectContaining({ id: "responsive-ui" }),
+      expect.objectContaining({ id: "asset-manifest-budget" }),
+      expect.objectContaining({ id: "privacy-network-boundary" }),
       expect.objectContaining({ id: releaseQaItemIds.extractionProviderLiveCheck }),
       expect.objectContaining({ id: releaseQaItemIds.transcriptionProviderLiveCheck }),
     ]));
+    expect(buildReleaseQaChecklist()).toHaveLength(11);
   });
 });
 
@@ -268,7 +273,7 @@ describe("buildSupportDiagnostics", () => {
         "文字起こしProvider実地確認",
       ]),
       ready: false,
-      totalCount: 7,
+      totalCount: buildReleaseQaChecklist().length,
     });
     expect(JSON.stringify(diagnostics)).not.toContain("sk-testSecretValue123456");
     expect(JSON.stringify(diagnostics)).not.toContain("liveSecretToken123456");

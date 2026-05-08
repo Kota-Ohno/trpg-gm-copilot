@@ -57,10 +57,12 @@ npm run build
 Release QA:
 
 - Run `npm run check`.
-- Open the local app and click through starter creation, extraction, review approval, memory, prep, player handout, wrap-up, export/import, and settings panels.
+- Open the local app in a fresh browser profile and verify the public entry, 10-second comprehension, starter creation, extraction, review approval, memory, prep, player handout, wrap-up, export/import, and settings panels.
+- Complete the sample or pasted-log activation path without API keys, account creation, or external campaign-text upload.
+- Verify `src/assets/public-release/manifest.json` covers every committed public-release image and that the hero stays under 350KB while each emblem/empty-state image stays under 120KB.
 - Record evidence notes for every Release QA item; the Product Safety panel stays in warning until all checks and evidence are present.
 - Export or copy the Release QA Markdown from Settings > 運用QA before shipping. Evidence notes are redacted on export/copy, and reset requires confirmation.
-- Verify desktop and narrow mobile widths for overlapping text or unusable controls.
+- Verify desktop and narrow mobile widths for the public entry, empty states, and workbench surfaces; check overlapping text, unusable controls, focus visibility, and horizontal scrolling.
 - Test extraction and transcription providers separately from their connection-test buttons, only with a user-owned API key or local endpoint. Local/manual providers can be checked for readiness, but only results marked `Release QA証跡` count as provider live-check evidence.
 - Evidence notes should include the exact date/time, local URL or viewport, provider label/model, and observed result. Example: `2026-05-06 15:00 JST desktop 1440px http://localhost:5174/ GM workflow click-through OK`.
 

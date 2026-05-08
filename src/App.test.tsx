@@ -83,7 +83,7 @@ describe("App smoke render", () => {
 
     expect(html).toContain("抽出/OpenAI: 成功");
     expect(html).toContain("文字起こし/OpenAI: 成功");
-    expect(html).toContain("0/7件のRelease QAを確認済み");
+    expect(html).toContain("0/11件のRelease QAを確認済み");
     expect(html).toContain("証跡 2件");
   });
 
