@@ -40,6 +40,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./com
 import { Input } from "./components/ui/input";
 import { Tabs } from "./components/ui/tabs";
 import { Textarea } from "./components/ui/textarea";
+import lorelineHeroImage from "./assets/public-release/loreline-hero.jpg";
+import customModeImage from "./assets/public-release/mode-custom.jpg";
+import fantasyModeImage from "./assets/public-release/mode-fantasy.jpg";
+import investigationModeImage from "./assets/public-release/mode-investigation.jpg";
 import { sampleLiveLog } from "./data/sample";
 import { getBackupStatus } from "./lib/backup";
 import {
@@ -162,6 +166,7 @@ const PROVIDER_SECRETS_STORAGE_KEY = "chronicle-gm.provider-secrets.v1";
 const UI_PREFERENCES_STORAGE_KEY = "chronicle-gm.ui-preferences.v1";
 const RELEASE_QA_COMPLETED_STORAGE_KEY = "chronicle-gm.release-qa-completed.v1";
 const RELEASE_QA_EVIDENCE_STORAGE_KEY = "chronicle-gm.release-qa-evidence.v1";
+const PUBLIC_ENTRY_SEEN_STORAGE_KEY = "chronicle-gm.public-entry-seen.v1";
 const PRODUCT_NAME = "Loreline";
 const PRODUCT_TAGLINE = "GM Continuity Studio";
 const LEGACY_PROVIDER_RELEASE_QA_ID = releaseQaItemIds.legacyProviderLiveCheck;
@@ -182,6 +187,7 @@ type PrepWorkspaceMode = "recap" | "hooks" | "questions" | "reminders" | "handou
 type ReviewWorkspaceMode = "inspect" | "manage";
 type RightPanelMode = "rescue" | "settings";
 type SettingsPanelMode = "extraction" | "transcription" | "roadmap";
+type PublicEntryMode = CampaignStarterTemplateId | "custom";
 type SessionArchiveFilter = "active" | "all" | "archived";
 type SessionTranscriptionFilter = "all" | "transcribed" | "untranscribed";
 type ReviewKindFilter = "all" | ExtractionItem["kind"];
@@ -231,6 +237,36 @@ const tabOptions: Array<{ value: WorkspaceTab; label: string; icon?: typeof Comp
 const campaignModeOptions: Array<{ value: CampaignMode; label: string; description: string }> = [
   { value: "investigation", label: "調査", description: "謎、手がかり、秘密、未回収の伏線を優先" },
   { value: "fantasy", label: "ファンタジー", description: "クエスト、勢力、拠点、世界変化を優先" },
+];
+
+const publicEntryModes: Array<{
+  action: string;
+  description: string;
+  id: PublicEntryMode;
+  image: string;
+  label: string;
+}> = [
+  {
+    action: "灯台サンプル",
+    description: "手がかり、秘密、未開示情報の扱いをすぐ確認できます。",
+    id: "investigation-demo",
+    image: investigationModeImage,
+    label: "調査卓",
+  },
+  {
+    action: "長期卓の雛形",
+    description: "依頼、勢力、世界変化を次回準備へつなげます。",
+    id: "fantasy-campaign",
+    image: fantasyModeImage,
+    label: "ファンタジー",
+  },
+  {
+    action: "空白から",
+    description: "実セッションのログ貼り付けから始めます。",
+    id: "custom",
+    image: customModeImage,
+    label: "カスタム",
+  },
 ];
 
 const prepSectionLabels: Record<CampaignMode, Record<PrepWorkspaceMode, string>> = {
@@ -654,6 +690,36 @@ function loadCampaignLibraryState(): CampaignLibraryState {
   }
 }
 
+function loadPublicEntryVisibility(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  if (window.localStorage.getItem(PUBLIC_ENTRY_SEEN_STORAGE_KEY) === "true") {
+    return false;
+  }
+
+  return (
+    !window.localStorage.getItem(CAMPAIGN_LIBRARY_STORAGE_KEY) &&
+    !window.localStorage.getItem(LEGACY_STORAGE_KEY) &&
+    !window.localStorage.getItem(UI_PREFERENCES_STORAGE_KEY) &&
+    !window.localStorage.getItem(RELEASE_QA_COMPLETED_STORAGE_KEY) &&
+    !window.localStorage.getItem(RELEASE_QA_EVIDENCE_STORAGE_KEY)
+  );
+}
+
+function markPublicEntrySeen(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(PUBLIC_ENTRY_SEEN_STORAGE_KEY, "true");
+  } catch {
+    // The app can continue without this preference; campaign state still persists separately.
+  }
+}
+
 function readLegacyProviderApiKey(rawState: unknown): string {
   if (!rawState || typeof rawState !== "object") {
     return "";
@@ -848,6 +914,7 @@ function downloadJsonFile(content: unknown, fileName: string): void {
 
 export function App() {
   const [initialUiPreferences] = useState(loadUiPreferences);
+  const [isPublicEntryVisible, setIsPublicEntryVisible] = useState(loadPublicEntryVisibility);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialUiPreferences.activeTab);
   const [chronicleClueStatusFilter, setChronicleClueStatusFilter] = useState<ClueStatusFilter>(
     initialUiPreferences.chronicleClueStatusFilter,
@@ -2937,8 +3004,42 @@ export function App() {
     setSettingsPanelMode(defaultUiPreferences.settingsPanelMode);
   };
 
+  const closePublicEntry = (): void => {
+    markPublicEntrySeen();
+    setIsPublicEntryVisible(false);
+  };
+
+  const startFromPublicEntry = (mode: PublicEntryMode): void => {
+    if (mode === "fantasy-campaign") {
+      addCampaignFromTemplate(mode);
+      closePublicEntry();
+      return;
+    }
+
+    if (mode === "custom") {
+      addNewCampaign();
+      closePublicEntry();
+      return;
+    }
+
+    setIsFocusMode(false);
+    restoreSampleLiveLog();
+    setLogInputMode("speaker");
+    setLogWorkspaceMode("editor");
+    setActiveTab("home");
+    closePublicEntry();
+  };
+
+  if (isPublicEntryVisible) {
+    return (
+      <main className="public-release min-h-screen overflow-x-hidden bg-background text-foreground">
+        <PublicEntry onSkip={closePublicEntry} onStart={startFromPublicEntry} />
+      </main>
+    );
+  }
+
   return (
-    <main className="min-h-screen overflow-x-hidden bg-background text-foreground">
+    <main className="public-release min-h-screen overflow-x-hidden bg-background text-foreground">
       <div
         className={
           isFocusMode
@@ -5098,6 +5199,128 @@ export function App() {
         />
       )}
     </main>
+  );
+}
+
+function PublicEntry({
+  onSkip,
+  onStart,
+}: {
+  onSkip: () => void;
+  onStart: (mode: PublicEntryMode) => void;
+}) {
+  return (
+    <div className="public-entry">
+      <section className="public-entry-hero" style={{ backgroundImage: `url(${lorelineHeroImage})` }}>
+        <div className="public-entry-hero__scrim">
+          <nav className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-5 py-5 sm:px-8">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white shadow-sm backdrop-blur">
+                <Compass className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div className="min-w-0 text-white">
+                <p className="truncate text-sm font-semibold">{PRODUCT_NAME}</p>
+                <p className="truncate text-xs text-white/68">{PRODUCT_TAGLINE}</p>
+              </div>
+            </div>
+            <Button
+              aria-label="ワークベンチへ"
+              className="border-white/25 bg-white/10 text-white hover:bg-white/18"
+              onClick={onSkip}
+              variant="outline"
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+              <span className="public-entry-skip-label">ワークベンチへ</span>
+            </Button>
+          </nav>
+
+          <div className="mx-auto grid min-h-[calc(100svh-84px)] w-full max-w-7xl content-center gap-8 px-5 pb-10 pt-4 sm:px-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.7fr)] lg:items-end">
+            <div className="max-w-3xl text-white">
+              <Badge className="border-white/20 bg-white/12 text-white hover:bg-white/12" variant="outline">
+                ローカル保存 / GM承認 / PL共有ガード
+              </Badge>
+              <h1 className="mt-5 text-5xl font-semibold leading-[1.02] tracking-normal max-md:text-4xl">
+                Loreline
+              </h1>
+              <p className="mt-5 max-w-2xl text-xl leading-8 text-white/82 max-md:text-base max-md:leading-7">
+                セッションログの混線を、次回卓の一本道へ。
+              </p>
+              <div className="mt-7 flex flex-wrap gap-3">
+                <Button className="bg-public-signal text-public-ink hover:bg-public-signal/92" onClick={() => onStart("investigation-demo")}>
+                  <Sparkles className="h-4 w-4" />
+                  5分で試す
+                </Button>
+                <Button className="border-white/25 bg-white/10 text-white hover:bg-white/18" onClick={() => onStart("custom")} variant="outline">
+                  <FileText className="h-4 w-4" />
+                  実ログから始める
+                </Button>
+              </div>
+              <div className="mt-8 grid max-w-2xl grid-cols-3 gap-2 text-white max-sm:grid-cols-1">
+                {[
+                  { label: "入力", value: "ログ" },
+                  { label: "判断", value: "GM承認" },
+                  { label: "出力", value: "次回準備" },
+                ].map((item) => (
+                  <div className="rounded-md border border-white/16 bg-white/10 px-3 py-2 backdrop-blur" key={item.label}>
+                    <p className="text-[11px] text-white/62">{item.label}</p>
+                    <p className="mt-0.5 text-sm font-semibold">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              {publicEntryModes.map((mode) => (
+                <button
+                  className="public-mode-card group"
+                  key={mode.id}
+                  onClick={() => onStart(mode.id)}
+                  type="button"
+                >
+                  <img alt="" className="h-20 w-20 shrink-0 rounded-md object-cover" src={mode.image} />
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold text-white">{mode.label}</span>
+                      <Badge className="border-white/18 bg-white/10 text-white/82 group-hover:bg-white/18" variant="outline">
+                        {mode.action}
+                      </Badge>
+                    </span>
+                    <span className="public-mode-card__description mt-1 block text-sm leading-6 text-white/70">
+                      {mode.description}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="mx-auto grid w-full max-w-7xl gap-4 px-5 py-8 sm:px-8 lg:grid-cols-3">
+        {[
+          {
+            icon: ShieldCheck,
+            label: "GMだけが採用",
+            text: "抽出候補は承認されるまでキャンペーン記憶に入りません。",
+          },
+          {
+            icon: Download,
+            label: "ローカル優先",
+            text: "キャンペーン、APIキー、書き出しの境界を分けて扱います。",
+          },
+          {
+            icon: Sparkles,
+            label: "次回に直結",
+            text: "記憶、未解決、PL共有メモを同じ作業面で確認できます。",
+          },
+        ].map((item) => (
+          <div className="rounded-md border bg-card/82 p-4 shadow-sm" key={item.label}>
+            <item.icon className="h-5 w-5 text-primary" aria-hidden="true" />
+            <p className="mt-3 text-sm font-semibold">{item.label}</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.text}</p>
+          </div>
+        ))}
+      </section>
+    </div>
   );
 }
 

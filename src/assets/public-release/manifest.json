@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-05-08",
+  "tool": "Codex built-in image_gen",
+  "usagePolicy": "Generic product artwork only. No private campaign content or user data was used in prompts.",
+  "assets": [
+    {
+      "id": "public-entry-hero",
+      "file": "loreline-hero.jpg",
+      "sourceFile": "/Users/kota/.codex/generated_images/019df96f-6829-7fc3-844d-c2b9921231ad/ig_0439631b8547edb00169fddc4b31888191a2b743759e7f119e.png",
+      "dimensions": { "width": 1536, "height": 819 },
+      "optimizedBytes": 331142,
+      "budgetBytes": 358400,
+      "classification": "decorative",
+      "alt": "",
+      "intendedUse": "Public entry hero background with UI text overlaid separately.",
+      "prompt": "Overhead premium editorial illustration of a refined TRPG GM desk at night, with campaign map, pinned clue threads, handwritten notes, dice, lantern glow, and luminous route lines converging messy log fragments into an organized next-session path; wide composition with dark negative space for UI copy; no text, letters, logos, watermark, faces, screens, or app UI."
+    },
+    {
+      "id": "mode-investigation",
+      "file": "mode-investigation.jpg",
+      "sourceFile": "/Users/kota/.codex/generated_images/019df96f-6829-7fc3-844d-c2b9921231ad/ig_0439631b8547edb00169fddcd7020c81918e1d3d6b7f6bb69c.png",
+      "dimensions": { "width": 512, "height": 512 },
+      "optimizedBytes": 87770,
+      "budgetBytes": 122880,
+      "classification": "non-decorative",
+      "alt": "調査モードを表す、海辺の地図と手がかりの糸を重ねたコンパスレンズのエンブレム。",
+      "intendedUse": "First-run campaign mode card for investigation campaigns.",
+      "prompt": "Square premium emblem for Investigation campaign mode: compass lens, clue thread pins, coastal night map lines, subtle magnifying-glass geometry; polished editorial icon illustration; no text, words, logos, watermark, faces, weapons, or generic fantasy parchment."
+    },
+    {
+      "id": "mode-fantasy",
+      "file": "mode-fantasy.jpg",
+      "sourceFile": "/Users/kota/.codex/generated_images/019df96f-6829-7fc3-844d-c2b9921231ad/ig_0439631b8547edb00169fddcfda3048191975b84ce593f8c02.png",
+      "dimensions": { "width": 512, "height": 512 },
+      "optimizedBytes": 93592,
+      "budgetBytes": 122880,
+      "classification": "non-decorative",
+      "alt": "ファンタジーモードを表す、ランタンと旅路の星図が載ったキャンペーン年代記のエンブレム。",
+      "intendedUse": "First-run campaign mode card for fantasy campaigns.",
+      "prompt": "Square premium emblem for Fantasy campaign mode: lantern-lit route sigil over a campaign chronicle, dice, folded realm map, and constellation route lines; polished editorial icon illustration; no text, words, logos, watermark, characters, faces, or weapon focal point."
+    },
+    {
+      "id": "mode-custom",
+      "file": "mode-custom.jpg",
+      "sourceFile": "/Users/kota/.codex/generated_images/019df96f-6829-7fc3-844d-c2b9921231ad/ig_0439631b8547edb00169fddd293b548191b22f9a21c72ed522.png",
+      "dimensions": { "width": 512, "height": 512 },
+      "optimizedBytes": 73081,
+      "budgetBytes": 122880,
+      "classification": "non-decorative",
+      "alt": "カスタムモードを表す、空白の星図と未記入カードが並ぶ柔軟なキャンペーン設計エンブレム。",
+      "intendedUse": "First-run campaign mode card for custom campaigns.",
+      "prompt": "Square premium emblem for Custom campaign mode: blank constellation map, route nodes, archival ring, index cards, and a glowing unnamed path; polished editorial icon illustration; no text, words, logos, watermark, faces, characters, or genre-specific magic symbols."
+    }
+  ]
+}
+

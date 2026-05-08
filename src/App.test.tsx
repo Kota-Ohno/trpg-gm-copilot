@@ -17,6 +17,18 @@ function stubLocalStorage(values: Record<string, string>): void {
 }
 
 describe("App smoke render", () => {
+  it("renders the public entry for a fresh browser profile", () => {
+    stubLocalStorage({});
+
+    const html = renderToString(<App />);
+
+    expect(html).toContain("5分で試す");
+    expect(html).toContain("ワークベンチへ");
+    expect(html).toContain("灯台サンプル");
+    expect(html).toContain("実ログから始める");
+    expect(html).not.toContain("即応パレット");
+  });
+
   it("renders core product workflows and continuity surfaces", () => {
     const html = renderToString(<App />);
 
