@@ -6,7 +6,7 @@ Date: 2026-05-09
 
 CodeRabbit skips automatic reviews for pull requests whose base/target branch is not the repository default branch unless additional base branches are configured.
 
-The repository default branch is `main`, while the active release branch is `feature/public-release`. To allow automatic reviews on PRs targeting that release branch, add it to `reviews.auto_review.base_branches` in the root `.coderabbit.yaml`.
+The repository default branch is `main`, while the long-lived review bases currently in use are `feature/public-release` and `feature/voice-transcription-research`. To allow automatic reviews on PRs targeting those release/research branches, add them to `reviews.auto_review.base_branches` in the root `.coderabbit.yaml`.
 
 ## Source
 
@@ -17,7 +17,7 @@ The repository default branch is `main`, while the active release branch is `fea
 
 SubAgents were not used because the current runtime instructions only permit them when explicitly requested. Independent role review:
 
-- Product fit: Explicitly enabling the release branch fixes skipped reviews without broadening reviews across every branch.
+- Product fit: Explicitly enabling the release/research bases fixes skipped reviews without broadening reviews across every branch.
 - Technical design: Root `.coderabbit.yaml` is the documented configuration location. The setting uses the documented `reviews.auto_review.base_branches` key.
 - Security/privacy: No secrets or campaign data are introduced. The config only affects review routing.
 - Test strategy: Validate YAML shape and run the repository full check to ensure the added config/documentation does not disturb the app.
@@ -27,14 +27,14 @@ SubAgents were not used because the current runtime instructions only permit the
 
 - Parse `.coderabbit.yaml` with a YAML parser.
 - Run `pnpm run check`.
-- Trigger CodeRabbit on an existing PR with `@coderabbitai review` if immediate one-off review is needed; future pushes/PRs targeting `feature/public-release` should be auto-reviewed.
+- Trigger CodeRabbit on an existing PR with `@coderabbitai review` if immediate one-off review is needed; future pushes/PRs targeting `feature/public-release` or `feature/voice-transcription-research` should be auto-reviewed.
 
 ## Adversarial Review
 
 SubAgents were not used because the current runtime instructions only permit them when explicitly requested. Independent role review:
 
 - Regression risk: Adding a root `.coderabbit.yaml` changes CodeRabbit behavior only. It does not affect runtime code, builds, or tests.
-- Hidden assumption: This enables automatic reviews for PRs whose base branch is `feature/public-release`. If another non-default base branch should also be reviewed, it must be added separately or covered by a scoped regex.
+- Hidden assumption: This enables automatic reviews for PRs whose base branch is `feature/public-release` or `feature/voice-transcription-research`. If another non-default base branch should also be reviewed, it must be added separately or covered by a scoped regex.
 - Over-broad review scope: Avoided `.*` because reviewing all non-default branches can create noisy reviews on experimental branches.
 - Configuration availability: Existing open PRs may need a new push or an explicit `@coderabbitai review` command for an immediate review. Future PRs should use this committed config.
 
