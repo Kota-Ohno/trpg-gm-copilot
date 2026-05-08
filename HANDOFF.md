@@ -2,6 +2,40 @@
 
 このメモは、Codex/AIエージェントを新しい作業ディレクトリで開き直したあとに、今回の会話コンテキストを復元するための一時的な引き継ぎ資料です。次回セッション開始時にこのファイルを読ませてください。
 
+## 2026-05-06 現在の重要ステータス
+
+- active goal: `TRPGのGMサポートシステムとして、市場価値を十分に発揮できるレベルのプロダクトに仕上げてください、機能面はもちろん、UIUX、継続性も考慮してください`
+- ローカル開発サーバー: `http://localhost:5174/`
+- 直近の検証: `npm run check` 通過、12 test files / 127 tests passed、production build passed。
+- 直近の疎通: `curl -I http://localhost:5174/` は `200 OK`。
+- ユーザーから「動作は問題ないです」と確認済み。実ブラウザでの主要導線確認はOKとして扱う。
+- 現在の残goalは、本番向け名称・UI/UX・ビジュアルの仕上げ。
+
+## 現在の主要実装
+
+- ホーム導線、テンプレート、ログ/抽出/承認/記憶/次回準備、PL共有、締め、エクスポート/インポート、Provider設定、運用QA、診断JSONまで実装済み。
+- Release QAは `Settings > 運用QA` に集約。
+  - 全項目チェック済み、かつ全項目に証跡ありの場合のみ `出荷判定OK`。
+  - Markdown export/copy には `Status`, `Completed`, `Evidence`, 不足項目サマリー、redacted evidence notes が入る。
+  - サポート診断JSONには `releaseQaSummary.ready`, `completedCount`, `evidenceCount`, `incompleteIds/Labels`, `missingEvidenceIds/Labels` が入る。
+  - resetは確認ダイアログ付きで、実行後に通知を出す。
+- Provider接続テスト:
+  - 抽出ProviderはOpenAI/Ollamaの実接続成功だけ `Release QA証跡`。
+  - 文字起こしProviderはOpenAI実接続成功だけ `Release QA証跡`。
+  - ルールベース/手動/Web Speech準備確認は `ローカル確認` で、Release QA証跡メモには入れない。
+  - 旧 `provider-live-check` 証跡は抽出/文字起こしの新QA項目へ移行するが、旧チェック済み状態は過剰移行しない。
+- APIキー/Token秘匿:
+  - キャンペーンJSON/診断JSONにはProvider secretsを含めない。
+  - Release QA Markdownと診断JSONの証跡メモは `sk-*`, `Bearer`, `api_key/token/authorization` をredactする。
+
+## 次に必要な実証
+
+1. ユーザー所有のOpenAI API key、またはローカルOllamaでProvider接続テストを実行する。
+   - 抽出Providerと文字起こしProviderを別々に確認する。
+   - 画面に `Release QA証跡` と出た結果だけProvider実地確認の証跡として扱う。
+2. `Settings > 運用QA` で全Release QA項目に確認メモを入れ、`出荷判定OK` にする。
+3. Release QA Markdownを書き出し、必要なら診断JSONも書き出す。
+
 ## 作業場所
 
 - 正しいリポジトリ: `/Users/kota/Documents/GitHub/trpg-gm-copilot`
@@ -51,7 +85,7 @@ TRPG向けの **人間GMを支援するツール** を作る。
 - GMが抽出結果を承認・修正・破棄する。
 - 承認した情報だけがキャンペーンの記憶に入る。
 - 次回セッション前に、前回要約、未回収の伏線、次回導入案、GM確認メモを出す。
-- セッション中は「即興レスキュー」として、急なNPC名、別ルートの手がかり、失敗判定の面白い結果、場面転換案などを短く提示する。
+- セッション中は「即応パレット」として、急なNPC名、別ルートの手がかり、失敗判定の面白い結果、場面転換案などを短く提示する。
 
 最初の対象は **調査シナリオ寄り**。
 
@@ -145,7 +179,7 @@ TRPG向けの **人間GMを支援するツール** を作る。
 - 保存は将来的に IndexedDB/Dexie.js が有力。
 - LLMはユーザーAPIキー方式がよい。
 - 将来的に Ollama 対応も検討。
-- 音声文字起こしは初期MVPでは後回し。
+- 音声文字起こしはProvider設定と取り込み導線まで実装済み。
 - ココフォリアAPI連携、Discord連携、Tekeyログ取り込みなども後回し。
 - 最初は「ログ貼り付け」で十分。
 
@@ -178,7 +212,7 @@ TRPG向けの **人間GMを支援するツール** を作る。
 現在の画面機能:
 
 - 左サイドバー:
-  - アプリ名 `Chronicle GM`
+  - アプリ名 `Loreline`
   - キャンペーン名入力
   - 調査ボード、NPC、場所、年表、伏線のナビ表示
   - 承認進捗
@@ -208,7 +242,7 @@ TRPG向けの **人間GMを支援するツール** を作る。
     - GM確認メモ
 
 - 右サイドバー:
-  - 即興レスキュー
+  - 即応パレット
   - 急なNPC
   - 別ルートの手がかり
   - 失敗判定の結果
@@ -381,4 +415,3 @@ AI NPC/AI GM代行方向には寄せず、GM承認フローと調査シナリオ
 - `vite.config.ts`
 
 README.md はユーザーがリポジトリ作成時に置いた既存ファイルで、今回は触っていない。
-
