@@ -50,7 +50,54 @@
       "alt": "カスタムモードを表す、空白の星図と未記入カードが並ぶ柔軟なキャンペーン設計エンブレム。",
       "intendedUse": "First-run campaign mode card for custom campaigns.",
       "prompt": "Square premium emblem for Custom campaign mode: blank constellation map, route nodes, archival ring, index cards, and a glowing unnamed path; polished editorial icon illustration; no text, words, logos, watermark, faces, characters, or genre-specific magic symbols."
+    },
+    {
+      "id": "empty-no-log",
+      "file": "empty-no-log.jpg",
+      "sourceFile": "/Users/kota/.codex/generated_images/019df96f-6829-7fc3-844d-c2b9921231ad/ig_00ea36a0b23ebf380169fe1792c618819190008bf3fcc3c1d8.png",
+      "dimensions": { "width": 512, "height": 512 },
+      "optimizedBytes": 69554,
+      "budgetBytes": 122880,
+      "classification": "non-decorative",
+      "alt": "未入力ログを表す、空白の卓上ログ用紙とペン、ダイス、始まりの光る経路のイラスト。",
+      "intendedUse": "No session log empty state and first action prompt.",
+      "prompt": "A compact premium editorial illustration showing an empty tabletop log sheet waiting to be filled, a fountain pen, quiet dice, and a faint route line beginning from a blank page; no text, words, letters, logos, watermark, faces, or app UI."
+    },
+    {
+      "id": "empty-no-candidates",
+      "file": "empty-no-candidates.jpg",
+      "sourceFile": "/Users/kota/.codex/generated_images/019df96f-6829-7fc3-844d-c2b9921231ad/ig_00ea36a0b23ebf380169fe17f6f748819189a50a86eecfc395.png",
+      "dimensions": { "width": 512, "height": 512 },
+      "optimizedBytes": 80515,
+      "budgetBytes": 122880,
+      "classification": "non-decorative",
+      "alt": "抽出候補なしを表す、まだ候補が入っていない選別器と空の整理スロットのイラスト。",
+      "intendedUse": "No extraction candidates empty state in review flow.",
+      "prompt": "A compact premium editorial illustration of a tabletop sieve of small glowing log fragments with no pieces caught yet, beside organized empty index slots and a GM approval stamp waiting unused; no text, letters, logos, watermark, faces, app UI, or pseudo-text."
+    },
+    {
+      "id": "empty-no-memory",
+      "file": "empty-no-memory.jpg",
+      "sourceFile": "/Users/kota/.codex/generated_images/019df96f-6829-7fc3-844d-c2b9921231ad/ig_00ea36a0b23ebf380169fe183d38288191b1b37770d0c3f52f.png",
+      "dimensions": { "width": 512, "height": 512 },
+      "optimizedBytes": 63308,
+      "budgetBytes": 122880,
+      "classification": "non-decorative",
+      "alt": "承認済み記憶なしを表す、空のキャンペーン整理箱と封じられた記憶台帳のイラスト。",
+      "intendedUse": "No approved campaign memory empty state in home and chronicle surfaces.",
+      "prompt": "A compact premium editorial illustration of an empty campaign archive tray with blank tabs, a sealed memory ledger, and a small approval token waiting beside it; no readable text, pseudo-text, logos, watermark, faces, app UI, skulls, or weapon focal point."
+    },
+    {
+      "id": "empty-no-prep",
+      "file": "empty-no-prep.jpg",
+      "sourceFile": "/Users/kota/.codex/generated_images/019df96f-6829-7fc3-844d-c2b9921231ad/ig_00ea36a0b23ebf380169fe189298d08191a1dd4aec1cfacd98.png",
+      "dimensions": { "width": 512, "height": 512 },
+      "optimizedBytes": 68223,
+      "budgetBytes": 122880,
+      "classification": "non-decorative",
+      "alt": "次回準備なしを表す、承認済み記憶を待つ空の経路ボードと三つのルートマーカーのイラスト。",
+      "intendedUse": "No next-session prep empty state.",
+      "prompt": "A compact premium editorial illustration of an empty route board for the next tabletop session, with three blank route markers, a folded map, and an unlit path line waiting for approved memory; no text, words, letters, logos, watermark, faces, app UI, weapon focal point, or beige parchment dominance."
     }
   ]
 }
-

@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import emptyNoPrepImage from "../assets/public-release/empty-no-prep.jpg";
 
 type PrepSectionProps = {
   title: string;
@@ -36,8 +37,18 @@ export function PrepSection({ title, items, icon: Icon }: PrepSectionProps) {
             ))}
           </ol>
         ) : (
-          <div className="rounded-md border border-dashed bg-muted/30 px-3 py-6 text-center text-sm text-muted-foreground">
-            生成された準備項目はありません。
+          <div className="illustrated-empty-state rounded-md border border-dashed bg-background/82 p-4">
+            <img
+              alt="次回準備なしを表す、承認済み記憶を待つ空の経路ボードと三つのルートマーカーのイラスト。"
+              className="h-24 w-24 rounded-md object-cover shadow-sm"
+              src={emptyNoPrepImage}
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">生成された準備項目はありません</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                ログの候補を承認してキャンペーン記憶を増やすと、この準備欄に次回用の材料が入ります。
+              </p>
+            </div>
           </div>
         )}
       </CardContent>

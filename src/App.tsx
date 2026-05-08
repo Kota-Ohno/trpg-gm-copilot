@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Archive,
@@ -40,6 +40,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./com
 import { Input } from "./components/ui/input";
 import { Tabs } from "./components/ui/tabs";
 import { Textarea } from "./components/ui/textarea";
+import emptyNoCandidatesImage from "./assets/public-release/empty-no-candidates.jpg";
+import emptyNoLogImage from "./assets/public-release/empty-no-log.jpg";
 import lorelineHeroImage from "./assets/public-release/loreline-hero.jpg";
 import customModeImage from "./assets/public-release/mode-custom.jpg";
 import fantasyModeImage from "./assets/public-release/mode-fantasy.jpg";
@@ -5324,6 +5326,31 @@ function PublicEntry({
   );
 }
 
+function IllustratedEmptyState({
+  action,
+  alt,
+  detail,
+  image,
+  title,
+}: {
+  action?: ReactNode;
+  alt: string;
+  detail: string;
+  image: string;
+  title: string;
+}) {
+  return (
+    <div className="illustrated-empty-state rounded-md border border-dashed bg-background/82 p-4">
+      <img alt={alt} className="h-28 w-28 rounded-md object-cover shadow-sm" src={image} />
+      <div className="min-w-0">
+        <p className="text-sm font-semibold">{title}</p>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">{detail}</p>
+        {action && <div className="mt-3 flex flex-wrap gap-2">{action}</div>}
+      </div>
+    </div>
+  );
+}
+
 function HomeDashboard({
   approvedCount,
   canExtractLog,
@@ -5577,28 +5604,28 @@ function HomeDashboard({
             </div>
 
             {needsFirstLog ? (
-              <div className="grid gap-3 rounded-md border border-dashed bg-background/80 p-4">
-                <div>
-                  <p className="text-sm font-semibold">最初のセッションログを用意</p>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    テンプレートで体験するか、実セッションのログ入力/文字起こし取り込みから開始します。
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={onLoadDemo} size="sm">
-                    <RotateCcw className="h-4 w-4" />
-                    テンプレートで試す
-                  </Button>
-                  <Button onClick={onOpenLogEditor} size="sm" variant="outline">
-                    <FileText className="h-4 w-4" />
-                    ログを入力
-                  </Button>
-                  <Button onClick={onOpenTranscriptionImport} size="sm" variant="outline">
-                    <Upload className="h-4 w-4" />
-                    文字起こし
-                  </Button>
-                </div>
-              </div>
+              <IllustratedEmptyState
+                alt="未入力ログを表す、空白の卓上ログ用紙とペン、ダイス、始まりの光る経路のイラスト。"
+                detail="テンプレートで体験するか、実セッションのログ入力/文字起こし取り込みから開始します。"
+                image={emptyNoLogImage}
+                title="最初のセッションログを用意"
+                action={
+                  <>
+                    <Button onClick={onLoadDemo} size="sm">
+                      <RotateCcw className="h-4 w-4" />
+                      テンプレートで試す
+                    </Button>
+                    <Button onClick={onOpenLogEditor} size="sm" variant="outline">
+                      <FileText className="h-4 w-4" />
+                      ログを入力
+                    </Button>
+                    <Button onClick={onOpenTranscriptionImport} size="sm" variant="outline">
+                      <Upload className="h-4 w-4" />
+                      文字起こし
+                    </Button>
+                  </>
+                }
+              />
             ) : (
               <div className="grid gap-3 rounded-md border border-primary/20 bg-background/86 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div className="min-w-0">
@@ -5864,15 +5891,18 @@ function EmptyState({ extractionRun, onStart }: { extractionRun: ExtractionRun |
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{hasRun ? "抽出候補は見つかりませんでした" : "抽出結果はまだありません"}</CardTitle>
-        <CardDescription>
-          {hasRun
-            ? "この実行では採用できる候補が0件でした。ログの発言量やProvider設定を確認して、もう一度抽出してください。"
-            : "ログを貼り付けて抽出プレビューを実行すると、候補をここで確認できます。"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 py-4">
+        <IllustratedEmptyState
+          alt="抽出候補なしを表す、まだ候補が入っていない選別器と空の整理スロットのイラスト。"
+          detail={
+            hasRun
+              ? "この実行では採用できる候補が0件でした。ログの発言量やProvider設定を確認して、もう一度抽出してください。"
+              : "ログを貼り付けて抽出プレビューを実行すると、候補をここで確認できます。"
+          }
+          image={emptyNoCandidatesImage}
+          title={hasRun ? "抽出候補は見つかりませんでした" : "抽出結果はまだありません"}
+          action={<Button onClick={onStart}>ログへ戻る</Button>}
+        />
         {extractionRun && (
           <div className="flex flex-wrap gap-2">
             <Badge variant="muted">{extractionRun.sourceType === "fallback" ? "フォールバック由来" : "0件"}</Badge>
@@ -5882,7 +5912,6 @@ function EmptyState({ extractionRun, onStart }: { extractionRun: ExtractionRun |
             )}
           </div>
         )}
-        <Button onClick={onStart}>ログへ戻る</Button>
       </CardContent>
     </Card>
   );
