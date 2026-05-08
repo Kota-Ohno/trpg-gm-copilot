@@ -3011,6 +3011,17 @@ export function App() {
     setIsPublicEntryVisible(false);
   };
 
+  const reopenPublicEntry = (): void => {
+    try {
+      window.localStorage.removeItem(PUBLIC_ENTRY_SEEN_STORAGE_KEY);
+    } catch {
+      setStorageError("公開入口の表示設定を更新できませんでした。");
+    }
+
+    setIsFocusMode(false);
+    setIsPublicEntryVisible(true);
+  };
+
   const startFromPublicEntry = (mode: PublicEntryMode): void => {
     if (mode === "fantasy-campaign") {
       addCampaignFromTemplate(mode);
@@ -3041,42 +3052,45 @@ export function App() {
   }
 
   return (
-    <main className="public-release min-h-screen overflow-x-hidden bg-background text-foreground">
+    <main className="public-release workbench-shell min-h-screen overflow-x-hidden bg-background text-foreground">
       <div
         className={
           isFocusMode
-            ? "grid min-h-screen grid-cols-1"
-            : "grid min-h-screen grid-cols-[288px_minmax(0,1fr)] max-2xl:grid-cols-[260px_minmax(0,1fr)] max-lg:grid-cols-1"
+            ? "workbench-layout grid min-h-screen grid-cols-1"
+            : "workbench-layout grid min-h-screen grid-cols-[288px_minmax(0,1fr)] max-2xl:grid-cols-[260px_minmax(0,1fr)] max-lg:grid-cols-1"
         }
       >
         {!isFocusMode && (
         <aside
           className={
             navigationPanelMode === "sessions"
-              ? "bg-sidebar px-4 py-5 shadow-[inset_-1px_0_0_hsl(var(--border))] max-lg:order-1 max-lg:border-b max-lg:shadow-none"
-              : "bg-sidebar px-4 py-5 shadow-[inset_-1px_0_0_hsl(var(--border))] max-lg:order-2 max-lg:border-t max-lg:shadow-none"
+              ? "workbench-sidebar bg-sidebar px-4 py-5 shadow-[inset_-1px_0_0_hsl(var(--border))] max-lg:order-1 max-lg:border-b max-lg:shadow-none"
+              : "workbench-sidebar bg-sidebar px-4 py-5 shadow-[inset_-1px_0_0_hsl(var(--border))] max-lg:order-2 max-lg:border-t max-lg:shadow-none"
           }
         >
-          <div className="surface-elevated rounded-md border p-3">
+          <div className="brand-panel surface-elevated rounded-md border p-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
+              <div className="brand-mark flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
                 <Compass className="h-5 w-5" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{PRODUCT_NAME}</p>
                 <p className="truncate text-xs text-muted-foreground">{PRODUCT_TAGLINE}</p>
               </div>
+              <Button aria-label="公開入口へ戻る" onClick={reopenPublicEntry} size="icon" variant="ghost">
+                <PanelLeftOpen className="h-4 w-4" />
+              </Button>
             </div>
             <div className={navigationPanelMode === "sessions" ? "hidden" : "mt-4 grid gap-2 text-center sm:grid-cols-3"}>
-              <div className="rounded-md border bg-background/80 px-2 py-2">
+              <div className="brand-stat rounded-md border bg-background/80 px-2 py-2">
                 <p className="text-[11px] text-muted-foreground">記憶</p>
                 <p className="text-sm font-semibold">{memoryItemCount}</p>
               </div>
-              <div className="rounded-md border bg-background/80 px-2 py-2">
+              <div className="brand-stat rounded-md border bg-background/80 px-2 py-2">
                 <p className="text-[11px] text-muted-foreground">未承認</p>
                 <p className="text-sm font-semibold">{remainingCount}</p>
               </div>
-              <div className="rounded-md border bg-background/80 px-2 py-2">
+              <div className="brand-stat rounded-md border bg-background/80 px-2 py-2">
                 <p className="text-[11px] text-muted-foreground">卓</p>
                 <p className="text-sm font-semibold">{campaignState.sessions.length}</p>
               </div>
@@ -3623,7 +3637,12 @@ export function App() {
               : "min-w-0 max-w-full px-6 py-5 max-lg:order-1 max-lg:px-4"
           }
         >
-          <header className="surface-elevated w-full max-w-full overflow-hidden rounded-md border p-4">
+          <header
+            className="workbench-header surface-elevated w-full max-w-full overflow-hidden rounded-md border p-4"
+            style={{
+              backgroundImage: `linear-gradient(90deg, rgb(255 255 255 / 0.97), rgb(255 255 255 / 0.9) 58%, rgb(255 255 255 / 0.64)), url(${lorelineHeroImage})`,
+            }}
+          >
             <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -3653,6 +3672,10 @@ export function App() {
               <Button onClick={() => setIsFocusMode((current) => !current)} size="sm" variant="outline">
                 {isFocusMode ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
                 {isFocusMode ? "通常" : "集中"}
+              </Button>
+              <Button onClick={reopenPublicEntry} size="sm" variant="ghost">
+                <PanelLeftOpen className="h-4 w-4" />
+                公開入口
               </Button>
             </div>
             </div>
@@ -5815,7 +5838,7 @@ function MetricTile({
   if (onOpen) {
     return (
       <button
-        className="rounded-md border bg-background/82 p-3 text-left shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="metric-tile rounded-md border bg-background/82 p-3 text-left shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={onOpen}
         type="button"
       >
@@ -5825,7 +5848,7 @@ function MetricTile({
   }
 
   return (
-    <div className="rounded-md border bg-background/82 p-3 shadow-sm">
+    <div className="metric-tile rounded-md border bg-background/82 p-3 shadow-sm">
       {content}
     </div>
   );

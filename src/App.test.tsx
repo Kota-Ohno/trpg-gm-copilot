@@ -41,6 +41,7 @@ describe("App smoke render", () => {
     expect(html).toContain("次にやること");
     expect(html).toContain("即応パレット");
     expect(html).toContain("次回準備");
+    expect(html).toContain("公開入口");
   });
 
   it("renders operational QA evidence surfaces from persisted UI preferences", () => {
