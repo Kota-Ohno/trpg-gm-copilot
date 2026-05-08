@@ -44,6 +44,7 @@ SubAgents were not used because current runtime instructions permit them only wh
   - Production build completed.
 - Static search confirmed no active `localStorage.setItem` path for provider secrets remains; the only provider-secret storage key is the legacy removal key.
 - Current startup save path removes both the legacy provider-secret key and the legacy single-campaign storage key after migrating to the library save format.
+- Manual adversarial review found that unknown secret-like fields in imported JSON could survive via object spreads. Normalization/export now rebuild campaign/session/live-log/extraction objects from allowlisted fields only, with regression tests.
 - Rendered UI smoke check captured public entry and workbench at desktop/mobile widths via Playwright CLI against `http://localhost:5174/`; workbench screenshots were regenerated after the normal-page visual hierarchy pass.
 
 ## Adversarial Review

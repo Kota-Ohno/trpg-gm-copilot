@@ -477,6 +477,99 @@ describe("campaign starter templates", () => {
 });
 
 describe("export sanitizers", () => {
+  it("drops unknown secret-like fields during campaign normalization", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "未知フィールド除外",
+      providerSecrets: { openAiApiKey: "sk-should-not-survive" },
+      sessions: [
+        {
+          id: "session-secret",
+          title: "第1夜",
+          date: "2026-05-09",
+          log: "",
+          approvedIds: [],
+          extractionItems: [
+            {
+              id: "item-secret",
+              kind: "出来事",
+              title: "開始",
+              detail: "開始した",
+              visibility: "PL既知",
+              apiKey: "sk-item-secret",
+            },
+          ],
+          extractionRun: {
+            sourceType: "plain",
+            providerId: "openai",
+            providerLabel: "OpenAI",
+            executedProviderId: "openai",
+            executedProviderLabel: "OpenAI",
+            fallbackUsed: false,
+            itemCount: 1,
+            promptLength: 120,
+            apiKey: "sk-run-secret",
+          },
+          liveLog: {
+            id: "live-log-secret",
+            title: "第1夜",
+            sourceType: "imported",
+            apiKey: "sk-live-secret",
+            speakers: [{ id: "speaker-gm", name: "GM", role: "GM", apiKey: "sk-speaker-secret" }],
+            segments: [
+              {
+                id: "segment-1",
+                speakerId: "speaker-gm",
+                startTimeSec: 0,
+                endTimeSec: 1,
+                text: "開始",
+                apiKey: "sk-segment-secret",
+              },
+            ],
+          },
+        },
+      ],
+    }) as ReturnType<typeof normalizeCampaignState> & {
+      providerSecrets?: unknown;
+    };
+    const session = campaign.sessions[0] as typeof campaign.sessions[number] & { apiKey?: string };
+    const item = session.extractionItems[0] as typeof session.extractionItems[number] & { apiKey?: string };
+    const extractionRun = session.extractionRun as NonNullable<typeof session.extractionRun> & { apiKey?: string };
+    const liveLog = session.liveLog as typeof session.liveLog & { apiKey?: string };
+    const speaker = liveLog.speakers[0] as typeof liveLog.speakers[number] & { apiKey?: string };
+    const segment = liveLog.segments[0] as typeof liveLog.segments[number] & { apiKey?: string };
+
+    expect(campaign.providerSecrets).toBeUndefined();
+    expect(session.log).toBe("");
+    expect(item.apiKey).toBeUndefined();
+    expect(extractionRun.apiKey).toBeUndefined();
+    expect(liveLog.apiKey).toBeUndefined();
+    expect(speaker.apiKey).toBeUndefined();
+    expect(segment.apiKey).toBeUndefined();
+  });
+
+  it("drops unknown secret-like fields from campaign exports", () => {
+    const campaign = {
+      ...normalizeCampaignState({ campaignName: "書き出し除外" }),
+      providerSecrets: { openAiApiKey: "sk-should-not-export" },
+      sessions: [
+        {
+          ...normalizeCampaignState({}).sessions[0],
+          apiKey: "sk-session-secret",
+        },
+      ],
+    } as unknown as ReturnType<typeof normalizeCampaignState> & {
+      providerSecrets?: unknown;
+      sessions: Array<ReturnType<typeof normalizeCampaignState>["sessions"][number] & { apiKey?: string }>;
+    };
+    const exportedCampaign = sanitizeCampaignStateForExport(campaign) as ReturnType<typeof sanitizeCampaignStateForExport> & {
+      providerSecrets?: unknown;
+      sessions: Array<ReturnType<typeof sanitizeCampaignStateForExport>["sessions"][number] & { apiKey?: string }>;
+    };
+
+    expect(exportedCampaign.providerSecrets).toBeUndefined();
+    expect(exportedCampaign.sessions[0].apiKey).toBeUndefined();
+  });
+
   it("strips legacy provider API keys from campaign exports", () => {
     const campaign = normalizeCampaignState({
       campaignName: "秘密除外",
