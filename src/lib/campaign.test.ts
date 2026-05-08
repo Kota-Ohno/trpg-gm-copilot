@@ -1,0 +1,1212 @@
+import { describe, expect, it } from "vitest";
+import {
+  applyExtraction,
+  buildContinuityQueue,
+  buildPlayerHandoutShareStatus,
+  buildPlayerHandoutSafetyWarnings,
+  buildSessionWrapUpChecklist,
+  campaignStarterTemplates,
+  countChronicleItems,
+  createCampaignFromTemplate,
+  createInitialCampaignState,
+  duplicateCampaignState,
+  duplicateSessionState,
+  createExportFileName,
+  formatCampaignMarkdown,
+  formatCampaignLibraryMarkdown,
+  formatChronicleMarkdown,
+  formatPlayerHandoutMarkdown,
+  formatPrepNoteMarkdown,
+  formatSessionWrapUpMarkdown,
+  generatePrepNote,
+  getCampaignSearchText,
+  getCampaignSummaryStats,
+  getSessionSearchText,
+  normalizeCampaignLibraryState,
+  normalizeCampaignState,
+  previewCampaignImport,
+  previewExtractionApplication,
+  readSessionImportPayload,
+  sanitizeCampaignLibraryStateForExport,
+  sanitizeCampaignStateForExport,
+} from "./campaign";
+
+describe("normalizeCampaignState", () => {
+  it("migrates a legacy single-session state into the session list", () => {
+    const campaign = normalizeCampaignState({
+      id: "campaign-legacy",
+      campaignName: "  旧キャンペーン  ",
+      activeSessionId: "missing-session",
+      title: "  第2夜  ",
+      date: "2026-04-29T21:00:00",
+      log: "GM: 開始します",
+      extractionItems: [
+        { id: "item-1", kind: "手がかり", title: "鍵", detail: "古い鍵", visibility: "PL既知" },
+      ],
+      approvedIds: ["item-1", "missing-item", "item-1"],
+    });
+
+    expect(campaign.id).toBe("campaign-legacy");
+    expect(campaign.campaignName).toBe("旧キャンペーン");
+    expect(campaign.sessions).toHaveLength(1);
+    expect(campaign.sessions[0]?.title).toBe("第2夜");
+    expect(campaign.sessions[0]?.date).toBe("2026-04-29");
+    expect(campaign.sessions[0]?.approvedIds).toEqual(["item-1"]);
+    expect(campaign.activeSessionId).toBe(campaign.sessions[0]?.id);
+  });
+
+  it("normalizes provider settings and live log references", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "Provider検証",
+      extractionProvider: {
+        providerId: "unknown",
+        model: "",
+        endpoint: "  ",
+      },
+      transcriptionProvider: {
+        providerId: "web-speech",
+        model: "",
+        endpoint: "  ",
+        language: "  ja-JP  ",
+      },
+      sessions: [
+        {
+          id: "session-1",
+          title: "ログ検証",
+          date: "bad-date",
+          log: "",
+          liveLog: {
+            id: "",
+            title: "",
+            sourceType: "bad-source",
+            speakers: [
+              { id: "speaker-1", name: "GM", role: "GM" },
+              { id: "speaker-1", name: "PL", role: "bad-role" },
+            ],
+            segments: [
+              {
+                id: "segment-1",
+                speakerId: "missing-speaker",
+                startTimeSec: -5,
+                endTimeSec: -1,
+                text: 123,
+                confidence: 1.7,
+              },
+              {
+                id: "segment-2",
+                speakerId: "speaker-1",
+                startTimeSec: 4,
+                endTimeSec: 2,
+                text: "低信頼",
+                confidence: -0.4,
+              },
+            ],
+          },
+          extractionItems: [],
+          extractionRun: null,
+          approvedIds: [],
+        },
+      ],
+    });
+
+    const [session] = campaign.sessions;
+    const [firstSpeaker, secondSpeaker] = session.liveLog.speakers;
+    const [segment, lowConfidenceSegment] = session.liveLog.segments;
+
+    expect(campaign.extractionProvider.providerId).toBe("rule-based");
+    expect(campaign.extractionProvider.model).toBe("local-rules-v1");
+    expect(campaign.extractionProvider.endpoint).toBe("");
+    expect(campaign.transcriptionProvider.providerId).toBe("web-speech");
+    expect(campaign.transcriptionProvider.model).toBe("browser-speech-recognition");
+    expect(campaign.transcriptionProvider.endpoint).toBe("");
+    expect(campaign.transcriptionProvider.language).toBe("ja-JP");
+    expect(session.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(session.liveLog.title).toBe("ログ検証");
+    expect(session.liveLog.sourceType).toBe("imported");
+    expect(secondSpeaker.id).not.toBe(firstSpeaker.id);
+    expect(secondSpeaker.role).toBe("unknown");
+    expect(segment.speakerId).toBe(firstSpeaker.id);
+    expect(segment.startTimeSec).toBe(0);
+    expect(segment.endTimeSec).toBe(1);
+    expect(segment.text).toBe("");
+    expect(segment.confidence).toBe(1);
+    expect(lowConfidenceSegment.confidence).toBe(0);
+  });
+
+  it("restores default endpoints when provider endpoint settings are blank", () => {
+    const campaign = normalizeCampaignState({
+      extractionProvider: {
+        providerId: "openai",
+        model: "  ",
+        endpoint: "  ",
+      },
+      transcriptionProvider: {
+        providerId: "openai",
+        model: "  ",
+        endpoint: "  ",
+        language: "",
+      },
+    });
+
+    expect(campaign.extractionProvider).toEqual({
+      providerId: "openai",
+      model: "gpt-4.1-mini",
+      endpoint: "https://api.openai.com/v1",
+    });
+    expect(campaign.transcriptionProvider).toEqual({
+      providerId: "openai",
+      model: "gpt-4o-mini-transcribe",
+      endpoint: "https://api.openai.com/v1",
+      language: "ja",
+    });
+  });
+});
+
+describe("countChronicleItems", () => {
+  it("counts every campaign memory category", () => {
+    expect(countChronicleItems({
+      events: ["a"],
+      npcs: [{ name: "n", role: "r", publicKnowledge: "p", gmSecret: "g", attitude: "a" }],
+      clues: [{ title: "c", detail: "d", status: "known" }],
+      locations: [{ name: "l", detail: "d" }],
+      threads: [{ title: "t", detail: "d", nextMove: "n" }],
+    })).toBe(5);
+  });
+});
+
+describe("buildContinuityQueue", () => {
+  it("prioritizes log input before review and memory work", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "継続テスト",
+      sessions: [
+        {
+          title: "第1夜",
+          date: "2026-05-01",
+          log: "",
+          liveLog: { speakers: [{ id: "speaker-1", name: "GM", role: "GM" }], segments: [] },
+          extractionItems: [],
+          approvedIds: [],
+        },
+      ],
+      chronicle: {
+        events: [],
+        npcs: [],
+        clues: [{ title: "銀色の泥", detail: "灯台近くに残る", status: "hidden" }],
+        locations: [],
+        threads: [],
+      },
+    });
+    const queue = buildContinuityQueue(
+      campaign,
+      campaign.sessions[0],
+      { shortRecap: [], hooks: [], openQuestions: [], reminders: [] },
+      new Date("2026-05-06T00:00:00"),
+    );
+
+    expect(queue[0]).toMatchObject({
+      id: "log-input",
+      priority: "high",
+      target: "log",
+    });
+    expect(queue.some((item) => item.id === "hidden-memory")).toBe(true);
+  });
+
+  it("surfaces pending review, hidden memory, prep notes, and stale sessions", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "灰ヶ浦",
+      sessions: [
+        {
+          id: "session-1",
+          title: "第2夜",
+          date: "2026-04-01",
+          log: "GM: 港へ向かう",
+          extractionItems: [
+            { id: "item-1", kind: "手がかり", title: "潮位表", detail: "干潮は深夜", visibility: "PL既知" },
+            { id: "item-2", kind: "伏線", title: "鐘", detail: "月が沈むと鳴る", visibility: "GMのみ" },
+          ],
+          approvedIds: ["item-1"],
+        },
+      ],
+      chronicle: {
+        events: [],
+        npcs: [],
+        clues: [{ title: "古い鍵", detail: "地下扉に合う", status: "partial" }],
+        locations: [],
+        threads: [{ title: "月の鐘", detail: "まだ鳴らない", nextMove: "次回の夜明け前に鳴らす" }],
+      },
+    });
+    const queue = buildContinuityQueue(
+      campaign,
+      campaign.sessions[0],
+      {
+        shortRecap: ["港へ着いた"],
+        hooks: ["灯台へ誘導"],
+        openQuestions: ["鐘は誰が鳴らすか"],
+        reminders: ["秘密の開示範囲を決める"],
+      },
+      new Date("2026-05-06T00:00:00"),
+    );
+
+    expect(queue.map((item) => item.id)).toEqual([
+      "pending-review",
+      "hidden-memory",
+      "thread-next-move",
+      "prep-note",
+      "stale-session",
+    ]);
+    expect(queue[0]).toMatchObject({ count: 1, priority: "high", target: "review" });
+  });
+
+  it("promotes player handout warnings into the continuity queue", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "共有確認",
+      sessions: [
+        {
+          title: "第1夜",
+          date: "2026-05-01",
+          log: "GM: 村長の噂が広まった",
+          extractionItems: [],
+          approvedIds: [],
+        },
+      ],
+      chronicle: {
+        events: ["村長は封印を維持しているという噂が広まった"],
+        npcs: [
+          {
+            name: "村長",
+            role: "まとめ役",
+            publicKnowledge: "灯台へ近づくなと警告している。",
+            gmSecret: "封印を維持している",
+            attitude: "探索者を試している",
+          },
+        ],
+        clues: [],
+        locations: [],
+        threads: [],
+      },
+    });
+    const prepNote = generatePrepNote(campaign.chronicle, campaign.sessions, campaign.sessions[0]);
+    const queue = buildContinuityQueue(campaign, campaign.sessions[0], prepNote, new Date("2026-05-06T00:00:00"));
+
+    expect(queue).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        count: 1,
+        id: "player-handout-warning",
+        priority: "high",
+        target: "prep",
+      }),
+    ]));
+  });
+});
+
+describe("buildSessionWrapUpChecklist", () => {
+  it("tracks post-session operational completion", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "締め確認",
+      sessions: [
+        {
+          title: "第1夜",
+          date: "2026-05-01",
+          log: "GM: 港に着いた",
+          extractionItems: [
+            { id: "item-1", kind: "出来事", title: "到着", detail: "港に着いた", visibility: "PL既知" },
+            { id: "item-2", kind: "手がかり", title: "鍵", detail: "古い鍵", visibility: "PL既知" },
+          ],
+          approvedIds: ["item-1"],
+        },
+      ],
+      chronicle: {
+        events: ["港に到着"],
+        npcs: [],
+        clues: [{ title: "鍵", detail: "古い鍵", status: "known" }],
+        locations: [],
+        threads: [],
+      },
+    });
+    const prepNote = generatePrepNote(campaign.chronicle, campaign.sessions, campaign.sessions[0]);
+    const checklist = buildSessionWrapUpChecklist(campaign, campaign.sessions[0], prepNote);
+
+    expect(checklist).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "log-captured", status: "done" }),
+      expect.objectContaining({ id: "extract-candidates", status: "done" }),
+      expect.objectContaining({ id: "review-cleared", status: "todo" }),
+      expect.objectContaining({ id: "memory-updated", status: "done" }),
+      expect.objectContaining({ id: "prep-ready", status: "done" }),
+      expect.objectContaining({ id: "player-handout-ready", status: "done" }),
+      expect.objectContaining({ id: "archive-session", status: "todo" }),
+    ]));
+  });
+
+  it("keeps player handout incomplete when leak warnings block sharing", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "共有ブロック",
+      sessions: [
+        {
+          title: "第1夜",
+          date: "2026-05-01",
+          log: "GM: 村長の噂が広まった",
+          extractionItems: [],
+          approvedIds: [],
+        },
+      ],
+      chronicle: {
+        events: ["村長は封印を維持しているという噂が広まった"],
+        npcs: [
+          {
+            name: "村長",
+            role: "まとめ役",
+            publicKnowledge: "灯台へ近づくなと警告している。",
+            gmSecret: "封印を維持している",
+            attitude: "探索者を試している",
+          },
+        ],
+        clues: [],
+        locations: [],
+        threads: [],
+      },
+    });
+    const prepNote = generatePrepNote(campaign.chronicle, campaign.sessions, campaign.sessions[0]);
+    const checklist = buildSessionWrapUpChecklist(campaign, campaign.sessions[0], prepNote);
+
+    expect(checklist).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: "player-handout-ready",
+        status: "todo",
+        detail: "PL共有メモに要確認項目があります。共有前に内容を確認してください。",
+      }),
+    ]));
+  });
+});
+
+describe("formatSessionWrapUpMarkdown", () => {
+  it("exports post-session checklist, next actions, and prep notes", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "灰ヶ浦",
+      sessions: [
+        {
+          title: "第1夜",
+          date: "2026-05-01",
+          log: "GM: 港に着いた",
+          extractionItems: [
+            { id: "item-1", kind: "出来事", title: "到着", detail: "港に着いた", visibility: "PL既知" },
+          ],
+          approvedIds: [],
+        },
+      ],
+      chronicle: {
+        events: ["港に到着"],
+        npcs: [],
+        clues: [{ title: "銀色の泥", detail: "倉庫に残っていた", status: "known" }],
+        locations: [],
+        threads: [{ title: "灯台", detail: "まだ未解決", nextMove: "次回出す" }],
+      },
+    });
+    const prepNote = generatePrepNote(campaign.chronicle, campaign.sessions, campaign.sessions[0]);
+    const markdown = formatSessionWrapUpMarkdown(campaign, campaign.sessions[0], prepNote);
+
+    expect(markdown).toContain("# 第1夜 セッション締めメモ");
+    expect(markdown).toContain("- キャンペーン: 灰ヶ浦");
+    expect(markdown).toContain("## 締めチェック");
+    expect(markdown).toContain("- [x] ログを残す");
+    expect(markdown).toContain("- [ ] GM承認を終える");
+    expect(markdown).toContain("## 次アクション");
+    expect(markdown).toContain("GM承認待ちを片付ける");
+    expect(markdown).toContain("## PL共有安全性");
+    expect(markdown).toContain("秘密由来テキスト候補は検出されていません");
+    expect(markdown).toContain("## 次回準備");
+  });
+
+  it("includes player handout leak warnings in wrap-up exports", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "灰ヶ浦",
+      sessions: [
+        {
+          title: "第2夜",
+          date: "2026-05-02",
+          log: "GM: 村長の噂が広まった",
+          extractionItems: [],
+          approvedIds: [],
+        },
+      ],
+      chronicle: {
+        events: ["村長は封印を維持しているという噂が広まった"],
+        npcs: [
+          {
+            name: "村長",
+            role: "まとめ役",
+            publicKnowledge: "灯台へ近づくなと警告している。",
+            gmSecret: "封印を維持している",
+            attitude: "探索者を試している",
+          },
+        ],
+        clues: [],
+        locations: [],
+        threads: [],
+      },
+    });
+    const prepNote = generatePrepNote(campaign.chronicle, campaign.sessions, campaign.sessions[0]);
+    const markdown = formatSessionWrapUpMarkdown(campaign, campaign.sessions[0], prepNote);
+
+    expect(markdown).toContain("## PL共有安全性");
+    expect(markdown).toContain("[要確認] 村長 / GM秘密: 封印を維持している");
+  });
+});
+
+describe("campaign starter templates", () => {
+  it("lists mode-specific starters for onboarding", () => {
+    expect(campaignStarterTemplates.map((template) => template.id)).toEqual([
+      "investigation-demo",
+      "fantasy-campaign",
+    ]);
+    expect(campaignStarterTemplates.every((template) => template.description.length > 0)).toBe(true);
+  });
+
+  it("creates a fantasy campaign with useful continuity hooks", () => {
+    const campaign = createCampaignFromTemplate("fantasy-campaign", 2);
+    const session = campaign.sessions[0];
+    const prepNote = generatePrepNote(campaign.chronicle, campaign.sessions, session, campaign.campaignMode);
+    const queue = buildContinuityQueue(campaign, session, prepNote, new Date("2026-05-06T00:00:00"));
+
+    expect(campaign.campaignName).toBe("セレスト辺境譚 2");
+    expect(campaign.campaignMode).toBe("fantasy");
+    expect(session.log).toContain("北砦");
+    expect(campaign.chronicle.clues.some((clue) => clue.status === "hidden")).toBe(true);
+    expect(queue.some((item) => item.id === "hidden-memory")).toBe(true);
+    expect(queue.some((item) => item.id === "thread-next-move")).toBe(true);
+  });
+});
+
+describe("export sanitizers", () => {
+  it("strips legacy provider API keys from campaign exports", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "秘密除外",
+      extractionProvider: {
+        providerId: "openai",
+        model: "gpt-test",
+        endpoint: "https://example.test/v1",
+        apiKey: "sk-should-not-export",
+      },
+    });
+    const exportedCampaign = sanitizeCampaignStateForExport(campaign) as typeof campaign & {
+      extractionProvider: typeof campaign.extractionProvider & { apiKey?: string };
+    };
+
+    expect(exportedCampaign.extractionProvider).toEqual({
+      endpoint: "https://example.test/v1",
+      model: "gpt-test",
+      providerId: "openai",
+    });
+    expect(exportedCampaign.extractionProvider.apiKey).toBeUndefined();
+  });
+
+  it("strips provider API keys from library exports", () => {
+    const campaign = normalizeCampaignState({
+      id: "campaign-secret",
+      extractionProvider: {
+        providerId: "openai",
+        model: "gpt-test",
+        endpoint: "https://example.test/v1",
+        apiKey: "sk-should-not-export",
+      },
+    });
+    const exportedLibrary = sanitizeCampaignLibraryStateForExport({
+      activeCampaignId: campaign.id,
+      campaigns: [campaign],
+    }) as ReturnType<typeof sanitizeCampaignLibraryStateForExport> & {
+      campaigns: Array<typeof campaign & { extractionProvider: typeof campaign.extractionProvider & { apiKey?: string } }>;
+    };
+
+    expect(exportedLibrary.campaigns[0].extractionProvider.apiKey).toBeUndefined();
+  });
+});
+
+describe("createExportFileName", () => {
+  it("keeps safe Japanese campaign names and removes unsafe punctuation", () => {
+    const fileName = createExportFileName(" 灰ヶ浦/第1夜? ");
+
+    expect(fileName).toMatch(/^chronicle-gm-灰ヶ浦-第1夜-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.json$/);
+  });
+});
+
+describe("search text helpers", () => {
+  it("includes session log and speaker content", () => {
+    const session = normalizeCampaignState({
+      sessions: [
+        {
+          title: "第3夜",
+          date: "2026-04-30",
+          log: "GM: 港へ向かう",
+          liveLog: {
+            title: "話者ログ",
+            speakers: [{ id: "speaker-1", name: "アキラ", role: "PL" }],
+            segments: [{ id: "segment-1", speakerId: "speaker-1", startTimeSec: 0, endTimeSec: 5, text: "灯台を調べる" }],
+          },
+          extractionItems: [
+            { id: "item-1", kind: "GM秘密", title: "海底洞窟", detail: "干潮時だけ入れる", visibility: "GMのみ" },
+          ],
+          transcriptionRun: {
+            executedAt: "2026-04-30T12:00:00.000Z",
+            providerId: "openai",
+            providerLabel: "OpenAI",
+            segmentCount: 1,
+            sourceType: "audio-file",
+            fileName: "session-03.webm",
+          },
+          approvedIds: [],
+        },
+      ],
+    }).sessions[0];
+
+    expect(getSessionSearchText(session)).toContain("第3夜");
+    expect(getSessionSearchText(session)).toContain("アキラ");
+    expect(getSessionSearchText(session)).toContain("灯台を調べる");
+    expect(getSessionSearchText(session)).toContain("海底洞窟");
+    expect(getSessionSearchText(session)).toContain("干潮時だけ入れる");
+    expect(getSessionSearchText(session)).toContain("session-03.webm");
+  });
+
+  it("includes campaign memory content", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "灰ヶ浦",
+      sessions: [
+        {
+          title: "第4夜",
+          date: "2026-05-01",
+          log: "GM: 海鳴りが強い",
+          extractionItems: [
+            { id: "item-1", kind: "手がかり", title: "潮位表", detail: "干潮は深夜", visibility: "PL既知" },
+          ],
+          approvedIds: [],
+        },
+      ],
+      chronicle: {
+        events: ["港に到着"],
+        npcs: [{ name: "潮見レン", role: "灯台守の甥", publicKnowledge: "鐘を知る", gmSecret: "秘密", attitude: "協力的" }],
+        clues: [{ title: "古い鍵", detail: "倉庫で見つかる", status: "known" }],
+        locations: [{ name: "灯台", detail: "岬に立つ" }],
+        threads: [{ title: "月の鐘", detail: "まだ鳴らない", nextMove: "次回鳴る" }],
+      },
+    });
+
+    expect(getCampaignSearchText(campaign)).toContain("灰ヶ浦");
+    expect(getCampaignSearchText(campaign)).toContain("潮見レン");
+    expect(getCampaignSearchText(campaign)).toContain("月の鐘");
+    expect(getCampaignSearchText(campaign)).toContain("潮位表");
+    expect(getCampaignSearchText(campaign)).toContain("海鳴りが強い");
+  });
+});
+
+describe("normalizeCampaignLibraryState", () => {
+  it("deduplicates campaign ids and preserves a valid active campaign", () => {
+    const library = normalizeCampaignLibraryState({
+      activeCampaignId: "campaign-1",
+      campaigns: [
+        { id: "campaign-1", campaignName: "A" },
+        { id: "campaign-1", campaignName: "B" },
+      ],
+    });
+
+    expect(library.campaigns).toHaveLength(2);
+    expect(library.campaigns[0]?.id).toBe("campaign-1");
+    expect(library.campaigns[1]?.id).not.toBe("campaign-1");
+    expect(library.activeCampaignId).toBe("campaign-1");
+  });
+});
+
+describe("previewCampaignImport", () => {
+  it("previews session, campaign, and library imports", () => {
+    expect(readSessionImportPayload({ session: { title: "第2夜", log: "GM: 開始" } })).toEqual({
+      title: "第2夜",
+      log: "GM: 開始",
+    });
+
+    expect(previewCampaignImport({ session: { title: "第2夜", log: "GM: 開始" } })).toEqual({
+      approvedCount: 0,
+      candidateCount: 0,
+      campaignMode: "investigation",
+      kind: "session",
+      message: "第2夜を現在のキャンペーンに追加します。候補 0 / 採用 0。",
+      storageBytes: expect.any(Number),
+      title: "第2夜",
+    });
+
+    expect(previewCampaignImport({ campaignName: "灰ヶ浦", sessions: [{ title: "第1夜" }] })).toMatchObject({
+      approvedCount: 0,
+      candidateCount: 0,
+      campaignMode: "investigation",
+      kind: "campaign",
+      message: "灰ヶ浦 (1セッション / 0候補 / 0採用) で現在のキャンペーンを置き換えます。",
+      sessionCount: 1,
+      storageBytes: expect.any(Number),
+      title: "灰ヶ浦",
+    });
+
+    expect(previewCampaignImport({
+      campaigns: [
+        { campaignName: "A", sessions: [{ title: "第1夜" }] },
+        { campaignName: "B", sessions: [{ title: "第1夜" }, { title: "第2夜" }] },
+      ],
+    })).toMatchObject({
+      campaignCount: 2,
+      candidateCount: 0,
+      kind: "library",
+      message: "2キャンペーン / 3セッション / 0候補で全体を置き換えます。",
+      modeCounts: { investigation: 2, fantasy: 0 },
+      sessionCount: 3,
+      storageBytes: expect.any(Number),
+    });
+  });
+});
+
+describe("formatCampaignLibraryMarkdown", () => {
+  it("formats campaigns and session counts as an index", () => {
+    const library = normalizeCampaignLibraryState({
+      activeCampaignId: "campaign-1",
+      campaigns: [
+        {
+          id: "campaign-1",
+          campaignName: "灰ヶ浦",
+          sessions: [
+            {
+              title: "第1夜",
+              date: "2026-04-30",
+              log: "",
+              extractionItems: [{ id: "item-1", kind: "出来事", title: "開始", detail: "開始した", visibility: "PL既知" }],
+              approvedIds: ["item-1"],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(formatCampaignLibraryMarkdown(library)).toContain("## 1. 灰ヶ浦 [選択中]");
+    expect(formatCampaignLibraryMarkdown(library)).toContain("- 次アクション:");
+    expect(formatCampaignLibraryMarkdown(library)).toContain("- 第1夜 (2026-04-30) / 候補 1 / 採用 1");
+  });
+});
+
+describe("getCampaignSummaryStats", () => {
+  it("summarizes campaign sessions, memory, review, and transcript counts", () => {
+    const campaign = normalizeCampaignState({
+      chronicle: {
+        events: ["港に到着"],
+        npcs: [],
+        clues: [],
+        locations: [],
+        threads: [],
+      },
+      sessions: [
+        {
+          title: "第1夜",
+          date: "2026-04-30",
+          archivedAt: "2026-05-01T00:00:00.000Z",
+          log: "",
+          liveLog: {
+            speakers: [{ id: "speaker-1", name: "GM", role: "GM" }],
+            segments: [
+              { id: "segment-1", speakerId: "speaker-1", startTimeSec: 0, endTimeSec: 5, text: "開始", confidence: 0.5 },
+              { id: "segment-2", speakerId: "speaker-1", startTimeSec: 6, endTimeSec: 8, text: " " },
+            ],
+          },
+          extractionItems: [
+            { id: "item-1", kind: "出来事", title: "開始", detail: "始まった", visibility: "PL既知" },
+          ],
+          transcriptionRun: {
+            executedAt: "2026-04-30T12:00:00.000Z",
+            providerId: "openai",
+            providerLabel: "OpenAI",
+            segmentCount: 1,
+            sourceType: "audio-file",
+          },
+          approvedIds: ["item-1"],
+        },
+      ],
+    });
+
+    expect(getCampaignSummaryStats(campaign)).toMatchObject({
+      archivedSessionCount: 1,
+      approvedCount: 1,
+      candidateCount: 1,
+      lowConfidenceSegmentCount: 1,
+      memoryCount: 1,
+      nonEmptySegmentCount: 1,
+      sessionCount: 1,
+      transcribedSessionCount: 1,
+    });
+  });
+});
+
+describe("formatCampaignMarkdown", () => {
+  it("formats a full campaign summary with sessions and memory", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "灰ヶ浦",
+      sessions: [
+        {
+          title: "第1夜",
+          date: "2026-04-30",
+          log: "",
+          extractionItems: [{ id: "item-1", kind: "出来事", title: "開始", detail: "始まった", visibility: "PL既知" }],
+          transcriptionRun: {
+            executedAt: "2026-04-30T12:00:00.000Z",
+            providerId: "openai",
+            providerLabel: "OpenAI",
+            segmentCount: 3,
+            sourceType: "audio-file",
+          },
+          approvedIds: ["item-1"],
+        },
+      ],
+      chronicle: {
+        events: ["港に到着"],
+        npcs: [],
+        clues: [],
+        locations: [],
+        threads: [],
+      },
+    });
+
+    expect(formatCampaignMarkdown(campaign)).toContain("# 灰ヶ浦");
+    expect(formatCampaignMarkdown(campaign)).toContain("### 第1夜");
+    expect(formatCampaignMarkdown(campaign)).toContain("- 文字起こし: OpenAI / 3発話");
+    expect(formatCampaignMarkdown(campaign)).toContain("## 継続運用キュー");
+    expect(formatCampaignMarkdown(campaign)).toContain("次回準備メモを確認");
+    expect(formatCampaignMarkdown(campaign)).toContain("## キャンペーン記憶");
+    expect(formatCampaignMarkdown(campaign)).toContain("- 港に到着");
+  });
+});
+
+describe("formatPlayerHandoutMarkdown", () => {
+  it("exports only player-safe campaign memory", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "灰ヶ浦",
+      sessions: [
+        {
+          title: "第1夜",
+          date: "2026-04-30",
+          log: "GM: 港に着いた",
+          extractionItems: [
+            { id: "item-1", kind: "出来事", title: "到着", detail: "港に着いた", visibility: "PL既知" },
+            { id: "item-2", kind: "GM秘密", title: "真相", detail: "村長は封印を守る側", visibility: "GMのみ" },
+          ],
+          approvedIds: ["item-1", "item-2"],
+        },
+      ],
+      chronicle: {
+        events: ["港に到着"],
+        npcs: [
+          {
+            name: "村長",
+            role: "まとめ役",
+            publicKnowledge: "灯台へ近づくなと警告している。",
+            gmSecret: "封印を維持している。",
+            attitude: "協力的だが慎重",
+          },
+        ],
+        clues: [
+          { title: "銀色の泥", detail: "倉庫に残っていた。", status: "known" },
+          { title: "古い灯台", detail: "地下に封印がある。", status: "hidden" },
+          { title: "青白い光", detail: "封印の劣化を示す。", status: "partial" },
+        ],
+        locations: [{ name: "灰ヶ浦", detail: "雨の多い港町。" }],
+        threads: [{ title: "月の鐘", detail: "封印が揺らぐ。", nextMove: "次回鳴らす。" }],
+      },
+    });
+    const handout = formatPlayerHandoutMarkdown(campaign);
+
+    expect(handout).toContain("# 灰ヶ浦 PL共有メモ");
+    expect(handout).toContain("銀色の泥");
+    expect(handout).toContain("灯台へ近づくなと警告している。");
+    expect(handout).toContain("GM秘密、未開示候補、伏線の次手は含めていません。");
+    expect(handout).not.toContain("封印を維持している");
+    expect(handout).not.toContain("地下に封印がある");
+    expect(handout).not.toContain("封印の劣化を示す");
+    expect(handout).not.toContain("次回鳴らす");
+  });
+});
+
+describe("buildPlayerHandoutSafetyWarnings", () => {
+  it("warns when player handouts include secret-derived text", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "灰ヶ浦",
+      chronicle: {
+        events: ["村長は封印を維持しているという噂が出た"],
+        npcs: [
+          {
+            name: "村長",
+            role: "まとめ役",
+            publicKnowledge: "灯台へ近づくなと警告している。",
+            gmSecret: "封印を維持している",
+            attitude: "探索者を試している",
+          },
+        ],
+        clues: [
+          { title: "銀色の泥", detail: "倉庫に残っていた。", status: "known" },
+          { title: "古い灯台", detail: "地下に封印がある。", status: "hidden" },
+        ],
+        locations: [],
+        threads: [{ title: "月の鐘", detail: "封印が揺らぐ。", nextMove: "次回鳴らす。" }],
+      },
+    });
+    const warnings = buildPlayerHandoutSafetyWarnings(campaign);
+
+    expect(warnings).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        label: "村長 / GM秘密",
+        leakedText: "封印を維持している",
+        source: "gm-secret",
+      }),
+    ]));
+    expect(warnings.some((warning) => warning.leakedText === "地下に封印がある。")).toBe(false);
+  });
+
+  it("does not warn for structurally safe handouts", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "灰ヶ浦",
+      chronicle: {
+        events: ["港に到着"],
+        npcs: [],
+        clues: [
+          { title: "銀色の泥", detail: "倉庫に残っていた。", status: "known" },
+          { title: "古い灯台", detail: "地下に封印がある。", status: "hidden" },
+        ],
+        locations: [],
+        threads: [{ title: "月の鐘", detail: "封印が揺らぐ。", nextMove: "次回鳴らす。" }],
+      },
+    });
+
+    expect(buildPlayerHandoutSafetyWarnings(campaign)).toEqual([]);
+  });
+});
+
+describe("buildPlayerHandoutShareStatus", () => {
+  it("blocks sharing when player handout warnings exist", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "灰ヶ浦",
+      chronicle: {
+        events: ["村長は封印を維持しているという噂が出た"],
+        npcs: [
+          {
+            name: "村長",
+            role: "まとめ役",
+            publicKnowledge: "灯台へ近づくなと警告している。",
+            gmSecret: "封印を維持している",
+            attitude: "探索者を試している",
+          },
+        ],
+        clues: [],
+        locations: [],
+        threads: [],
+      },
+    });
+
+    expect(buildPlayerHandoutShareStatus(campaign)).toEqual({
+      canShare: false,
+      message: "PL共有メモに要確認項目があります。共有前に内容を確認してください。",
+      warningCount: 1,
+    });
+  });
+
+  it("allows sharing structurally safe handouts", () => {
+    const campaign = normalizeCampaignState({
+      campaignName: "灰ヶ浦",
+      chronicle: {
+        events: ["港に到着"],
+        npcs: [],
+        clues: [{ title: "銀色の泥", detail: "倉庫に残っていた。", status: "known" }],
+        locations: [],
+        threads: [],
+      },
+    });
+
+    expect(buildPlayerHandoutShareStatus(campaign)).toEqual({
+      canShare: true,
+      message: "PL共有メモは共有できます。",
+      warningCount: 0,
+    });
+  });
+});
+
+describe("duplicateSessionState", () => {
+  it("copies session content while resetting ids and approval state", () => {
+    const source = normalizeCampaignState({
+      sessions: [
+        {
+          id: "session-1",
+          title: "第1夜",
+          date: "2026-04-29",
+          log: "GM: 開始",
+          liveLog: {
+            id: "live-log-1",
+            title: "第1夜",
+            sourceType: "manual",
+            speakers: [{ id: "speaker-1", name: "GM", role: "GM" }],
+            segments: [{ id: "segment-1", speakerId: "speaker-1", startTimeSec: 0, endTimeSec: 5, text: "開始" }],
+          },
+          extractionItems: [{ id: "item-1", kind: "出来事", title: "開始", detail: "GM: 開始", visibility: "PL既知" }],
+          extractionRun: {
+            campaignMode: "fantasy",
+            sourceType: "plain",
+            providerId: "rule-based",
+            providerLabel: "ルールベース",
+            executedProviderId: "rule-based",
+            executedProviderLabel: "ルールベース",
+            fallbackUsed: false,
+            itemCount: 1,
+            promptLength: 0,
+          },
+          approvedIds: ["item-1"],
+        },
+      ],
+    }).sessions[0];
+
+    const duplicated = duplicateSessionState(source);
+
+    expect(duplicated.id).not.toBe(source.id);
+    expect(duplicated.title).toBe("第1夜 コピー");
+    expect(duplicated.liveLog.title).toBe("第1夜 コピー");
+    expect(duplicated.log).toBe(source.log);
+    expect(duplicated.approvedIds).toEqual([]);
+    expect(duplicated.extractionRun).toBeNull();
+    expect(source.extractionRun?.campaignMode).toBe("fantasy");
+    expect(duplicated.liveLog.id).not.toBe(source.liveLog.id);
+    expect(duplicated.liveLog.speakers[0]?.id).not.toBe(source.liveLog.speakers[0]?.id);
+    expect(duplicated.liveLog.segments[0]?.id).not.toBe(source.liveLog.segments[0]?.id);
+    expect(duplicated.liveLog.segments[0]?.speakerId).toBe(duplicated.liveLog.speakers[0]?.id);
+  });
+});
+
+describe("duplicateCampaignState", () => {
+  it("copies campaign memory and regenerates campaign/session identity", () => {
+    const source = normalizeCampaignState({
+      id: "campaign-1",
+      campaignName: "灰ヶ浦",
+      activeSessionId: "session-2",
+      chronicle: {
+        events: ["港に到着"],
+        npcs: [],
+        clues: [],
+        locations: [],
+        threads: [],
+      },
+      sessions: [
+        { id: "session-1", title: "第1夜", date: "2026-04-28", log: "", extractionItems: [], approvedIds: [] },
+        { id: "session-2", title: "第2夜", date: "2026-04-29", log: "", extractionItems: [], approvedIds: [] },
+      ],
+    });
+
+    const duplicated = duplicateCampaignState(source);
+
+    expect(duplicated.id).not.toBe(source.id);
+    expect(duplicated.campaignName).toBe("灰ヶ浦 コピー");
+    expect(duplicated.chronicle.events).toEqual(["港に到着"]);
+    expect(duplicated.sessions).toHaveLength(2);
+    expect(duplicated.sessions.map((session) => session.id)).not.toEqual(source.sessions.map((session) => session.id));
+    expect(duplicated.activeSessionId).toBe(duplicated.sessions[1]?.id);
+  });
+});
+
+describe("applyExtraction", () => {
+  it("adds approved items to the right campaign memory buckets", () => {
+    const chronicle = {
+      events: [],
+      npcs: [],
+      clues: [],
+      locations: [],
+      threads: [],
+    };
+
+    const withNpc = applyExtraction(chronicle, {
+      id: "npc-1",
+      kind: "NPC",
+      title: "潮見レン",
+      detail: "灯台守の甥",
+      visibility: "PL既知",
+    });
+    const withSecret = applyExtraction(withNpc, {
+      id: "secret-1",
+      kind: "GM秘密",
+      title: "月の鐘",
+      detail: "満潮で鳴る",
+      visibility: "GMのみ",
+    });
+    const withThread = applyExtraction(withSecret, {
+      id: "thread-1",
+      kind: "伏線",
+      title: "封じられた灯台",
+      detail: "次回開く",
+      visibility: "未開示候補",
+    });
+    const withEvent = applyExtraction(withThread, {
+      id: "event-1",
+      kind: "出来事",
+      title: "港に到着",
+      detail: "探索者が灰ヶ浦へ着いた",
+      visibility: "PL既知",
+    });
+
+    expect(withEvent.npcs).toMatchObject([{ name: "潮見レン", publicKnowledge: "灯台守の甥" }]);
+    expect(withEvent.clues).toMatchObject([{ title: "月の鐘", status: "hidden" }]);
+    expect(withEvent.threads).toMatchObject([{ title: "封じられた灯台", nextMove: "次回準備で使う候補として保持する。" }]);
+    expect(withEvent.events).toEqual(["港に到着: 探索者が灰ヶ浦へ着いた"]);
+  });
+
+  it("does not add duplicate memory items after whitespace normalization", () => {
+    const chronicle = {
+      events: ["港に到着: 探索者が灰ヶ浦へ着いた"],
+      npcs: [],
+      clues: [{ title: "月の鐘", detail: "満潮で鳴る", status: "hidden" as const }],
+      locations: [],
+      threads: [],
+    };
+
+    const withDuplicateClue = applyExtraction(chronicle, {
+      id: "secret-1",
+      kind: "GM秘密",
+      title: " 月の鐘 ",
+      detail: "満潮で鳴る",
+      visibility: "GMのみ",
+    });
+    const withDuplicateEvent = applyExtraction(withDuplicateClue, {
+      id: "event-1",
+      kind: "出来事",
+      title: "港に到着",
+      detail: "探索者が灰ヶ浦へ着いた",
+      visibility: "PL既知",
+    });
+
+    expect(withDuplicateEvent).toBe(chronicle);
+  });
+});
+
+describe("previewExtractionApplication", () => {
+  it("summarizes new memory and skipped candidates without mutating the chronicle", () => {
+    const chronicle = {
+      events: ["港へ向かう: 既存"],
+      npcs: [],
+      clues: [{ title: "鍵", detail: "古い", status: "known" as const }],
+      locations: [],
+      threads: [],
+    };
+    const preview = previewExtractionApplication(chronicle, [
+      { id: "event-1", kind: "出来事", title: "鐘", detail: "鳴った", visibility: "PL既知" },
+      { id: "clue-1", kind: "手がかり", title: "鍵", detail: "古い", visibility: "PL既知" },
+      { id: "npc-1", kind: "NPC", title: "レン", detail: "灯台守", visibility: "PL既知" },
+      { id: "invalid", kind: "伏線", title: " ", detail: "未入力", visibility: "未開示候補" },
+    ]);
+
+    expect(preview).toEqual({
+      approvedCandidates: 3,
+      newEvents: 1,
+      newNpcs: 1,
+      newClues: 0,
+      newThreads: 0,
+      skippedCandidates: 2,
+    });
+    expect(chronicle.npcs).toEqual([]);
+  });
+});
+
+describe("generatePrepNote", () => {
+  it("combines approved session events with campaign memory hooks", () => {
+    const campaign = normalizeCampaignState({
+      chronicle: {
+        events: ["前回: 港で聞き込みをした"],
+        npcs: [{ name: "潮見レン", role: "灯台守の甥", publicKnowledge: "鐘を知る", gmSecret: "秘密", attitude: "協力的" }],
+        clues: [{ title: "月の鐘", detail: "満潮で鳴る", status: "partial" }],
+        locations: [{ name: "灯台", detail: "岬の古い建物" }],
+        threads: [{ title: "封じられた灯台", detail: "まだ開かない", nextMove: "次回、扉が反応する" }],
+      },
+      sessions: [
+        {
+          id: "session-1",
+          title: "第1夜",
+          date: "2026-04-29",
+          log: "",
+          extractionItems: [
+            { id: "item-1", kind: "出来事", title: "鐘が鳴る", detail: "遠くで鐘が一度鳴った", visibility: "PL既知" },
+            { id: "item-2", kind: "GM秘密", title: "月の鐘", detail: "満潮で鳴る", visibility: "GMのみ" },
+          ],
+          approvedIds: ["item-1", "item-2"],
+        },
+      ],
+    });
+
+    const prep = generatePrepNote(campaign.chronicle, campaign.sessions, campaign.sessions[0]);
+
+    expect(prep.shortRecap).toContain("遠くで鐘が一度鳴った");
+    expect(prep.hooks).toEqual(expect.arrayContaining([
+      "月の鐘: 次に開示するなら 満潮で鳴る",
+      "封じられた灯台: 次回、扉が反応する",
+    ]));
+    expect(prep.openQuestions).toContain("封じられた灯台: まだ開かない");
+    expect(prep.reminders).toEqual(expect.arrayContaining([
+      "1セッション分のログをキャンペーン記憶に積み上げ中。",
+      "月の鐘をどこまで開示するか決める。",
+      "月の鐘はPLに出す前に意図を確認する。",
+    ]));
+  });
+
+  it("uses fantasy fallback language for empty prep notes", () => {
+    const campaign = createInitialCampaignState();
+    const session = {
+      ...campaign.sessions[0],
+      extractionItems: [],
+      approvedIds: [],
+    };
+    const prep = generatePrepNote({
+      events: [],
+      npcs: [],
+      clues: [],
+      locations: [],
+      threads: [],
+    }, [session], session, "fantasy");
+
+    expect(prep.hooks).toEqual([
+      "承認済みのクエスト、勢力事情、世界変化が増えると、次のクエスト候補がここに出ます。",
+    ]);
+    expect(prep.openQuestions).toEqual([
+      "未解決の依頼や勢力事情は、伏線や一部既知/GM秘密の情報から生成されます。",
+    ]);
+  });
+});
+
+describe("formatPrepNoteMarkdown", () => {
+  it("formats prep notes as portable markdown", () => {
+    expect(formatPrepNoteMarkdown({
+      shortRecap: [" 前回の要点 "],
+      hooks: ["導入案"],
+      openQuestions: [],
+      reminders: ["確認メモ"],
+    }, " 第2夜 準備 ")).toBe([
+      "# 第2夜 準備",
+      "",
+      "## 3行あらすじ",
+      "",
+      "1. 前回の要点",
+      "",
+      "## 次回導入案",
+      "",
+      "1. 導入案",
+      "",
+      "## 未解決の問い",
+      "",
+      "- 生成された準備項目はありません。",
+      "",
+      "## GM確認メモ",
+      "",
+      "1. 確認メモ",
+    ].join("\n"));
+  });
+});
+
+describe("formatChronicleMarkdown", () => {
+  it("formats campaign memory as readable markdown", () => {
+    expect(formatChronicleMarkdown({
+      events: ["港に到着"],
+      npcs: [{ name: "潮見レン", role: "灯台守の甥", publicKnowledge: "鐘を知る", gmSecret: "秘密", attitude: "協力的" }],
+      clues: [{ title: "月の鐘", detail: "満潮で鳴る", status: "partial" }],
+      locations: [],
+      threads: [{ title: "封じられた灯台", detail: "まだ開かない", nextMove: "扉が反応する" }],
+    }, " 灰ヶ浦 記憶 ")).toContain("- 月の鐘 [一部既知]: 満潮で鳴る");
+  });
+});
