@@ -2,7 +2,7 @@
 
 Date: 2026-05-08
 Branch: `feature/public-release`
-Status: Draft for adversarial review
+Status: Implemented for PR review
 
 ## Goal
 
@@ -281,3 +281,31 @@ Findings:
 Disposition:
 
 - All material Plan Review 1 findings have been incorporated into this SPEC before implementation starts.
+
+### Implementation Review 1
+
+Status: completed with role-based adversarial review fallback.
+
+Evidence inspected:
+
+- Commits: `250916a feat: add public release entry experience`, `eb10e7d feat: illustrate public empty states`, `30af173 chore: expand public release QA gates`.
+- Verification command: `npm run check` passed with 128 tests and production build.
+- Rendered screenshots inspected with local Chrome headless:
+  - Desktop public entry at 1440 x 1100: `/tmp/loreline-entry-desktop-3.png`.
+  - Mobile public entry at 390 x 844: `/tmp/loreline-entry-mobile-6.png`.
+- Asset budget output from production build:
+  - Hero: 331.14 KB.
+  - Mode emblems: 73.08 KB, 87.77 KB, 93.59 KB.
+  - Empty states: 63.31 KB, 68.22 KB, 69.55 KB, 80.52 KB.
+
+Findings:
+
+- **High: Release QA did not cover public-release-specific claims.** The previous QA checklist covered MVP workflows but not 10-second comprehension, no-provider activation, image manifest budgets, or privacy/network boundaries. `buildReleaseQaChecklist` now includes those gates and tests assert the expanded checklist.
+- **Medium: Mobile public entry initially clipped the skip button and card text.** The narrow layout now hides the secondary button label and simplifies mode-card copy below compact widths; mobile screenshot inspection confirmed no visible text clipping in the first viewport.
+- **Medium: Empty states were still generic text panels.** Home, review, memory, and prep empty states now use optimized generated illustrations with useful alt text and next actions.
+- **Medium: Asset ownership evidence was incomplete for new empty-state images.** `src/assets/public-release/manifest.json` now includes source path, prompt, dimensions, optimized bytes, budget, alt text, classification, and intended use for every public-release image.
+- **Low: TypeScript needed Vite asset import declarations.** `src/vite-env.d.ts` was added so committed bitmap assets can be imported safely.
+
+Disposition:
+
+- All Implementation Review 1 findings were addressed before PR preparation.
