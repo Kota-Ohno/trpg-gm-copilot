@@ -7,19 +7,19 @@
   --foreground: 222 22% 12%;
   --card: 0 0% 100%;
   --card-foreground: 222 22% 12%;
-  --primary: 187 78% 26%;
+  --primary: 187 78% 24%;
   --primary-foreground: 0 0% 100%;
   --secondary: 216 18% 92%;
   --secondary-foreground: 222 18% 18%;
   --muted: 213 20% 94%;
-  --muted-foreground: 217 10% 42%;
+  --muted-foreground: 214 12% 34%;
   --accent: 152 26% 90%;
   --accent-foreground: 166 40% 18%;
-  --destructive: 0 72% 45%;
+  --destructive: 0 72% 40%;
   --destructive-foreground: 0 0% 100%;
   --border: 215 16% 84%;
   --input: 215 16% 84%;
-  --ring: 187 78% 26%;
+  --ring: 187 78% 24%;
   --radius: 0.5rem;
   --public-ink: 202 34% 9%;
   --public-seaglass: 181 45% 42%;
@@ -48,6 +48,11 @@ body {
   font-feature-settings: "palt" 1;
   -webkit-font-smoothing: antialiased;
   text-rendering: geometricPrecision;
+}
+
+.public-release :focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
 }
 
 .public-release {
@@ -219,6 +224,13 @@ body {
     linear-gradient(180deg, rgb(255 255 255 / 0.84), rgb(249 252 251 / 0.76)),
     radial-gradient(circle at 90% 0%, hsl(var(--public-signal) / 0.13), transparent 9rem);
   border-color: rgb(16 55 61 / 0.12);
+}
+
+.security-boundary-note {
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.86), rgb(255 251 243 / 0.82)),
+    radial-gradient(circle at 0% 0%, hsl(var(--public-signal) / 0.2), transparent 12rem);
+  border-color: hsl(var(--public-signal) / 0.46);
 }
 
 .scrollbar-thin {

@@ -84,6 +84,7 @@ describe("buildProductSafetyChecklist", () => {
       expect.objectContaining({ id: "transcription-provider", status: "ok" }),
       expect.objectContaining({ id: "ui-manual-check", status: "warning" }),
     ]));
+    expect(checklist.find((item) => item.id === "provider-secrets")?.detail).toContain("永続保存せず");
     expect(checklist.find((item) => item.id === "player-handout")?.detail).toContain("1件");
   });
 });

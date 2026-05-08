@@ -122,7 +122,6 @@ import { buildExtractionPrompt } from "./lib/extraction-prompt";
 import {
   defaultProviderSecretSettings,
   getTranscriptionProvider,
-  normalizeProviderSecretSettings,
   transcriptionProviders,
 } from "./lib/extraction-provider-settings";
 import { runExtractionProvider } from "./lib/extraction-providers";
@@ -160,7 +159,7 @@ import type {
 const LEGACY_STORAGE_KEY = "chronicle-gm.campaign-state.v1";
 const CAMPAIGN_LIBRARY_STORAGE_KEY = "chronicle-gm.campaign-library.v1";
 const LAST_BACKUP_STORAGE_KEY = "chronicle-gm.last-backup.v1";
-const PROVIDER_SECRETS_STORAGE_KEY = "chronicle-gm.provider-secrets.v1";
+const LEGACY_PROVIDER_SECRETS_STORAGE_KEY = "chronicle-gm.provider-secrets.v1";
 const UI_PREFERENCES_STORAGE_KEY = "chronicle-gm.ui-preferences.v1";
 const PUBLIC_ENTRY_SEEN_STORAGE_KEY = "chronicle-gm.public-entry-seen.v1";
 const PRODUCT_NAME = "つぎたく";
@@ -711,20 +710,6 @@ function markPublicEntrySeen(): void {
   }
 }
 
-function readLegacyProviderApiKey(rawState: unknown): string {
-  if (!rawState || typeof rawState !== "object") {
-    return "";
-  }
-
-  const maybeState = rawState as {
-    extractionProvider?: {
-      apiKey?: unknown;
-    };
-  };
-
-  return typeof maybeState.extractionProvider?.apiKey === "string" ? maybeState.extractionProvider.apiKey : "";
-}
-
 function formatFileSize(bytes: number): string {
   if (bytes >= 1024 * 1024) {
     return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
@@ -760,31 +745,7 @@ function formatRunTimestamp(value: string): string {
 }
 
 function loadProviderSecrets(): ProviderSecretSettings {
-  if (typeof window === "undefined") {
-    return defaultProviderSecretSettings;
-  }
-
-  const savedSecrets = window.localStorage.getItem(PROVIDER_SECRETS_STORAGE_KEY);
-  if (savedSecrets) {
-    try {
-      return normalizeProviderSecretSettings(JSON.parse(savedSecrets));
-    } catch {
-      return defaultProviderSecretSettings;
-    }
-  }
-
-  const savedState = window.localStorage.getItem(LEGACY_STORAGE_KEY);
-  if (!savedState) {
-    return defaultProviderSecretSettings;
-  }
-
-  try {
-    return normalizeProviderSecretSettings({
-      openAiApiKey: readLegacyProviderApiKey(JSON.parse(savedState)),
-    });
-  } catch {
-    return defaultProviderSecretSettings;
-  }
+  return defaultProviderSecretSettings;
 }
 
 function loadLastBackupAt(): string | null {
@@ -1232,6 +1193,7 @@ export function App() {
   useEffect(() => {
     try {
       window.localStorage.setItem(CAMPAIGN_LIBRARY_STORAGE_KEY, JSON.stringify(campaignLibrary));
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
       setStorageError(null);
     } catch {
       setStorageError("キャンペーン状態をブラウザに保存できませんでした。書き出しで退避してください。");
@@ -1271,14 +1233,11 @@ export function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(
-        PROVIDER_SECRETS_STORAGE_KEY,
-        JSON.stringify(normalizeProviderSecretSettings(providerSecrets)),
-      );
+      window.localStorage.removeItem(LEGACY_PROVIDER_SECRETS_STORAGE_KEY);
     } catch {
-      setStorageError("Provider secrets をブラウザに保存できませんでした。");
+      setStorageError("保存済みProvider secretsをブラウザから削除できませんでした。");
     }
-  }, [providerSecrets]);
+  }, []);
 
   useEffect(() => {
     setIsTestingTranscriptionConnection(false);
@@ -1871,7 +1830,6 @@ export function App() {
       }
 
       const importedState = normalizeCampaignState(parsedState);
-      const importedLegacyApiKey = readLegacyProviderApiKey(parsedState);
       setConfirmation({
         title: "キャンペーンを置き換えますか",
         message: formatImportPreviewMessage(importPreview),
@@ -1881,9 +1839,6 @@ export function App() {
             ...importedState,
             id: current.id,
           }));
-          if (importedLegacyApiKey) {
-            setProviderSecrets((current) => ({ ...current, openAiApiKey: importedLegacyApiKey }));
-          }
           setStorageError(null);
           setSessionQuery("");
           setLogInputMode("plain");

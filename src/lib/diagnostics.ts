@@ -214,8 +214,8 @@ export function buildProductSafetyChecklist(
   return [
     {
       detail: input.providerSecretsExcludedFromExports
-        ? "APIキーはキャンペーンJSON/診断JSONに含めません。"
-        : "APIキーのエクスポート除外を確認してください。",
+        ? "APIキーはブラウザに永続保存せず、キャンペーンJSON/診断JSONにも含めません。"
+        : "APIキーの永続保存とエクスポート除外を確認してください。",
       id: "provider-secrets",
       label: "APIキー保護",
       status: input.providerSecretsExcludedFromExports ? "ok" : "action",
