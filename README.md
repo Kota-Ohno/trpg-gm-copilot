@@ -1,10 +1,10 @@
-# Loreline
+# つぎたく
 
-Loreline is a local-first TRPG campaign assistant for human GMs. It helps turn session logs into reviewed campaign memory, while keeping AI output behind a GM approval flow.
+つぎたくは、人間のGMが運営するTRPGキャンペーン向けのローカルファーストな支援ツールです。セッションログを、GMが確認したキャンペーン記憶と次回準備へつなげます。
 
 ## Market Position
 
-Loreline is for GMs who already run human-led campaigns and need continuity, not an AI GM replacement. Its core value is reducing post-session bookkeeping and making the next session easier to resume.
+つぎたくはAI GMではありません。人間主導の卓を続けるGMが、卓後の整理を減らし、次回の再開を楽にするための作業台です。
 
 Differentiators:
 
@@ -27,43 +27,63 @@ Differentiators:
 - Dynamic next-session prep notes from approved campaign memory with mode-aware labels and fallback text, session wrap-up checklist that reflects blocked player-handout status, wrap-up Markdown export/copy with player-handout safety status, prep-note Markdown/JSON export, player-safe handout preview/export/copy that excludes GM secrets and unrevealed clues, handout leak warnings and blocked share actions for secret-derived text, and full-session Markdown export from the prep view or session list.
 - Quick GM rescue prompts that can be appended into plain logs or speaker logs.
 - Transcription provider settings with readiness checks for manual/OpenAI/Web Speech, OpenAI audio-file transcription with file validation, transcription run history, transcript confidence and missing-timing metrics, low-confidence filtering, validated import preview, and sample/file-assisted draft JSON import/append/export for speaker logs.
-- Local autosave with storage-size visibility, largest-session size diagnostics, review-quality diagnostics, backup freshness reminders, in-app trust/safety and persisted release-QA checklists, release-QA Markdown export/copy with status, checked/evidence counts, missing-item summaries, and redacted evidence notes, support diagnostics export with product-safety status and release-QA gates, campaign/library/session JSON export/import with import-impact previews and oversized-file guards, raw session JSON import, session duplication, and API key storage outside campaign exports.
+- Local autosave with storage-size visibility, largest-session size diagnostics, review-quality diagnostics, backup freshness reminders, in-app trust/safety checks, support diagnostics export with product-safety status, campaign/library/session JSON export/import with import-impact previews and oversized-file guards, raw session JSON import, session duplication, and API keys kept session-only outside browser persistence and exports.
 
 ## Development
 
 ```sh
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 Tests:
 
 ```sh
-npm run test
+pnpm run test
 ```
 
 Full local check:
 
 ```sh
-npm run check
+pnpm run check
 ```
 
 Production build:
 
 ```sh
-npm run build
+pnpm run build
 ```
 
-Release QA:
+Release gate:
 
-- Run `npm run check`.
-- Open the local app and click through starter creation, extraction, review approval, memory, prep, player handout, wrap-up, export/import, and settings panels.
-- Record evidence notes for every Release QA item; the Product Safety panel stays in warning until all checks and evidence are present.
-- Export or copy the Release QA Markdown from Settings > 運用QA before shipping. Evidence notes are redacted on export/copy, and reset requires confirmation.
-- Verify desktop and narrow mobile widths for overlapping text or unusable controls.
-- Test extraction and transcription providers separately from their connection-test buttons, only with a user-owned API key or local endpoint. Local/manual providers can be checked for readiness, but only results marked `Release QA証跡` count as provider live-check evidence.
-- Evidence notes should include the exact date/time, local URL or viewport, provider label/model, and observed result. Example: `2026-05-06 15:00 JST desktop 1440px http://localhost:5174/ GM workflow click-through OK`.
+```sh
+pnpm run release:check
+```
+
+Operational checks:
+
+- Run `pnpm run check`.
+- Open the local app in a fresh browser profile and verify the public entry, 10-second comprehension, starter creation, extraction, review approval, memory, prep, player handout, wrap-up, export/import, and settings panels.
+- Complete the sample or pasted-log activation path without API keys, account creation, or external campaign-text upload.
+- Verify `src/assets/public-release/manifest.json` covers every committed public-release image and that the hero stays under 350KB while each emblem/empty-state image stays under 120KB.
+- Verify desktop and narrow mobile widths for the public entry, empty states, and workbench surfaces; check overlapping text, unusable controls, focus visibility, and horizontal scrolling.
+- Test extraction and transcription providers separately from their connection-test buttons, only with a user-owned API key or local endpoint.
 
 ## Product Direction
 
 The tool supports the GM rather than replacing them. AI/provider output is treated as a draft, and only GM-approved items enter campaign memory.
+
+Service naming rationale and alternatives are tracked in `docs/brand-naming-review.md`.
+
+## Release And Trust
+
+- License: `LICENSE`
+- Third-party notices: `THIRD_PARTY_NOTICES.md`
+- Privacy notice: `PRIVACY.md`
+- Terms baseline: `TERMS.md`
+- Security policy: `SECURITY.md`
+- Initial infrastructure plan: `docs/release-infrastructure.md`
+- Release checklist: `docs/release-checklist.md`
+- Infrastructure research: `docs/research/release-infrastructure-research.md`
+
+The recommended first public release target is Cloudflare Pages with `pnpm run build` and `dist` output. The app is designed to launch as a static, local-first SPA without a hosted backend.

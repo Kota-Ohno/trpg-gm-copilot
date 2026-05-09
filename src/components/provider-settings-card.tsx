@@ -39,7 +39,7 @@ export function ProviderSettingsCard({
   const isEndpointDefault = settings.endpoint.trim() === selectedProvider.defaultEndpoint;
   const providerHelpText =
     settings.providerId === "openai"
-      ? "API key はキャンペーンJSONに含めず、ブラウザの別領域にだけ保存します。"
+      ? "API key はこのタブのメモリだけで扱い、ブラウザ保存、キャンペーンJSON、診断JSONには含めません。リロードで消えます。"
       : settings.providerId === "ollama"
         ? "Ollama はローカルの /api/generate を呼び出します。起動していない場合はルールベース抽出へ戻します。"
         : "ブラウザ内のルールで抽出します。外部ProviderやAPI keyは使いません。";
@@ -135,6 +135,7 @@ export function ProviderSettingsCard({
           <Badge variant={isApiKeyMissing ? "destructive" : "secondary"}>
             API key: {!needsApiKey ? "不要" : hasApiKey ? "設定済み" : "未設定"}
           </Badge>
+          {needsApiKey && <Badge variant="outline">保存しない</Badge>}
         </div>
 
         <div>
@@ -209,6 +210,7 @@ export function ProviderSettingsCard({
               <Badge variant={isApiKeyMissing ? "destructive" : "secondary"}>
                 {hasApiKey ? "設定済み" : "未設定"}
               </Badge>
+              <Badge variant="outline">このタブのみ</Badge>
             </label>
             <div className="mt-1 flex gap-2">
               <Input
@@ -234,7 +236,13 @@ export function ProviderSettingsCard({
           </div>
         )}
 
-        <p className="text-xs leading-5 text-muted-foreground">
+        <p
+          className={
+            needsApiKey
+              ? "security-boundary-note rounded-md border px-3 py-2 text-xs leading-5 text-muted-foreground"
+              : "text-xs leading-5 text-muted-foreground"
+          }
+        >
           {providerHelpText}
         </p>
 
@@ -269,9 +277,7 @@ export function ProviderSettingsCard({
             </Badge>
           )}
           {connectionResult?.ok && (
-            <Badge variant={connectionResult.isReleaseQaEvidence ? "secondary" : "muted"}>
-              {connectionResult.isReleaseQaEvidence ? "Release QA証跡" : "ローカル確認"}
-            </Badge>
+            <Badge variant="muted">接続確認済み</Badge>
           )}
         </div>
 

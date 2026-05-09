@@ -1,4 +1,4 @@
-# Loreline frontend restructure plan
+# つぎたく frontend restructure plan
 
 ## Success criteria
 
@@ -16,7 +16,7 @@
 
 2. **Progressive disclosure**
    - Keep `Campaign Setup`, `Export / Import`, and `ワークフロー詳細` collapsed by default.
-   - Keep Provider/QA controls behind the side desk’s `運用` tab.
+   - Keep Provider and operational controls behind the side desk’s `運用` tab.
 
 3. **Action hierarchy**
    - Preserve the top toolbar for `抽出`, `出力`, and `集中`.
@@ -27,7 +27,7 @@
    - Keep destructive styling only for genuinely destructive actions or hard blockers.
 
 5. **Verification loop**
-   - Run `npm run check`.
+   - Run `pnpm run check`.
    - Capture desktop and mobile screenshots with Chrome.
    - Adversarially review screenshots for clutter, ambiguous labels, crowding, horizontal overflow, and first-viewport confusion.
    - Patch issues and repeat until no material issues remain.
@@ -47,9 +47,9 @@
 
 Evidence:
 
-- `npm run check` passed.
-- Desktop screenshot: `/private/tmp/loreline-redesign-desktop-1.png`
-- Mobile screenshot: `/private/tmp/loreline-redesign-mobile-1.png`
+- `pnpm run check` passed.
+- Desktop screenshot: `/private/tmp/tsugitaku-redesign-desktop-1.png`
+- Mobile screenshot: `/private/tmp/tsugitaku-redesign-mobile-1.png`
 
 Adversarial findings:
 
@@ -64,8 +64,8 @@ Fix:
 
 Evidence:
 
-- `npm run check` passed.
-- Mobile screenshot: `/private/tmp/loreline-redesign-mobile-2.png`
+- `pnpm run check` passed.
+- Mobile screenshot: `/private/tmp/tsugitaku-redesign-mobile-2.png`
 
 Adversarial findings:
 
@@ -82,10 +82,10 @@ Fix:
 
 Evidence:
 
-- `npm run check` passed.
-- Mobile screenshot: `/private/tmp/loreline-redesign-mobile-3.png`
-- Mobile screenshot after width simplification: `/private/tmp/loreline-redesign-mobile-4.png`
-- Scale-fixed mobile screenshot: `/private/tmp/loreline-redesign-mobile-4-scale1.png`
+- `pnpm run check` passed.
+- Mobile screenshot: `/private/tmp/tsugitaku-redesign-mobile-3.png`
+- Mobile screenshot after width simplification: `/private/tmp/tsugitaku-redesign-mobile-4.png`
+- Scale-fixed mobile screenshot: `/private/tmp/tsugitaku-redesign-mobile-4-scale1.png`
 
 Adversarial findings:
 

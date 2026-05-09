@@ -5,6 +5,7 @@ import type { TranscriptionSegmentDraft } from "../types";
 
 export const maxTranscriptionAudioFileSizeBytes = 25 * 1024 * 1024;
 const supportedTranscriptionAudioExtensions = new Set(["flac", "m4a", "mp3", "mp4", "mpeg", "mpga", "oga", "ogg", "wav", "webm"]);
+const REDACTED_PROVIDER_SECRET = "[redacted-provider-secret]";
 
 export type TranscriptionProviderCheckResult = {
   ok: boolean;
@@ -12,7 +13,6 @@ export type TranscriptionProviderCheckResult = {
 };
 
 export type TranscriptionProviderConnectionTestResult = {
-  isReleaseQaEvidence: boolean;
   ok: boolean;
   message: string;
 };
@@ -79,6 +79,12 @@ function normalizeEndpoint(endpoint: string, fallbackEndpoint: string): string {
   return (endpoint.trim() || fallbackEndpoint).replace(/\/+$/, "");
 }
 
+function redactProviderSecrets(message: string): string {
+  return message
+    .replace(/Bearer\s+[\w.-]+/gi, `Bearer ${REDACTED_PROVIDER_SECRET}`)
+    .replace(/sk-[A-Za-z0-9_-]+/g, REDACTED_PROVIDER_SECRET);
+}
+
 async function readTranscriptionErrorMessage(response: Response): Promise<string> {
   const contentType = response.headers.get("content-type") ?? "";
   const fallbackMessage = `OpenAI文字起こしAPIが失敗しました。status: ${response.status}`;
@@ -91,7 +97,7 @@ async function readTranscriptionErrorMessage(response: Response): Promise<string
         if (error && typeof error === "object" && !Array.isArray(error)) {
           const message = (error as { message?: unknown }).message;
           if (typeof message === "string" && message.trim()) {
-            return message.trim();
+            return redactProviderSecrets(message.trim());
           }
         }
       }
@@ -101,7 +107,7 @@ async function readTranscriptionErrorMessage(response: Response): Promise<string
   }
 
   const errorText = await response.text();
-  return errorText.trim() || fallbackMessage;
+  return redactProviderSecrets(errorText.trim()) || fallbackMessage;
 }
 
 async function fetchTranscriptionConnectionWithTimeout(
@@ -127,7 +133,7 @@ function getTranscriptionProviderErrorMessage(error: unknown, providerLabel: str
     return `${providerLabel} API が${Math.round(timeoutMs / 1000)}秒以内に応答しませんでした。`;
   }
 
-  return error instanceof Error ? error.message : `${providerLabel} API 呼び出しに失敗しました。`;
+  return error instanceof Error ? redactProviderSecrets(error.message) : `${providerLabel} API 呼び出しに失敗しました。`;
 }
 
 export function hasWebSpeechRecognitionSupport(value: unknown): boolean {
@@ -184,7 +190,6 @@ export async function testTranscriptionProviderConnection(
 
   if (provider.id === "manual") {
     return {
-      isReleaseQaEvidence: false,
       ok: true,
       message: "手動入力Providerはローカルで利用できます。model: manual-transcript",
     };
@@ -193,7 +198,6 @@ export async function testTranscriptionProviderConnection(
   if (provider.id === "web-speech") {
     return {
       ...checkTranscriptionProviderReadiness(request.settings, request.secrets),
-      isReleaseQaEvidence: false,
     };
   }
 
@@ -202,7 +206,6 @@ export async function testTranscriptionProviderConnection(
     const model = request.settings.model.trim() || provider.defaultModel;
     if (!apiKey) {
       return {
-        isReleaseQaEvidence: false,
         ok: false,
         message: `OpenAI文字起こしにはAPI keyが必要です。model: ${model}`,
       };
@@ -223,20 +226,17 @@ export async function testTranscriptionProviderConnection(
 
       if (!response.ok) {
         return {
-          isReleaseQaEvidence: false,
           ok: false,
           message: await readTranscriptionErrorMessage(response),
         };
       }
 
       return {
-        isReleaseQaEvidence: true,
         ok: true,
         message: `OpenAI文字起こしProvider に接続できました。model: ${model}`,
       };
     } catch (error) {
       return {
-        isReleaseQaEvidence: false,
         ok: false,
         message: getTranscriptionProviderErrorMessage(error, "OpenAI文字起こし", 12_000),
       };
@@ -244,7 +244,6 @@ export async function testTranscriptionProviderConnection(
   }
 
   return {
-    isReleaseQaEvidence: false,
     ok: false,
     message: `${provider.label} は接続確認に対応していません。`,
   };
@@ -370,7 +369,7 @@ export async function runTranscriptionProvider(
     } catch (error) {
       return {
         drafts: [],
-        message: error instanceof Error ? error.message : "OpenAI文字起こしAPI呼び出しに失敗しました。",
+        message: error instanceof Error ? redactProviderSecrets(error.message) : "OpenAI文字起こしAPI呼び出しに失敗しました。",
         ok: false,
         providerLabel: provider.label,
       };

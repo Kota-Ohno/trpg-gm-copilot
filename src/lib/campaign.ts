@@ -736,7 +736,6 @@ function normalizeExtractionRun(rawRun: unknown, itemCount: number): ExtractionR
     : [];
 
   return {
-    ...run,
     campaignMode: normalizeCampaignMode(run.campaignMode),
     sourceType: normalizeExtractionSourceType(run.sourceType),
     providerId: runProvider.id,
@@ -791,11 +790,10 @@ function normalizeSessionState(
   seenSessionIds.add(sessionId);
 
   return {
-    ...defaultSession,
-    ...session,
     id: sessionId,
     title,
     date: normalizeSessionDate(session.date),
+    log: typeof session.log === "string" ? session.log : defaultSession.log,
     archivedAt: typeof session.archivedAt === "string" && session.archivedAt.trim() ? session.archivedAt.trim() : undefined,
     approvedIds: approvedIds.filter((id) => extractionItemIds.has(id)),
     extractionItems,
@@ -834,19 +832,17 @@ export function normalizeCampaignState(rawState: unknown): CampaignState {
   const campaignId = readString(parsedState.id, createId("campaign"));
 
   return {
-    ...initialCampaignState,
-    ...parsedState,
     id: campaignId,
     campaignName: parsedState.campaignName?.trim() || "無題キャンペーン",
     campaignMode: normalizeCampaignMode(parsedState.campaignMode),
-    chronicle: normalizeChronicle(parsedState.chronicle),
-    quickResult: readString(parsedState.quickResult, initialCampaignState.quickResult),
     extractionProvider: normalizeExtractionProviderSettings(parsedState.extractionProvider),
     transcriptionProvider: normalizeTranscriptionProviderSettings(parsedState.transcriptionProvider),
     sessions: normalizedSessions,
     activeSessionId: normalizedSessions.some((session) => session.id === activeSessionId)
       ? activeSessionId
       : normalizedSessions[0].id,
+    chronicle: normalizeChronicle(parsedState.chronicle),
+    quickResult: readString(parsedState.quickResult, initialCampaignState.quickResult),
   };
 }
 
@@ -885,18 +881,112 @@ export function normalizeCampaignLibraryState(rawState: unknown): CampaignLibrar
 
 export function sanitizeCampaignStateForExport(campaign: CampaignState): CampaignState {
   return {
-    ...campaign,
+    id: campaign.id,
+    campaignName: campaign.campaignName,
+    campaignMode: campaign.campaignMode,
     extractionProvider: {
       endpoint: campaign.extractionProvider.endpoint,
       model: campaign.extractionProvider.model,
       providerId: campaign.extractionProvider.providerId,
     },
+    transcriptionProvider: {
+      endpoint: campaign.transcriptionProvider.endpoint,
+      language: campaign.transcriptionProvider.language,
+      model: campaign.transcriptionProvider.model,
+      providerId: campaign.transcriptionProvider.providerId,
+    },
+    sessions: campaign.sessions.map((session) => ({
+      archivedAt: session.archivedAt,
+      approvedIds: [...session.approvedIds],
+      date: session.date,
+      extractionItems: session.extractionItems.map((item) => ({
+        detail: item.detail,
+        id: item.id,
+        kind: item.kind,
+        title: item.title,
+        visibility: item.visibility,
+      })),
+      extractionRun: session.extractionRun
+        ? {
+            campaignMode: session.extractionRun.campaignMode,
+            sourceType: session.extractionRun.sourceType,
+            providerId: session.extractionRun.providerId,
+            providerLabel: session.extractionRun.providerLabel,
+            executedProviderId: session.extractionRun.executedProviderId,
+            executedProviderLabel: session.extractionRun.executedProviderLabel,
+            fallbackUsed: session.extractionRun.fallbackUsed,
+            failureReason: session.extractionRun.failureReason,
+            itemCount: session.extractionRun.itemCount,
+            note: session.extractionRun.note,
+            promptLength: session.extractionRun.promptLength,
+            promptVersion: session.extractionRun.promptVersion,
+            validationErrors: session.extractionRun.validationErrors ? [...session.extractionRun.validationErrors] : undefined,
+          }
+        : null,
+      id: session.id,
+      liveLog: {
+        id: session.liveLog.id,
+        sourceType: session.liveLog.sourceType,
+        speakers: session.liveLog.speakers.map((speaker) => ({
+          id: speaker.id,
+          name: speaker.name,
+          role: speaker.role,
+        })),
+        segments: session.liveLog.segments.map((segment) => ({
+          confidence: segment.confidence,
+          endTimeSec: segment.endTimeSec,
+          id: segment.id,
+          speakerId: segment.speakerId,
+          startTimeSec: segment.startTimeSec,
+          text: segment.text,
+        })),
+        title: session.liveLog.title,
+      },
+      log: session.log,
+      title: session.title,
+      transcriptionRun: session.transcriptionRun
+        ? {
+            executedAt: session.transcriptionRun.executedAt,
+            fileName: session.transcriptionRun.fileName,
+            providerId: session.transcriptionRun.providerId,
+            providerLabel: session.transcriptionRun.providerLabel,
+            segmentCount: session.transcriptionRun.segmentCount,
+            sourceType: session.transcriptionRun.sourceType,
+          }
+        : null,
+    })),
+    activeSessionId: campaign.activeSessionId,
+    chronicle: {
+      clues: campaign.chronicle.clues.map((clue) => ({
+        detail: clue.detail,
+        status: clue.status,
+        title: clue.title,
+      })),
+      events: [...campaign.chronicle.events],
+      locations: campaign.chronicle.locations.map((location) => ({
+        detail: location.detail,
+        name: location.name,
+      })),
+      npcs: campaign.chronicle.npcs.map((npc) => ({
+        attitude: npc.attitude,
+        gmSecret: npc.gmSecret,
+        name: npc.name,
+        publicKnowledge: npc.publicKnowledge,
+        role: npc.role,
+      })),
+      threads: campaign.chronicle.threads.map((thread) => ({
+        detail: thread.detail,
+        nextMove: thread.nextMove,
+        title: thread.title,
+      })),
+    },
+    quickResult: campaign.quickResult,
   };
 }
 
 export function sanitizeCampaignLibraryStateForExport(campaignLibrary: CampaignLibraryState): CampaignLibraryState {
   return {
-    ...campaignLibrary,
+    activeCampaignId: campaignLibrary.activeCampaignId,
     campaigns: campaignLibrary.campaigns.map(sanitizeCampaignStateForExport),
   };
 }
@@ -1380,7 +1470,6 @@ function normalizeExtractionItems(items: unknown[]): ExtractionItem[] {
     seenIds.add(itemId);
 
     return {
-      ...itemRecord,
       id: itemId,
       detail: readString(itemRecord.detail, "詳細未設定"),
       kind: itemRecord.kind && validKinds.includes(itemRecord.kind) ? itemRecord.kind : "出来事",
@@ -1418,7 +1507,6 @@ function normalizeLiveLog(rawLiveLog: unknown, fallbackTitle: string): LiveLogSe
     seenSpeakerIds.add(speakerId);
 
     return {
-      ...speakerRecord,
       id: speakerId,
       name: readString(speakerRecord.name, `話者${index + 1}`),
       role: speakerRecord.role && validRoles.has(speakerRecord.role) ? speakerRecord.role : "unknown",
@@ -1429,7 +1517,6 @@ function normalizeLiveLog(rawLiveLog: unknown, fallbackTitle: string): LiveLogSe
   const fallbackSpeakerId = speakers[0].id;
 
   return {
-    ...liveLog,
     id: readString(liveLog.id, createId("live-log")),
     sourceType: liveLog.sourceType && validSourceTypes.has(liveLog.sourceType) ? liveLog.sourceType : "imported",
     title: readString(liveLog.title, fallbackTitle),
@@ -1441,7 +1528,6 @@ function normalizeLiveLog(rawLiveLog: unknown, fallbackTitle: string): LiveLogSe
       const confidence = readNumber(segmentRecord.confidence, Number.NaN);
 
       return {
-        ...segmentRecord,
         endTimeSec,
         id: readString(segmentRecord.id, createId("segment")),
         speakerId:

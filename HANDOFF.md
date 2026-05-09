@@ -6,35 +6,26 @@
 
 - active goal: `TRPGのGMサポートシステムとして、市場価値を十分に発揮できるレベルのプロダクトに仕上げてください、機能面はもちろん、UIUX、継続性も考慮してください`
 - ローカル開発サーバー: `http://localhost:5174/`
-- 直近の検証: `npm run check` 通過、12 test files / 127 tests passed、production build passed。
+- 直近の検証: `pnpm run check` 通過、12 test files / 127 tests passed、production build passed。
 - 直近の疎通: `curl -I http://localhost:5174/` は `200 OK`。
 - ユーザーから「動作は問題ないです」と確認済み。実ブラウザでの主要導線確認はOKとして扱う。
 - 現在の残goalは、本番向け名称・UI/UX・ビジュアルの仕上げ。
 
 ## 現在の主要実装
 
-- ホーム導線、テンプレート、ログ/抽出/承認/記憶/次回準備、PL共有、締め、エクスポート/インポート、Provider設定、運用QA、診断JSONまで実装済み。
-- Release QAは `Settings > 運用QA` に集約。
-  - 全項目チェック済み、かつ全項目に証跡ありの場合のみ `出荷判定OK`。
-  - Markdown export/copy には `Status`, `Completed`, `Evidence`, 不足項目サマリー、redacted evidence notes が入る。
-  - サポート診断JSONには `releaseQaSummary.ready`, `completedCount`, `evidenceCount`, `incompleteIds/Labels`, `missingEvidenceIds/Labels` が入る。
-  - resetは確認ダイアログ付きで、実行後に通知を出す。
+- ホーム導線、テンプレート、ログ/抽出/承認/記憶/次回準備、PL共有、締め、エクスポート/インポート、Provider設定、運用チェック、診断JSONまで実装済み。
 - Provider接続テスト:
-  - 抽出ProviderはOpenAI/Ollamaの実接続成功だけ `Release QA証跡`。
-  - 文字起こしProviderはOpenAI実接続成功だけ `Release QA証跡`。
-  - ルールベース/手動/Web Speech準備確認は `ローカル確認` で、Release QA証跡メモには入れない。
-  - 旧 `provider-live-check` 証跡は抽出/文字起こしの新QA項目へ移行するが、旧チェック済み状態は過剰移行しない。
+  - 抽出ProviderはOpenAI/Ollama/ルールベースの接続可否を画面上で確認する。
+  - 文字起こしProviderはOpenAI/手動/Web Speechの準備状態を画面上で確認する。
 - APIキー/Token秘匿:
   - キャンペーンJSON/診断JSONにはProvider secretsを含めない。
-  - Release QA Markdownと診断JSONの証跡メモは `sk-*`, `Bearer`, `api_key/token/authorization` をredactする。
+  - 診断JSONにはProvider secretsを含めない。
 
 ## 次に必要な実証
 
 1. ユーザー所有のOpenAI API key、またはローカルOllamaでProvider接続テストを実行する。
    - 抽出Providerと文字起こしProviderを別々に確認する。
-   - 画面に `Release QA証跡` と出た結果だけProvider実地確認の証跡として扱う。
-2. `Settings > 運用QA` で全Release QA項目に確認メモを入れ、`出荷判定OK` にする。
-3. Release QA Markdownを書き出し、必要なら診断JSONも書き出す。
+2. 必要なら診断JSONを書き出し、Provider secretsが含まれないことを確認する。
 
 ## 作業場所
 
@@ -190,7 +181,7 @@ TRPG向けの **人間GMを支援するツール** を作る。
 - `.gitignore`
 - `index.html`
 - `package.json`
-- `package-lock.json`
+- `pnpm-lock.yaml`
 - `postcss.config.js`
 - `tailwind.config.js`
 - `tsconfig.json`
@@ -212,7 +203,7 @@ TRPG向けの **人間GMを支援するツール** を作る。
 現在の画面機能:
 
 - 左サイドバー:
-  - アプリ名 `Loreline`
+  - アプリ名 `つぎたく`
   - キャンペーン名入力
   - 調査ボード、NPC、場所、年表、伏線のナビ表示
   - 承認進捗
@@ -273,16 +264,16 @@ TRPG向けの **人間GMを支援するツール** を作る。
 実行済み:
 
 ```bash
-npm install
-npm run build
+pnpm install
+pnpm run build
 ```
 
-`npm run build` は成功済み。
+`pnpm run build` は成功済み。
 
 開発サーバー:
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 起動時のURL:
@@ -296,7 +287,7 @@ npm run dev
 
 - `.gitignore` は追加済み。
 - `dist/`, `node_modules/`, `*.tsbuildinfo`, `vite.config.js`, `vite.config.d.ts` は無視対象。
-- `npm run build` 後に `dist/` は生成されるがGitには出ない想定。
+- `pnpm run build` 後に `dist/` は生成されるがGitには出ない想定。
 - `tsconfig.node.json` は残っているが、`tsconfig.json` から project reference は外している。
 - いまの `tsconfig.node.json` はほぼ未使用。将来整理してよい。
 - React 19 + TypeScript で `JSX.Element` 戻り値型が面倒だったため、コンポーネントの戻り値型は明示していない。
@@ -311,7 +302,7 @@ npm run dev
    - 開き直したら、この `HANDOFF.md` を読ませる。
 
 2. UI/UXを触って確認する。
-   - `npm run dev`
+   - `pnpm run dev`
    - `http://localhost:5173/`
    - ログタブから抽出プレビュー、承認、記憶、次回準備の流れを確認。
 
@@ -405,7 +396,7 @@ AI NPC/AI GM代行方向には寄せず、GM承認フローと調査シナリオ
 - `.gitignore`
 - `HANDOFF.md`
 - `index.html`
-- `package-lock.json`
+- `pnpm-lock.yaml`
 - `package.json`
 - `postcss.config.js`
 - `src/`

@@ -39,7 +39,7 @@ For every full-loop change, run this process:
    - Treat unresolved material findings as blockers. Replan, patch, and repeat the review loop until findings converge.
 
 6. Verification
-   - Run the narrowest meaningful tests during iteration and `npm run check` before considering the task complete, unless impossible. In this repository `npm run check` includes tests and the production build.
+   - Run the narrowest meaningful tests during iteration and `pnpm run check` before considering the task complete, unless impossible. In this repository `pnpm run check` includes tests and the production build.
    - For UI/UX work, start the app and inspect real rendered screens. Capture desktop and mobile evidence with the browser/in-app browser or an equivalent screenshot workflow. Also check keyboard-only flow, focus visibility, accessible names, touch target practicality, loading/empty/error/destructive states, and horizontal overflow. Do not judge UI quality from code alone.
    - For security/privacy-sensitive work, verify prompt payloads, local persistence, imports/exports, diagnostics, logs/errors, clipboard/download flows, screenshots, fixtures, and network calls do not leak provider secrets, campaign secrets, GM-only information, unrevealed clues, or user credentials.
    - For data-size-sensitive work, verify or reason against representative large campaigns/logs, avoid blocking render/input paths, watch bundle growth for new dependencies, and document known limits.
@@ -52,7 +52,7 @@ For every full-loop change, run this process:
 
 ## Project Context
 
-- Product: Loreline, a local-first TRPG campaign assistant for human GMs.
+- Product: つぎたく, a local-first TRPG campaign assistant for human GMs.
 - Product boundary: support GM preparation, memory, review, and continuity. Do not turn the app into an AI GM replacement.
 - Core safety rule: AI/provider output is a draft until the GM approves it. Only GM-approved information enters campaign memory.
 - Privacy rule: campaign data, GM secrets, player-safe handouts, provider keys, diagnostics, and exports must preserve the existing separation between PL-known information, unrevealed clues, and GM-only secrets.
@@ -62,11 +62,11 @@ For every full-loop change, run this process:
 - Runtime: Vite + React + TypeScript.
 - Styling: Tailwind CSS with local shadcn/ui-like primitives.
 - Icons: `lucide-react`.
-- Install: `npm install`.
-- Dev server: `npm run dev`.
-- Tests: `npm run test`.
-- Full local check: `npm run check`.
-- Production build: `npm run build`.
+- Install: `pnpm install`.
+- Dev server: `pnpm run dev`.
+- Tests: `pnpm run test`.
+- Full local check: `pnpm run check`.
+- Production build: `pnpm run build`.
 
 ## Code And Test Expectations
 
@@ -93,7 +93,7 @@ A task is not complete while any of these remain true:
 
 - A material SubAgent review finding is unresolved.
 - SubAgents were unavailable and the required role-based fallback review was not documented.
-- `npm run check` fails and the failure is related to the task.
+- `pnpm run check` fails and the failure is related to the task.
 - UI changes have not been visually inspected in a real rendered viewport.
 - UI changes have unverified keyboard, focus, accessible-label, state, or overflow behavior.
 - Data export/import, diagnostics, prompts, persistence, logs, fixtures, clipboard/download, screenshot, network, or provider changes have unverified privacy behavior.
