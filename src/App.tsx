@@ -4880,7 +4880,7 @@ function PublicEntry({
                 つぎたく
               </h1>
               <p className="mt-5 max-w-2xl text-xl leading-8 text-white/82 max-md:text-base max-md:leading-7">
-                セッションログの混線を、次回卓の一本道へ。
+                {PRODUCT_TAGLINE}
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
                 <Button className="bg-public-signal text-public-ink hover:bg-public-signal/92" onClick={() => onStart("investigation-demo")}>
