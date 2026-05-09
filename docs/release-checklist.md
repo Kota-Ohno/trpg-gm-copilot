@@ -2,6 +2,7 @@
 
 Date: 2026-05-09
 Scope: first public static release
+Public URL: https://trpg-gm-copilot.pages.dev/
 
 ## Preflight
 
@@ -68,11 +69,19 @@ Scope: first public static release
 - [ ] Build command is `pnpm run build`.
 - [ ] Output directory is `dist`.
 - [ ] No runtime environment variables are required.
-- [ ] `pages.dev` URL opens in a fresh browser profile.
+- [ ] `https://trpg-gm-copilot.pages.dev/` opens in a fresh browser profile.
 - [ ] Response headers include the expected security headers.
 - [ ] `/.well-known/security.txt` is reachable after deployment.
 - [ ] `/.well-known/security.txt` includes a future `Expires` timestamp.
 - [ ] Public URL smoke test passes before custom domain setup.
+
+## Launch Communications
+
+- [ ] Public announcement uses `https://trpg-gm-copilot.pages.dev/`.
+- [ ] Announcement says campaign data is local-first and provider/API use is optional.
+- [ ] Announcement avoids claiming that the app replaces a human GM.
+- [ ] First replies are monitored for provider setup confusion, mobile issues, and privacy questions.
+- [ ] Feedback is converted into GitHub issues or release notes rather than being tracked only in SNS replies.
 
 ## Post-Release
 

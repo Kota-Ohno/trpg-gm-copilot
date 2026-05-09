@@ -1,7 +1,7 @@
 # Release Infrastructure Plan
 
 Date: 2026-05-09
-Status: Proposed for initial release
+Status: Active initial release
 
 ## Objective
 
@@ -15,6 +15,7 @@ Publish `つぎたく` as a low-cost static web app while preserving the local-f
 - Output directory: `dist`
 - Package manager: `pnpm@11.0.8`
 - Runtime: static files only
+- Public URL: https://trpg-gm-copilot.pages.dev/
 - Domain: start with Cloudflare `pages.dev`; add a custom domain after smoke verification
 - Analytics: none for the first release
 - Backend: none for the first release
@@ -33,15 +34,24 @@ Publish `つぎたく` as a low-cost static web app while preserving the local-f
 ## Cloudflare Pages Setup
 
 1. Create a Cloudflare Pages project connected to the GitHub repository.
-2. Select the release branch when publishing the first preview.
+2. Select `main` when publishing the first preview or production deployment.
 3. Configure:
    - Build command: `pnpm run build`
    - Build output directory: `dist`
    - Environment variable: none required for public launch
 4. Deploy.
 5. Confirm `dist/_headers` is present in the build output.
-6. Open the `pages.dev` URL in a fresh browser profile.
+6. Open https://trpg-gm-copilot.pages.dev/ in a fresh browser profile.
 7. Run the release checklist before sharing the URL.
+
+## Current Deployment Verification
+
+Verified on 2026-05-09:
+
+- `https://trpg-gm-copilot.pages.dev/` returns the current Japanese `つぎたく` HTML.
+- `/.well-known/security.txt` returns `text/plain` and includes `Expires: 2027-05-09T00:00:00Z`.
+- Response headers include `Content-Security-Policy`, `Permissions-Policy`, `Referrer-Policy`, `X-Content-Type-Options`, and `X-Frame-Options`.
+- The stale `workers.dev` deployment should not be used for public sharing.
 
 ## Security Headers
 

@@ -2,6 +2,8 @@
 
 つぎたくは、人間のGMが運営するTRPGキャンペーン向けのローカルファーストな支援ツールです。セッションログを、GMが確認したキャンペーン記憶と次回準備へつなげます。
 
+Public URL: https://trpg-gm-copilot.pages.dev/
+
 ## Market Position
 
 つぎたくはAI GMではありません。人間主導の卓を続けるGMが、卓後の整理を減らし、次回の再開を楽にするための作業台です。
@@ -84,6 +86,7 @@ Service naming rationale and alternatives are tracked in `docs/brand-naming-revi
 - Security policy: `SECURITY.md`
 - Initial infrastructure plan: `docs/release-infrastructure.md`
 - Release checklist: `docs/release-checklist.md`
+- Launch communications: `docs/launch-communications.md`
 - Infrastructure research: `docs/research/release-infrastructure-research.md`
 
-The recommended first public release target is Cloudflare Pages with `pnpm run build` and `dist` output. The app is designed to launch as a static, local-first SPA without a hosted backend.
+The first public release target is Cloudflare Pages with `pnpm run build` and `dist` output. The app is designed to launch as a static, local-first SPA without a hosted backend.
