@@ -54,6 +54,12 @@ Production build:
 pnpm run build
 ```
 
+Release gate:
+
+```sh
+pnpm run release:check
+```
+
 Operational checks:
 
 - Run `pnpm run check`.
@@ -68,3 +74,16 @@ Operational checks:
 The tool supports the GM rather than replacing them. AI/provider output is treated as a draft, and only GM-approved items enter campaign memory.
 
 Service naming rationale and alternatives are tracked in `docs/brand-naming-review.md`.
+
+## Release And Trust
+
+- License: `LICENSE`
+- Third-party notices: `THIRD_PARTY_NOTICES.md`
+- Privacy notice: `PRIVACY.md`
+- Terms baseline: `TERMS.md`
+- Security policy: `SECURITY.md`
+- Initial infrastructure plan: `docs/release-infrastructure.md`
+- Release checklist: `docs/release-checklist.md`
+- Infrastructure research: `docs/research/release-infrastructure-research.md`
+
+The recommended first public release target is Cloudflare Pages with `pnpm run build` and `dist` output. The app is designed to launch as a static, local-first SPA without a hosted backend.
