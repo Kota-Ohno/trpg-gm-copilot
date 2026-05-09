@@ -244,4 +244,31 @@ describe("runTranscriptionProvider", () => {
       providerLabel: "OpenAI",
     });
   });
+
+  it("redacts provider secrets from OpenAI error messages", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      JSON.stringify({
+        error: {
+          message: "upstream rejected Authorization: Bearer sk-test and key sk-transcription-secret",
+        },
+      }),
+      { headers: { "content-type": "application/json" }, status: 401 },
+    )));
+
+    await expect(runTranscriptionProvider({
+      audioFile: new File(["audio"], "session.wav", { type: "audio/wav" }),
+      secrets: { openAiApiKey: "sk-test" },
+      settings: {
+        providerId: "openai",
+        model: "gpt-4o-mini-transcribe",
+        endpoint: "https://api.openai.com/v1",
+        language: "ja",
+      },
+    })).resolves.toMatchObject({
+      drafts: [],
+      message: "upstream rejected Authorization: Bearer [redacted-provider-secret] and key [redacted-provider-secret]",
+      ok: false,
+      providerLabel: "OpenAI",
+    });
+  });
 });

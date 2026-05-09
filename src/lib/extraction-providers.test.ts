@@ -56,6 +56,29 @@ describe("testExtractionProviderConnection", () => {
     );
   });
 
+  it("redacts provider secrets from OpenAI connection error messages", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      error: {
+        message: "upstream rejected Authorization: Bearer sk-test and key sk-leaked-secret",
+      },
+    }), {
+      headers: { "content-type": "application/json" },
+      status: 401,
+    })));
+    vi.stubGlobal("window", {
+      clearTimeout: globalThis.clearTimeout,
+      setTimeout: globalThis.setTimeout,
+    });
+
+    await expect(testExtractionProviderConnection({
+      secrets: { openAiApiKey: "sk-test" },
+      settings: { providerId: "openai", model: "gpt-4.1-mini", endpoint: "https://api.openai.com/v1/" },
+    })).resolves.toEqual({
+      ok: false,
+      message: "upstream rejected Authorization: Bearer [redacted-provider-secret] and key [redacted-provider-secret]",
+    });
+  });
+
   it("confirms successful Ollama connection tests", async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
       response: "{\"ok\": true}",

@@ -87,6 +87,7 @@ const connectionTestJsonSchema = {
 
 const EXTRACTION_TIMEOUT_MS = 45_000;
 const CONNECTION_TEST_TIMEOUT_MS = 12_000;
+const REDACTED_PROVIDER_SECRET = "[redacted-provider-secret]";
 
 function normalizeEndpoint(endpoint: string, fallbackEndpoint: string): string {
   return (endpoint.trim() || fallbackEndpoint).replace(/\/+$/, "");
@@ -97,6 +98,12 @@ function joinEndpoint(endpoint: string, path: string): string {
   const normalizedPath = path.replace(/^\/+/, "");
 
   return `${normalizedEndpoint}/${normalizedPath}`;
+}
+
+function redactProviderSecrets(message: string): string {
+  return message
+    .replace(/Bearer\s+[\w.-]+/gi, `Bearer ${REDACTED_PROVIDER_SECRET}`)
+    .replace(/sk-[A-Za-z0-9_-]+/g, REDACTED_PROVIDER_SECRET);
 }
 
 function extractOpenAiText(responseBody: OpenAiResponseBody): string {
@@ -154,11 +161,11 @@ async function fetchJsonWithTimeout<T>(
 
 function getResponseErrorMessage(responseBody: JsonResponseBody<unknown>, response: Response): string {
   if (typeof responseBody.error === "string" && responseBody.error.trim()) {
-    return responseBody.error.trim();
+    return redactProviderSecrets(responseBody.error.trim());
   }
 
   if (responseBody.error && typeof responseBody.error === "object" && responseBody.error.message?.trim()) {
-    return responseBody.error.message.trim();
+    return redactProviderSecrets(responseBody.error.message.trim());
   }
 
   return `HTTP ${response.status}`;
@@ -169,7 +176,7 @@ function getProviderErrorMessage(error: unknown, providerLabel: string, timeoutM
     return `${providerLabel} API が${Math.round(timeoutMs / 1000)}秒以内に応答しませんでした。`;
   }
 
-  return error instanceof Error ? error.message : `${providerLabel} API 呼び出しに失敗しました。`;
+  return error instanceof Error ? redactProviderSecrets(error.message) : `${providerLabel} API 呼び出しに失敗しました。`;
 }
 
 function normalizeValidationErrors(validationErrors: string[], failureReason?: string): string[] {
