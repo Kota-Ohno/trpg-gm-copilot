@@ -19,16 +19,16 @@ Finish `つぎたく` as a Japan-first TRPG GM workbench by grounding product de
 | UI/UX visual polish: typography, color, grouping, spacing/radius, mobile. | Rendered screenshots under `tmp/visual-check/`; `src/styles.css`; `docs/service-polish-plan.md`. | Desktop/mobile smoke screenshots were captured; radius remains 8px-or-less; primary contrast was raised; workbench landmarks now have unique accessible names. | Covered |
 | Color/accessibility. | `src/styles-contrast.test.ts`; contrast spot check recorded in terminal: white on `public-seaglass` moved from 3.34:1 to 4.87:1; latest `npx pnpm@11.0.8 run check` passed; axe CLI on public entry reported 0 violations; CDP-driven axe run on the localStorage-enabled workbench reported 0 violations after fixing `landmark-unique`. | Core CSS token pairs are covered by an automated AA contrast test. Public entry and main workbench have automated axe smoke coverage, though manual assistive-technology testing is still outside this pass. | Covered |
 | API-key risk minimization. | `src/App.tsx`, `src/components/provider-settings-card.tsx`, `src/lib/campaign.ts`, `src/lib/diagnostics.ts`, tests. | Provider keys are session-only; legacy storage keys are removed; unknown secret-like JSON fields are stripped from normalization, exports, and diagnostics serialization. | Covered |
-| Tests and build quality. | Latest `npx pnpm@11.0.8 run check`: 15 test files, 128 tests, production build. `git diff --check origin/feature/voice-transcription-research...HEAD` passed. | Focused regression tests cover provider copy, diagnostics, export sanitization, contrast tokens, and unknown secret-field stripping; patch whitespace is clean. | Covered |
+| Tests and build quality. | Latest `npx pnpm@11.0.8 run check`: 15 test files, 129 tests, production build. `git diff --check origin/feature/voice-transcription-research...HEAD` passed. | Focused regression tests cover provider copy, diagnostics, export sanitization, contrast tokens, unknown secret-field stripping, and landmark accessibility labels; patch whitespace is clean. | Covered |
 | Dependency vulnerability check. | `npx pnpm@11.0.8 audit --prod` and `npx pnpm@11.0.8 audit --dev`. | Both reported no known vulnerabilities. | Covered |
-| Enemy/adversarial review. | Manual review found and fixed unknown-field secret smuggling; PR `@codex review` returned no major issues on the earlier patch set and was re-triggered for the latest HEAD after the accessibility update. | Codex is the selected external review path. Await the latest Codex response before marking complete. | In progress |
+| Enemy/adversarial review. | Manual review found and fixed unknown-field secret smuggling; PR `@codex review` returned no major issues on the earlier patch set and was re-triggered for the latest HEAD after the landmark regression-test commit. | Codex is the selected external review path. Await the latest Codex response before marking complete. | In progress |
 | Commit/push appropriate granularity. | Git log on PR branch. | Security, visual, docs, accessibility, and contrast work are separate commits. | Covered |
 | PR state. | `gh pr view 3`: PR open and mergeable; GitGuardian success. | PR exists and is mergeable. | Covered |
 
 ## Missing Or Weakly Verified Items
 
 - Manual assistive-technology testing is not implemented. Current evidence is automated token contrast coverage, rendered smoke screenshots, public-entry axe, and workbench axe.
-- Latest Codex review is pending after the final accessibility and documentation commits. Earlier Codex review completed with no major issues.
+- Latest Codex review is pending after the landmark accessibility regression-test commit. Earlier Codex review completed with no major issues.
 
 ## Current Decision
 
