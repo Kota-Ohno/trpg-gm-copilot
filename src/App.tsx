@@ -2756,6 +2756,7 @@ export function App() {
       >
         {!isFocusMode && (
         <aside
+          aria-label="キャンペーンとセッション"
           className={
             navigationPanelMode === "sessions"
               ? "workbench-sidebar bg-sidebar px-4 py-5 shadow-[inset_-1px_0_0_hsl(var(--border))] max-lg:order-1 max-lg:border-b max-lg:shadow-none"
@@ -3279,7 +3280,7 @@ export function App() {
 
           <details className="mt-6 rounded-md border bg-card/72 p-2">
             <summary className="cursor-pointer px-1 text-xs font-medium text-muted-foreground">記憶ナビ</summary>
-            <nav className="mt-2 space-y-1">
+            <nav aria-label="記憶ナビ" className="mt-2 space-y-1">
               {[
                 { icon: Search, label: memoryNavLabels.clues, count: chronicle.clues.length, viewMode: "clues" },
                 { icon: UserRound, label: "NPC", count: chronicle.npcs.length, viewMode: "npcs" },
@@ -4465,7 +4466,7 @@ export function App() {
         </section>
 
         {!isFocusMode && (
-        <aside className="col-start-2 border-t bg-panel px-6 py-5 max-lg:order-3 max-lg:col-start-auto max-lg:px-4">
+        <aside aria-label="サイドデスク" className="col-start-2 border-t bg-panel px-6 py-5 max-lg:order-3 max-lg:col-start-auto max-lg:px-4">
           <div className="surface-elevated rounded-md border p-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -4850,7 +4851,7 @@ function PublicEntry({
     <div className="public-entry">
       <section className="public-entry-hero" style={{ backgroundImage: `url(${tsugitakuHeroImage})` }}>
         <div className="public-entry-hero__scrim">
-          <nav className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-5 py-5 sm:px-8">
+          <nav aria-label="公開入口" className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-5 py-5 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white shadow-sm backdrop-blur">
                 <Compass className="h-5 w-5" aria-hidden="true" />
