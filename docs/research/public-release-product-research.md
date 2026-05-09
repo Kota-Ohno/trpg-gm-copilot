@@ -4,7 +4,7 @@ Date: 2026-05-08
 
 ## Objective
 
-Define the product, growth, UX, visual, accessibility, performance, and monetization principles that should guide Loreline from MVP to public release.
+Define the product, growth, UX, visual, accessibility, performance, and monetization principles that should guide つぎたく from MVP to public release.
 
 ## Product Benchmarks
 
@@ -12,9 +12,9 @@ Define the product, growth, UX, visual, accessibility, performance, and monetiza
 
 Canva reported 260 million monthly users in 2025 and framed its growth around simple, powerful tools that help people communicate visually. It also described its AI product direction as moving users from idea to finished design quickly while respecting layout, hierarchy, and brand logic.
 
-Implication for Loreline:
+Implication for つぎたく:
 
-- Public Loreline must not look like an internal dashboard. It needs a strong visual identity and an immediately legible promise.
+- Public つぎたく must not look like an internal dashboard. It needs a strong visual identity and an immediately legible promise.
 - AI should accelerate the GM's work from log to playable prep, not feel like a generic AI control panel.
 - Generated visuals should communicate the fantasy/investigation craft of running games, while the app UI remains operationally quiet.
 
@@ -26,10 +26,10 @@ Source:
 
 Duolingo's 2025 annual filing describes the product as fun, effective, and free. It reports 133.1M MAUs, 52.7M DAUs, and 12.2M paid subscribers for the three months ended December 31, 2025. It also emphasizes bite-sized lessons, streaks, personalization, and learn-by-doing as retention mechanisms.
 
-Implication for Loreline:
+Implication for つぎたく:
 
 - The first session must create one small win: import/sample log -> extract -> approve -> get next-session prep.
-- Public Loreline needs a habit loop for post-session cleanup, not just a large feature set.
+- Public つぎたく needs a habit loop for post-session cleanup, not just a large feature set.
 - Monetization should not block the first proof of value. A generous free/local tier can build trust.
 
 Source:
@@ -40,7 +40,7 @@ Source:
 
 Linear positions itself around purpose-built workflows, speed, reduced noise, and product operations that route work into actionable issues. Its method also stresses short specs, clarity, actual diffs as progress evidence, and customer feedback as a research library.
 
-Implication for Loreline:
+Implication for つぎたく:
 
 - The public release should be purpose-built for human GMs, not a generic AI notes app.
 - The first viewport must reduce noise and restore momentum: "what happened last time, what matters now, what do I prep next?"
@@ -55,13 +55,13 @@ Sources:
 
 Material onboarding guidance says first-run experiences should be tied to specific user goals, should not show more marketing after installation, should help users understand how the app fits into their lives, and should drive retention actions in the first seven days. It recommends three models: self-select, quickstart, and top benefits.
 
-Loreline should use a hybrid:
+つぎたく should use a hybrid:
 
 - Landing page: top benefits with strong visual identity.
 - First app run: self-select only where it changes the experience, such as campaign style, tone, and starting material.
 - Workbench: quickstart into the first key action.
 
-Material also warns against blank states. Empty states should prevent confusion, use subtle imagery, and convey purpose. Loreline should replace generic empty panels with playable starter content and "do this next" actions.
+Material also warns against blank states. Empty states should prevent confusion, use subtle imagery, and convey purpose. つぎたく should replace generic empty panels with playable starter content and "do this next" actions.
 
 Sources:
 
@@ -74,7 +74,7 @@ Material color guidance supports using color schemes to match brand colors while
 
 Noto documentation confirms Noto Sans JP and Noto Serif JP are Japanese variants in the CJK family, with Noto Sans CJK available as a variable font. This makes Noto a safe base for Japanese public UI, but it should be paired with a more distinctive Latin/display voice if license and performance allow.
 
-OpenAI's current GPT Image 2 model is described as a state-of-the-art image generation and editing model supporting text and image input and image output. Generated assets can be used for Loreline's background, onboarding scenes, icon concepts, and campaign-mode visual language, but app UI assets must be optimized, versioned, and accessible.
+OpenAI's current GPT Image 2 model is described as a state-of-the-art image generation and editing model supporting text and image input and image output. Generated assets can be used for つぎたく's background, onboarding scenes, icon concepts, and campaign-mode visual language, but app UI assets must be optimized, versioned, and accessible.
 
 Sources:
 
@@ -84,7 +84,7 @@ Sources:
 
 ## Accessibility And Performance Standards
 
-W3C WCAG 2.2 is the current W3C Recommendation and covers accessibility across devices. It is testable and improves usability for users generally. Public Loreline should target WCAG 2.2 AA, with manual keyboard, focus, target-size, label, status-message, and contrast checks.
+W3C WCAG 2.2 is the current W3C Recommendation and covers accessibility across devices. It is testable and improves usability for users generally. Public つぎたく should target WCAG 2.2 AA, with manual keyboard, focus, target-size, label, status-message, and contrast checks.
 
 Google's Core Web Vitals define current user-experience metrics around loading, interactivity, and visual stability. Recommended thresholds are LCP within 2.5s, INP 200ms or less, and CLS 0.1 or less, measured at the 75th percentile across mobile and desktop. Local lab checks are not a substitute for field measurement, but they are necessary before launch.
 
@@ -97,7 +97,7 @@ Sources:
 
 Stripe's SaaS pricing guide emphasizes value-based pricing, simple transparent pricing, tiered/freemium options, and ongoing adaptation. Its usage-based billing docs list pay-as-you-go, flat fee plus overages, and credit burndown with top-ups as supported models.
 
-Loreline should not monetize by weakening privacy. The public model should preserve local-first operation:
+つぎたく should not monetize by weakening privacy. The public model should preserve local-first operation:
 
 - Free: local campaigns, manual import/export, sample flow, limited provider diagnostics.
 - Plus: hosted sync/backup, premium generated visual packs, convenience exports, larger QA/history limits, advanced transcription/extraction helpers.

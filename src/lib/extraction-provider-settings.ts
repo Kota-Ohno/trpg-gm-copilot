@@ -103,18 +103,3 @@ export function getTranscriptionProvider(
 ): ProviderDefinition<TranscriptionProviderId> {
   return transcriptionProviderById[providerId] ?? defaultTranscriptionProvider;
 }
-
-export function normalizeProviderSecretSettings(value: unknown): ProviderSecretSettings {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return defaultProviderSecretSettings;
-  }
-
-  const maybeSecrets = value as Partial<Record<keyof ProviderSecretSettings, unknown>>;
-
-  return {
-    openAiApiKey:
-      typeof maybeSecrets.openAiApiKey === "string"
-        ? maybeSecrets.openAiApiKey.trim()
-        : defaultProviderSecretSettings.openAiApiKey,
-  };
-}

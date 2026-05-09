@@ -13,28 +13,19 @@
 
 ## 現在の主要実装
 
-- ホーム導線、テンプレート、ログ/抽出/承認/記憶/次回準備、PL共有、締め、エクスポート/インポート、Provider設定、運用QA、診断JSONまで実装済み。
-- Release QAは `Settings > 運用QA` に集約。
-  - 全項目チェック済み、かつ全項目に証跡ありの場合のみ `出荷判定OK`。
-  - Markdown export/copy には `Status`, `Completed`, `Evidence`, 不足項目サマリー、redacted evidence notes が入る。
-  - サポート診断JSONには `releaseQaSummary.ready`, `completedCount`, `evidenceCount`, `incompleteIds/Labels`, `missingEvidenceIds/Labels` が入る。
-  - resetは確認ダイアログ付きで、実行後に通知を出す。
+- ホーム導線、テンプレート、ログ/抽出/承認/記憶/次回準備、PL共有、締め、エクスポート/インポート、Provider設定、運用チェック、診断JSONまで実装済み。
 - Provider接続テスト:
-  - 抽出ProviderはOpenAI/Ollamaの実接続成功だけ `Release QA証跡`。
-  - 文字起こしProviderはOpenAI実接続成功だけ `Release QA証跡`。
-  - ルールベース/手動/Web Speech準備確認は `ローカル確認` で、Release QA証跡メモには入れない。
-  - 旧 `provider-live-check` 証跡は抽出/文字起こしの新QA項目へ移行するが、旧チェック済み状態は過剰移行しない。
+  - 抽出ProviderはOpenAI/Ollama/ルールベースの接続可否を画面上で確認する。
+  - 文字起こしProviderはOpenAI/手動/Web Speechの準備状態を画面上で確認する。
 - APIキー/Token秘匿:
   - キャンペーンJSON/診断JSONにはProvider secretsを含めない。
-  - Release QA Markdownと診断JSONの証跡メモは `sk-*`, `Bearer`, `api_key/token/authorization` をredactする。
+  - 診断JSONにはProvider secretsを含めない。
 
 ## 次に必要な実証
 
 1. ユーザー所有のOpenAI API key、またはローカルOllamaでProvider接続テストを実行する。
    - 抽出Providerと文字起こしProviderを別々に確認する。
-   - 画面に `Release QA証跡` と出た結果だけProvider実地確認の証跡として扱う。
-2. `Settings > 運用QA` で全Release QA項目に確認メモを入れ、`出荷判定OK` にする。
-3. Release QA Markdownを書き出し、必要なら診断JSONも書き出す。
+2. 必要なら診断JSONを書き出し、Provider secretsが含まれないことを確認する。
 
 ## 作業場所
 
@@ -212,7 +203,7 @@ TRPG向けの **人間GMを支援するツール** を作る。
 現在の画面機能:
 
 - 左サイドバー:
-  - アプリ名 `Loreline`
+  - アプリ名 `つぎたく`
   - キャンペーン名入力
   - 調査ボード、NPC、場所、年表、伏線のナビ表示
   - 承認進捗

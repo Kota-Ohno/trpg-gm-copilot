@@ -52,7 +52,7 @@ For every full-loop change, run this process:
 
 ## Project Context
 
-- Product: Loreline, a local-first TRPG campaign assistant for human GMs.
+- Product: つぎたく, a local-first TRPG campaign assistant for human GMs.
 - Product boundary: support GM preparation, memory, review, and continuity. Do not turn the app into an AI GM replacement.
 - Core safety rule: AI/provider output is a draft until the GM approves it. Only GM-approved information enters campaign memory.
 - Privacy rule: campaign data, GM secrets, player-safe handouts, provider keys, diagnostics, and exports must preserve the existing separation between PL-known information, unrevealed clues, and GM-only secrets.

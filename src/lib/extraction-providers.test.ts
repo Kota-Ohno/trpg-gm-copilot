@@ -11,7 +11,6 @@ describe("testExtractionProviderConnection", () => {
       secrets: { openAiApiKey: "" },
       settings: { providerId: "rule-based", model: "local-rules-v1", endpoint: "" },
     })).resolves.toEqual({
-      isReleaseQaEvidence: false,
       ok: true,
       message: "ルールベースProviderはローカルで利用できます。model: local-rules-v1",
     });
@@ -22,13 +21,12 @@ describe("testExtractionProviderConnection", () => {
       secrets: { openAiApiKey: "  " },
       settings: { providerId: "openai", model: "", endpoint: "https://api.openai.com/v1" },
     })).resolves.toEqual({
-      isReleaseQaEvidence: false,
       ok: false,
       message: "OpenAI API key が未入力です。model: gpt-4.1-mini",
     });
   });
 
-  it("marks successful OpenAI connection tests as release QA evidence", async () => {
+  it("confirms successful OpenAI connection tests", async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
       output_text: "{\"ok\": true}",
     }), {
@@ -45,7 +43,6 @@ describe("testExtractionProviderConnection", () => {
       secrets: { openAiApiKey: "sk-test" },
       settings: { providerId: "openai", model: "gpt-4.1-mini", endpoint: "https://api.openai.com/v1/" },
     })).resolves.toEqual({
-      isReleaseQaEvidence: true,
       ok: true,
       message: "OpenAI Provider に接続できました。model: gpt-4.1-mini",
     });
@@ -59,7 +56,30 @@ describe("testExtractionProviderConnection", () => {
     );
   });
 
-  it("marks successful Ollama connection tests as release QA evidence", async () => {
+  it("redacts provider secrets from OpenAI connection error messages", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      error: {
+        message: "upstream rejected Authorization: Bearer sk-test and key sk-leaked-secret",
+      },
+    }), {
+      headers: { "content-type": "application/json" },
+      status: 401,
+    })));
+    vi.stubGlobal("window", {
+      clearTimeout: globalThis.clearTimeout,
+      setTimeout: globalThis.setTimeout,
+    });
+
+    await expect(testExtractionProviderConnection({
+      secrets: { openAiApiKey: "sk-test" },
+      settings: { providerId: "openai", model: "gpt-4.1-mini", endpoint: "https://api.openai.com/v1/" },
+    })).resolves.toEqual({
+      ok: false,
+      message: "upstream rejected Authorization: Bearer [redacted-provider-secret] and key [redacted-provider-secret]",
+    });
+  });
+
+  it("confirms successful Ollama connection tests", async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
       response: "{\"ok\": true}",
     }), {
@@ -76,7 +96,6 @@ describe("testExtractionProviderConnection", () => {
       secrets: { openAiApiKey: "" },
       settings: { providerId: "ollama", model: "llama3.1", endpoint: "http://localhost:11434/" },
     })).resolves.toEqual({
-      isReleaseQaEvidence: true,
       ok: true,
       message: "Ollama Provider に接続できました。model: llama3.1",
     });

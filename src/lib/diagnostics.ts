@@ -51,32 +51,12 @@ export type ProductSafetyChecklistItem = {
   status: "ok" | "warning" | "action";
 };
 
-export type ReleaseQaChecklistItem = {
-  id: string;
-  label: string;
-  detail: string;
-};
-
-export type ReleaseQaDiagnosticItem = ReleaseQaChecklistItem & {
-  completed: boolean;
-  evidenceNote?: string;
-};
-
-export const releaseQaItemIds = {
-  extractionProviderLiveCheck: "extraction-provider-live-check",
-  legacyProviderLiveCheck: "provider-live-check",
-  transcriptionProviderLiveCheck: "transcription-provider-live-check",
-} as const;
-
 export type ProductSafetyChecklistInput = {
   backupStatus: BackupStatus;
   extractionProviderReady: boolean;
   playerHandoutAvailable: boolean;
   playerHandoutWarningCount: number;
   providerSecretsExcludedFromExports: boolean;
-  releaseQaCompletedCount?: number;
-  releaseQaEvidenceCount?: number;
-  releaseQaTotalCount?: number;
   reviewQualityDebtCount: number;
   storageUsagePercent: number | null;
   transcriptionProviderReady: boolean;
@@ -107,8 +87,6 @@ export type SupportDiagnosticsInput = {
   prepWorkspaceMode: string;
   reviewSortMode: string;
   reviewWorkspaceMode: string;
-  releaseQaCompletedIds?: readonly string[];
-  releaseQaEvidenceNotes?: Readonly<Record<string, string>>;
   rightPanelMode: string;
   sessionArchiveFilter: string;
   sessionListDensity: string;
@@ -127,14 +105,6 @@ export type SupportDiagnosticsInput = {
 
 function estimateJsonBytes(value: unknown): number {
   return new TextEncoder().encode(JSON.stringify(value)).length;
-}
-
-function redactSensitiveText(value: string): string {
-  return value
-    .replace(/\bsk-[A-Za-z0-9_-]{8,}\b/g, "sk-***")
-    .replace(/\b(authorization)\s*[:=]\s*["']?(?:Bearer\s+)?[A-Za-z0-9._~+/=-]{8,}/gi, "$1=***")
-    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]{8,}\b/gi, "Bearer ***")
-    .replace(/\b(api[_ -]?key|token)\s*[:=]\s*["']?[^"',;\s]+/gi, "$1=***");
 }
 
 export function buildSessionStorageDiagnostics(
@@ -241,20 +211,11 @@ export function buildCampaignOperationalRisks(
 export function buildProductSafetyChecklist(
   input: ProductSafetyChecklistInput,
 ): ProductSafetyChecklistItem[] {
-  const releaseQaCompletedCount = input.releaseQaCompletedCount ?? 0;
-  const releaseQaEvidenceCount = input.releaseQaEvidenceCount ?? 0;
-  const releaseQaTotalCount = input.releaseQaTotalCount ?? 0;
-  const hasReleaseQaChecklist = releaseQaTotalCount > 0;
-  const releaseQaReady =
-    hasReleaseQaChecklist &&
-    releaseQaCompletedCount >= releaseQaTotalCount &&
-    releaseQaEvidenceCount >= releaseQaTotalCount;
-
   return [
     {
       detail: input.providerSecretsExcludedFromExports
-        ? "APIキーはキャンペーンJSON/診断JSONに含めません。"
-        : "APIキーのエクスポート除外を確認してください。",
+        ? "APIキーはブラウザに永続保存せず、キャンペーンJSON/診断JSONにも含めません。"
+        : "APIキーの永続保存とエクスポート除外を確認してください。",
       id: "provider-secrets",
       label: "APIキー保護",
       status: input.providerSecretsExcludedFromExports ? "ok" : "action",
@@ -312,116 +273,12 @@ export function buildProductSafetyChecklist(
       status: input.transcriptionProviderReady ? "ok" : "warning",
     },
     {
-      detail:
-        hasReleaseQaChecklist
-          ? `${releaseQaCompletedCount}/${releaseQaTotalCount}件のRelease QAを確認済み、証跡 ${releaseQaEvidenceCount}件です。`
-          : "Release QAの確認状態を記録してください。",
-      id: "release-qa",
-      label: "Release QA",
-      status: releaseQaReady ? "ok" : "warning",
-    },
-    {
       detail: "大きなUI変更後は、PC幅と狭幅表示で主要導線を手動確認してください。",
       id: "ui-manual-check",
       label: "表示/導線確認",
       status: "warning",
     },
   ];
-}
-
-export function buildReleaseQaChecklist(): ReleaseQaChecklistItem[] {
-  return [
-    {
-      id: "local-check",
-      label: "ローカルチェック",
-      detail: "pnpm run check を実行してテストとproduction buildを通す。",
-    },
-    {
-      id: "starter-flow",
-      label: "初回導線",
-      detail: "新規ブラウザ状態で公開入口、調査/ファンタジー/カスタム開始、戻りユーザーのワークベンチ直行を確認する。",
-    },
-    {
-      id: "ten-second-comprehension",
-      label: "10秒理解",
-      detail: "公開入口スクリーンショットだけで対象ユーザー、価値、最初の行動が伝わることを第三者視点で確認する。",
-    },
-    {
-      id: "no-provider-activation",
-      label: "5分/Provider不要導線",
-      detail: "APIキー、アカウント、外部送信なしでサンプルまたは貼り付けログから承認済み記憶と次回準備まで進める。",
-    },
-    {
-      id: "gm-workflow",
-      label: "GMワークフロー",
-      detail: "ログ、抽出、承認、記憶、次回準備、締め、PL共有をクリック操作で確認する。",
-    },
-    {
-      id: "data-portability",
-      label: "データ入出力",
-      detail: "キャンペーン/ライブラリ/セッションのJSONとMarkdown出力、JSON読み込みを確認する。",
-    },
-    {
-      id: "responsive-ui",
-      label: "表示確認",
-      detail: "desktop幅と狭幅表示で公開入口、空状態、ワークベンチの重なり、押しづらさ、横スクロールを確認する。",
-    },
-    {
-      id: "asset-manifest-budget",
-      label: "画像/Manifest",
-      detail: "公開版画像がmanifestに記録され、hero 350KB以下、各エンブレム/空状態120KB以下であることを確認する。",
-    },
-    {
-      id: "privacy-network-boundary",
-      label: "プライバシー境界",
-      detail: "公開入口とProvider不要導線でキャンペーン本文が外部送信されず、Provider/診断/書き出し境界が説明通りであることを確認する。",
-    },
-    {
-      id: releaseQaItemIds.extractionProviderLiveCheck,
-      label: "抽出Provider実地確認",
-      detail: "Settingsの接続テストで、ユーザー所有のAPIキーまたはローカルOllamaの抽出Providerを確認する。",
-    },
-    {
-      id: releaseQaItemIds.transcriptionProviderLiveCheck,
-      label: "文字起こしProvider実地確認",
-      detail: "Settingsの接続テストで、ユーザー所有のAPIキーまたはローカルエンドポイントの文字起こしProviderを確認する。",
-    },
-  ];
-}
-
-export function formatReleaseQaMarkdown(
-  checklist = buildReleaseQaChecklist(),
-  title = "Loreline Release QA",
-  completedIds: readonly string[] = [],
-  evidenceNotes: Readonly<Record<string, string>> = {},
-  exportedAt = new Date().toISOString(),
-): string {
-  const completedIdSet = new Set(completedIds);
-  const completedCount = checklist.filter((item) => completedIdSet.has(item.id)).length;
-  const evidenceCount = checklist.filter((item) => evidenceNotes[item.id]?.trim()).length;
-  const incompleteLabels = checklist.filter((item) => !completedIdSet.has(item.id)).map((item) => item.label);
-  const missingEvidenceLabels = checklist.filter((item) => !evidenceNotes[item.id]?.trim()).map((item) => item.label);
-  const isReady = checklist.length > 0 && completedCount === checklist.length && evidenceCount === checklist.length;
-
-  return [
-    `# ${title.trim() || "Release QA"}`,
-    "",
-    `Exported at: ${exportedAt}`,
-    `Status: ${isReady ? "Ready" : "Incomplete"}`,
-    `Completed: ${completedCount}/${checklist.length}`,
-    `Evidence: ${evidenceCount}/${checklist.length}`,
-    ...(incompleteLabels.length > 0 ? [`Incomplete checks: ${incompleteLabels.join(", ")}`] : []),
-    ...(missingEvidenceLabels.length > 0 ? [`Missing evidence: ${missingEvidenceLabels.join(", ")}`] : []),
-    "",
-    ...checklist.flatMap((item) => {
-      const evidenceNote = evidenceNotes[item.id]?.trim();
-      const safeEvidenceNote = evidenceNote ? redactSensitiveText(evidenceNote) : "";
-      return [
-        `- [${completedIdSet.has(item.id) ? "x" : " "}] ${item.label}: ${item.detail}`,
-        ...(safeEvidenceNote ? [`  - Evidence: ${safeEvidenceNote}`] : []),
-      ];
-    }),
-  ].join("\n").trimEnd();
 }
 
 export function buildSupportDiagnostics(input: SupportDiagnosticsInput, exportedAt = new Date().toISOString()) {
@@ -438,17 +295,6 @@ export function buildSupportDiagnostics(input: SupportDiagnosticsInput, exported
   );
   const playerHandoutMarkdown = formatPlayerHandoutMarkdown(input.campaignState);
   const playerHandoutShareStatus = buildPlayerHandoutShareStatus(input.campaignState, playerHandoutMarkdown);
-  const releaseQaCompletedIdSet = new Set(input.releaseQaCompletedIds ?? []);
-  const releaseQa: ReleaseQaDiagnosticItem[] = buildReleaseQaChecklist().map((item) => {
-    const evidenceNote = input.releaseQaEvidenceNotes?.[item.id]?.trim();
-    const safeEvidenceNote = evidenceNote ? redactSensitiveText(evidenceNote) : "";
-
-    return {
-      ...item,
-      completed: releaseQaCompletedIdSet.has(item.id),
-      ...(safeEvidenceNote ? { evidenceNote: safeEvidenceNote } : {}),
-    };
-  });
 
   return {
     exportedAt,
@@ -483,26 +329,10 @@ export function buildSupportDiagnostics(input: SupportDiagnosticsInput, exported
       playerHandoutAvailable: playerHandoutShareStatus.canShare || playerHandoutMarkdown.trim().length > 0,
       playerHandoutWarningCount: playerHandoutShareStatus.warningCount,
       providerSecretsExcludedFromExports: true,
-      releaseQaCompletedCount: releaseQa.filter((item) => item.completed).length,
-      releaseQaEvidenceCount: releaseQa.filter((item) => Boolean(item.evidenceNote)).length,
-      releaseQaTotalCount: releaseQa.length,
       reviewQualityDebtCount,
       storageUsagePercent: input.storage.usagePercent,
       transcriptionProviderReady: input.transcriptionProviderReadiness.ok,
     }),
-    releaseQa,
-    releaseQaSummary: {
-      completedCount: releaseQa.filter((item) => item.completed).length,
-      evidenceCount: releaseQa.filter((item) => Boolean(item.evidenceNote)).length,
-      incompleteIds: releaseQa.filter((item) => !item.completed).map((item) => item.id),
-      incompleteLabels: releaseQa.filter((item) => !item.completed).map((item) => item.label),
-      missingEvidenceIds: releaseQa.filter((item) => !item.evidenceNote).map((item) => item.id),
-      missingEvidenceLabels: releaseQa.filter((item) => !item.evidenceNote).map((item) => item.label),
-      ready:
-        releaseQa.length > 0 &&
-        releaseQa.every((item) => item.completed && Boolean(item.evidenceNote)),
-      totalCount: releaseQa.length,
-    },
     ui: {
       activeTab: input.activeTab,
       chronicleClueStatusFilter: input.chronicleClueStatusFilter,

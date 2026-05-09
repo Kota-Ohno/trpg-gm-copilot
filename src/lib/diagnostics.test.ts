@@ -3,12 +3,9 @@ import { createInitialCampaignState, normalizeCampaignLibraryState } from "./cam
 import {
   buildCampaignOperationalRisks,
   buildProductSafetyChecklist,
-  buildReleaseQaChecklist,
   buildReviewQualityDiagnostics,
   buildSessionStorageDiagnostics,
   buildSupportDiagnostics,
-  formatReleaseQaMarkdown,
-  releaseQaItemIds,
 } from "./diagnostics";
 import type { SupportDiagnosticsInput } from "./diagnostics";
 
@@ -64,74 +61,6 @@ function createSupportDiagnosticsInput(
   };
 }
 
-describe("buildReleaseQaChecklist", () => {
-  it("lists the manual release gates that cannot be fully covered by unit tests", () => {
-    expect(buildReleaseQaChecklist()).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: "local-check" }),
-      expect.objectContaining({ id: "starter-flow" }),
-      expect.objectContaining({ id: "ten-second-comprehension" }),
-      expect.objectContaining({ id: "no-provider-activation" }),
-      expect.objectContaining({ id: "gm-workflow" }),
-      expect.objectContaining({ id: "data-portability" }),
-      expect.objectContaining({ id: "responsive-ui" }),
-      expect.objectContaining({ id: "asset-manifest-budget" }),
-      expect.objectContaining({ id: "privacy-network-boundary" }),
-      expect.objectContaining({ id: releaseQaItemIds.extractionProviderLiveCheck }),
-      expect.objectContaining({ id: releaseQaItemIds.transcriptionProviderLiveCheck }),
-    ]));
-    expect(buildReleaseQaChecklist()).toHaveLength(11);
-  });
-});
-
-describe("formatReleaseQaMarkdown", () => {
-  it("exports release QA gates as a portable checklist", () => {
-    const markdown = formatReleaseQaMarkdown([
-      { id: "local-check", label: "ローカルチェック", detail: "pnpm run check を実行する。" },
-      { id: "provider-live-check", label: "Provider実地確認", detail: "ユーザー所有のAPIキーで確認する。" },
-    ], "Loreline Release QA", ["local-check"], {
-      "local-check": "12 files / 118 tests passed",
-    }, "2026-05-05T00:00:00.000Z");
-
-    expect(markdown).toContain("# Loreline Release QA");
-    expect(markdown).toContain("Exported at: 2026-05-05T00:00:00.000Z");
-    expect(markdown).toContain("Status: Incomplete");
-    expect(markdown).toContain("Completed: 1/2");
-    expect(markdown).toContain("Evidence: 1/2");
-    expect(markdown).toContain("Incomplete checks: Provider実地確認");
-    expect(markdown).toContain("Missing evidence: Provider実地確認");
-    expect(markdown).toContain("- [x] ローカルチェック: pnpm run check を実行する。");
-    expect(markdown).toContain("  - Evidence: 12 files / 118 tests passed");
-    expect(markdown).toContain("- [ ] Provider実地確認: ユーザー所有のAPIキーで確認する。");
-  });
-
-  it("redacts secrets from portable evidence notes", () => {
-    const markdown = formatReleaseQaMarkdown([
-      { id: "provider-live-check", label: "Provider実地確認", detail: "ユーザー所有のAPIキーで確認する。" },
-    ], "Loreline Release QA", ["provider-live-check"], {
-      "provider-live-check": "OpenAI ok with api_key=sk-testSecretValue123456 and Authorization: Bearer liveSecretToken123456",
-    });
-
-    expect(markdown).toContain("api_key=***");
-    expect(markdown).toContain("Authorization=***");
-    expect(markdown).not.toContain("sk-testSecretValue123456");
-    expect(markdown).not.toContain("liveSecretToken123456");
-  });
-
-  it("marks release QA markdown ready only when every check has evidence", () => {
-    const markdown = formatReleaseQaMarkdown([
-      { id: "local-check", label: "ローカルチェック", detail: "pnpm run check を実行する。" },
-    ], "Loreline Release QA", ["local-check"], {
-      "local-check": "123 tests passed",
-    }, "2026-05-05T00:00:00.000Z");
-
-    expect(markdown).toContain("Status: Ready");
-    expect(markdown).toContain("Completed: 1/1");
-    expect(markdown).toContain("Evidence: 1/1");
-    expect(markdown).not.toContain("Incomplete checks:");
-    expect(markdown).not.toContain("Missing evidence:");
-  });
-});
-
 describe("buildProductSafetyChecklist", () => {
   it("summarizes operational safety and continuity risks", () => {
     const checklist = buildProductSafetyChecklist({
@@ -140,9 +69,6 @@ describe("buildProductSafetyChecklist", () => {
       playerHandoutAvailable: true,
       playerHandoutWarningCount: 1,
       providerSecretsExcludedFromExports: true,
-      releaseQaCompletedCount: 2,
-      releaseQaEvidenceCount: 1,
-      releaseQaTotalCount: 6,
       reviewQualityDebtCount: 2,
       storageUsagePercent: 83,
       transcriptionProviderReady: true,
@@ -156,49 +82,16 @@ describe("buildProductSafetyChecklist", () => {
       expect.objectContaining({ id: "review-quality", status: "warning" }),
       expect.objectContaining({ id: "extraction-provider", status: "warning" }),
       expect.objectContaining({ id: "transcription-provider", status: "ok" }),
-      expect.objectContaining({ id: "release-qa", status: "warning" }),
       expect.objectContaining({ id: "ui-manual-check", status: "warning" }),
     ]));
+    expect(checklist.find((item) => item.id === "provider-secrets")?.detail).toContain("永続保存せず");
     expect(checklist.find((item) => item.id === "player-handout")?.detail).toContain("1件");
-    expect(checklist.find((item) => item.id === "release-qa")?.detail).toContain("2/6件");
-    expect(checklist.find((item) => item.id === "release-qa")?.detail).toContain("証跡 1件");
-  });
-
-  it("requires both completed checks and evidence before release QA is ok", () => {
-    const baseInput = {
-      backupStatus: { ageDays: 1, label: "1日前にバックアップ", needsBackup: false },
-      extractionProviderReady: true,
-      playerHandoutAvailable: true,
-      playerHandoutWarningCount: 0,
-      providerSecretsExcludedFromExports: true,
-      releaseQaCompletedCount: 6,
-      releaseQaTotalCount: 6,
-      reviewQualityDebtCount: 0,
-      storageUsagePercent: 10,
-      transcriptionProviderReady: true,
-    };
-
-    expect(buildProductSafetyChecklist({
-      ...baseInput,
-      releaseQaEvidenceCount: 5,
-    }).find((item) => item.id === "release-qa")?.status).toBe("warning");
-
-    expect(buildProductSafetyChecklist({
-      ...baseInput,
-      releaseQaEvidenceCount: 6,
-    }).find((item) => item.id === "release-qa")?.status).toBe("ok");
   });
 });
 
 describe("buildSupportDiagnostics", () => {
   it("exports support-safe state, provider readiness, storage, and campaign stats", () => {
-    const input = createSupportDiagnosticsInput({
-      releaseQaCompletedIds: ["local-check"],
-      releaseQaEvidenceNotes: {
-        "local-check":
-          "12 files / 118 tests passed with api_key=sk-testSecretValue123456; Authorization: Bearer liveSecretToken123456",
-      },
-    });
+    const input = createSupportDiagnosticsInput();
     const diagnostics = buildSupportDiagnostics(input, "2026-05-05T00:00:00.000Z");
 
     expect(diagnostics).toMatchObject({
@@ -241,70 +134,37 @@ describe("buildSupportDiagnostics", () => {
     expect(diagnostics.reviewQuality).toEqual([]);
     expect(diagnostics.productSafety).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: "provider-secrets", status: "ok" }),
-      expect.objectContaining({ id: "release-qa", status: "warning" }),
       expect.objectContaining({ id: "ui-manual-check", status: "warning" }),
     ]));
-    expect(diagnostics.releaseQa).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        completed: true,
-        evidenceNote: "12 files / 118 tests passed with api_key=***; Authorization=***",
-        id: "local-check",
-      }),
-      expect.objectContaining({ completed: false, id: releaseQaItemIds.extractionProviderLiveCheck }),
-      expect.objectContaining({ completed: false, id: releaseQaItemIds.transcriptionProviderLiveCheck }),
-    ]));
-    expect(diagnostics.releaseQaSummary).toEqual({
-      completedCount: 1,
-      evidenceCount: 1,
-      incompleteIds: expect.arrayContaining([
-        releaseQaItemIds.extractionProviderLiveCheck,
-        releaseQaItemIds.transcriptionProviderLiveCheck,
-      ]),
-      incompleteLabels: expect.arrayContaining([
-        "抽出Provider実地確認",
-        "文字起こしProvider実地確認",
-      ]),
-      missingEvidenceIds: expect.arrayContaining([
-        releaseQaItemIds.extractionProviderLiveCheck,
-        releaseQaItemIds.transcriptionProviderLiveCheck,
-      ]),
-      missingEvidenceLabels: expect.arrayContaining([
-        "抽出Provider実地確認",
-        "文字起こしProvider実地確認",
-      ]),
-      ready: false,
-      totalCount: buildReleaseQaChecklist().length,
-    });
-    expect(JSON.stringify(diagnostics)).not.toContain("sk-testSecretValue123456");
-    expect(JSON.stringify(diagnostics)).not.toContain("liveSecretToken123456");
+    expect(Object.keys(diagnostics)).not.toContain(["release", "Qa"].join(""));
+    expect(Object.keys(diagnostics)).not.toContain(["release", "Qa", "Summary"].join(""));
     expect(diagnostics.sessionStorage[0].totalBytes).toBeGreaterThan(0);
   });
 
-  it("marks release QA ready only when every gate is completed with evidence", () => {
-    const releaseQaChecklist = buildReleaseQaChecklist();
-    const completedIds = releaseQaChecklist.map((item) => item.id);
-    const evidenceNotes = Object.fromEntries(
-      releaseQaChecklist.map((item) => [item.id, `${item.label} evidence`]),
-    );
-
-    const diagnostics = buildSupportDiagnostics(createSupportDiagnosticsInput({
-      releaseQaCompletedIds: completedIds,
-      releaseQaEvidenceNotes: evidenceNotes,
-    }), "2026-05-05T00:00:00.000Z");
-
-    expect(diagnostics.releaseQaSummary).toEqual({
-      completedCount: releaseQaChecklist.length,
-      evidenceCount: releaseQaChecklist.length,
-      incompleteIds: [],
-      incompleteLabels: [],
-      missingEvidenceIds: [],
-      missingEvidenceLabels: [],
-      ready: true,
-      totalCount: releaseQaChecklist.length,
+  it("does not serialize secret-like fields from contaminated campaign state", () => {
+    const input = createSupportDiagnosticsInput();
+    const contaminatedSession = {
+      ...input.currentSession,
+      apiKey: "sk-session-diagnostic",
+    };
+    const contaminatedCampaign = {
+      ...input.campaignState,
+      providerSecrets: { openAiApiKey: "sk-campaign-diagnostic" },
+      sessions: [contaminatedSession],
+    };
+    const diagnostics = buildSupportDiagnostics({
+      ...input,
+      campaignLibrary: {
+        activeCampaignId: contaminatedCampaign.id,
+        campaigns: [contaminatedCampaign],
+      } as unknown as SupportDiagnosticsInput["campaignLibrary"],
+      campaignState: contaminatedCampaign as unknown as SupportDiagnosticsInput["campaignState"],
+      currentSession: contaminatedSession as unknown as SupportDiagnosticsInput["currentSession"],
     });
-    expect(diagnostics.productSafety).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: "release-qa", status: "ok" }),
-    ]));
+
+    expect(JSON.stringify(diagnostics)).not.toContain("sk-");
+    expect(diagnostics).not.toHaveProperty("campaignLibrary");
+    expect(diagnostics).not.toHaveProperty("campaignState");
   });
 });
 
