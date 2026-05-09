@@ -36,6 +36,7 @@ SubAgents were not used because the user did not explicitly request delegation i
 - `SECURITY.md`
 - `public/_headers`
 - `public/.well-known/security.txt`
+- `scripts/verify-release-files.mjs`
 - `docs/research/release-infrastructure-research.md`
 - `docs/release-infrastructure.md`
 - `docs/release-checklist.md`
@@ -47,8 +48,7 @@ SubAgents were not used because the user did not explicitly request delegation i
 
 ```sh
 pnpm run check
-test -f dist/_headers
-test -f dist/.well-known/security.txt
+node scripts/verify-release-files.mjs
 pnpm audit --prod
 pnpm audit --dev
 ```
@@ -59,8 +59,7 @@ pnpm audit --dev
   - 15 test files passed.
   - 131 tests passed.
   - Production build completed.
-  - `dist/_headers` existed after build.
-  - `dist/.well-known/security.txt` existed after build.
+  - `scripts/verify-release-files.mjs` verified `dist/_headers` and `dist/.well-known/security.txt` contents.
   - `pnpm audit --prod` reported no known vulnerabilities.
   - `pnpm audit --dev` reported no known vulnerabilities.
 - `Release Check` GitHub Actions workflow was added so the same gate runs on pull requests and pushes to release/main branches.
@@ -71,6 +70,10 @@ pnpm audit --dev
 - Risk: CSP could block arbitrary custom remote provider endpoints. Disposition: intentional for first release; docs say not to advertise arbitrary remote endpoints until CSP and privacy review are updated.
 - Risk: Security headers could break supported local/Web Speech provider flows. Disposition: removed `upgrade-insecure-requests` for `http://localhost` endpoints and allow `microphone=(self)` for browser-mediated speech recognition.
 - Risk: CI can consume GitHub Actions minutes on private repositories. Disposition: workflow is scoped to PRs and release/main pushes, has a 10-minute timeout, and runs only the existing release gate.
+- Codex review finding: `security.txt` lacked required `Expires`. Disposition: added `Expires: 2027-05-09T00:00:00Z` and release-file verification.
+- Codex review finding: `release:check` used POSIX-only `test -f`. Disposition: replaced file checks with cross-platform Node verifier.
+- Codex review finding: workflow did not run on release branch pushes. Disposition: added `release/**` to push branches.
+- Codex review finding: release gate only checked file existence. Disposition: verifier now asserts expected header and security.txt content.
 - Risk: Terms/privacy files are not formal legal advice. Disposition: `TERMS.md` says this is a launch baseline and not a legal-review substitute.
 - Risk: Static hosting logs still exist even without app analytics. Disposition: `PRIVACY.md` discloses hosting-provider request metadata.
 - Risk: `THIRD_PARTY_NOTICES.md` covers direct dependencies only. Disposition: file explicitly says transitive dependencies are in `pnpm-lock.yaml` and review should be rerun before release/dependency updates.
