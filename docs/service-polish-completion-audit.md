@@ -3,7 +3,7 @@
 Date: 2026-05-09
 Branch: `feature/purge-release-qa-and-name-review`
 PR: https://github.com/Kota-Ohno/trpg-gm-copilot/pull/3
-Status: In final review
+Status: Complete
 
 ## Objective Restated
 
@@ -21,15 +21,14 @@ Finish `つぎたく` as a Japan-first TRPG GM workbench by grounding product de
 | API-key risk minimization. | `src/App.tsx`, `src/components/provider-settings-card.tsx`, `src/lib/campaign.ts`, `src/lib/diagnostics.ts`, `src/lib/extraction-providers.ts`, `src/lib/transcription-providers.ts`, tests. | Provider keys are session-only; legacy storage keys are removed; unknown secret-like JSON fields are stripped from normalization, exports, and diagnostics serialization; provider error messages redact `Bearer ...` and `sk-...` before display. | Covered |
 | Tests and build quality. | Latest `npx pnpm@11.0.8 run check`: 15 test files, 131 tests, production build. `git diff --check origin/feature/voice-transcription-research...HEAD` passed. | Focused regression tests cover provider copy, diagnostics, export sanitization, contrast tokens, unknown secret-field stripping, provider error redaction, and landmark accessibility labels; patch whitespace is clean. | Covered |
 | Dependency vulnerability check. | `npx pnpm@11.0.8 audit --prod` and `npx pnpm@11.0.8 audit --dev`. | Both reported no known vulnerabilities. | Covered |
-| Enemy/adversarial review. | Manual review found and fixed unknown-field secret smuggling and provider error-message secret echoing; PR `@codex review` returned no major issues on earlier patch sets. | Codex is the selected external review path. Await the latest Codex response before marking complete. | In progress |
+| Enemy/adversarial review. | Manual review found and fixed unknown-field secret smuggling and provider error-message secret echoing; latest PR `@codex review` on HEAD `162dc3b` returned no major issues at 2026-05-09T00:38:14Z. | Codex is the selected external review path and latest HEAD is clean. | Covered |
 | Commit/push appropriate granularity. | Git log on PR branch. | Security, visual, docs, accessibility, and contrast work are separate commits. | Covered |
 | PR state. | `gh pr view 3`: PR open and mergeable; GitGuardian success. | PR exists and is mergeable. | Covered |
 
 ## Missing Or Weakly Verified Items
 
 - Manual assistive-technology testing is not implemented. Current evidence is automated token contrast coverage, rendered smoke screenshots, public-entry axe, and workbench axe.
-- Latest Codex review is pending after the provider error redaction hardening. Earlier Codex review completed with no major issues.
 
 ## Current Decision
 
-Do not mark the goal complete yet. Wait for the latest Codex review, inspect any feedback, and only mark complete after the review is clean or all findings are fixed.
+All explicit objective requirements are covered by durable artifacts, implementation changes, automated checks, security hardening, accessibility verification, and latest Codex review. Manual assistive-technology testing remains a future depth check, but the requested color/accessibility work has direct automated and rendered evidence.
