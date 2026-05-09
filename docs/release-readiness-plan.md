@@ -35,6 +35,7 @@ SubAgents were not used because the user did not explicitly request delegation i
 - `TERMS.md`
 - `SECURITY.md`
 - `public/_headers`
+- `public/.well-known/security.txt`
 - `docs/research/release-infrastructure-research.md`
 - `docs/release-infrastructure.md`
 - `docs/release-checklist.md`
@@ -46,6 +47,7 @@ SubAgents were not used because the user did not explicitly request delegation i
 ```sh
 pnpm run check
 test -f dist/_headers
+test -f dist/.well-known/security.txt
 pnpm audit --prod
 pnpm audit --dev
 ```
@@ -57,6 +59,7 @@ pnpm audit --dev
   - 131 tests passed.
   - Production build completed.
   - `dist/_headers` existed after build.
+  - `dist/.well-known/security.txt` existed after build.
   - `pnpm audit --prod` reported no known vulnerabilities.
   - `pnpm audit --dev` reported no known vulnerabilities.
 

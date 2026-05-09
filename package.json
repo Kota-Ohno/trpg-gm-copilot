@@ -11,7 +11,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
     "check": "pnpm run test && pnpm run build",
-    "release:check": "pnpm run check && test -f dist/_headers && pnpm audit --prod && pnpm audit --dev"
+    "release:check": "pnpm run check && test -f dist/_headers && test -f dist/.well-known/security.txt && pnpm audit --prod && pnpm audit --dev"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.4",

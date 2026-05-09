@@ -1,0 +1,3 @@
+Contact: https://github.com/Kota-Ohno/trpg-gm-copilot/security/advisories/new
+Policy: https://github.com/Kota-Ohno/trpg-gm-copilot/blob/main/SECURITY.md
+Preferred-Languages: ja, en

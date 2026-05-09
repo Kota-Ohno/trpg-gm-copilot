@@ -26,6 +26,7 @@ Scope: first public static release
 - [ ] `pnpm audit --dev` reports no known vulnerabilities.
 - [ ] `pnpm run build` emits `dist/`.
 - [ ] `dist/_headers` exists and contains security headers.
+- [ ] `dist/.well-known/security.txt` exists.
 
 ## Privacy And Security
 
@@ -69,6 +70,7 @@ Scope: first public static release
 - [ ] No runtime environment variables are required.
 - [ ] `pages.dev` URL opens in a fresh browser profile.
 - [ ] Response headers include the expected security headers.
+- [ ] `/.well-known/security.txt` is reachable after deployment.
 - [ ] Public URL smoke test passes before custom domain setup.
 
 ## Post-Release

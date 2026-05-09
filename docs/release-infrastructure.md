@@ -27,6 +27,7 @@ Publish `つぎたく` as a low-cost static web app while preserving the local-f
 - `TERMS.md`: no-warranty, user responsibility, provider responsibility, and no hosted data recovery.
 - `SECURITY.md`: security reporting and sensitive-data handling.
 - `public/_headers`: Cloudflare Pages security headers.
+- `public/.well-known/security.txt`: deployed security-report discovery file.
 - `docs/release-checklist.md`: public-release gate checklist.
 
 ## Cloudflare Pages Setup
