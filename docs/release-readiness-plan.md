@@ -41,6 +41,7 @@ SubAgents were not used because the user did not explicitly request delegation i
 - `docs/release-checklist.md`
 - `README.md`
 - `package.json`
+- `.github/workflows/release-check.yml`
 
 ## Verification Commands
 
@@ -62,11 +63,13 @@ pnpm audit --dev
   - `dist/.well-known/security.txt` existed after build.
   - `pnpm audit --prod` reported no known vulnerabilities.
   - `pnpm audit --dev` reported no known vulnerabilities.
+- `Release Check` GitHub Actions workflow was added so the same gate runs on pull requests and pushes to release/main branches.
 
 ## Adversarial Review Notes
 
 - Risk: CSP could block arbitrary custom remote provider endpoints. Disposition: intentional for first release; docs say not to advertise arbitrary remote endpoints until CSP and privacy review are updated.
 - Risk: Security headers could break supported local/Web Speech provider flows. Disposition: removed `upgrade-insecure-requests` for `http://localhost` endpoints and allow `microphone=(self)` for browser-mediated speech recognition.
+- Risk: CI can consume GitHub Actions minutes on private repositories. Disposition: workflow is scoped to PRs and release/main pushes, has a 10-minute timeout, and runs only the existing release gate.
 - Risk: Terms/privacy files are not formal legal advice. Disposition: `TERMS.md` says this is a launch baseline and not a legal-review substitute.
 - Risk: Static hosting logs still exist even without app analytics. Disposition: `PRIVACY.md` discloses hosting-provider request metadata.
 - Risk: `THIRD_PARTY_NOTICES.md` covers direct dependencies only. Disposition: file explicitly says transitive dependencies are in `pnpm-lock.yaml` and review should be rerun before release/dependency updates.

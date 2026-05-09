@@ -1,0 +1,37 @@
+name: Release Check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - feature/voice-transcription-research
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  release-check:
+    name: pnpm release:check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.8
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Release check
+        run: pnpm run release:check

@@ -22,6 +22,7 @@ Scope: first public static release
 
 - [ ] `pnpm install` succeeds.
 - [ ] `pnpm run check` succeeds.
+- [ ] GitHub Actions `Release Check` succeeds on the release PR.
 - [ ] `pnpm audit --prod` reports no known vulnerabilities.
 - [ ] `pnpm audit --dev` reports no known vulnerabilities.
 - [ ] `pnpm run build` emits `dist/`.
