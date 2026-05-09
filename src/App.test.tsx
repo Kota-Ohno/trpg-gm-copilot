@@ -22,6 +22,7 @@ describe("App smoke render", () => {
 
     const html = renderToString(<App />);
 
+    expect(html).toContain('aria-label="公開入口"');
     expect(html).toContain("5分で試す");
     expect(html).toContain("ワークベンチへ");
     expect(html).toContain("灯台サンプル");
@@ -41,6 +42,22 @@ describe("App smoke render", () => {
     expect(html).toContain("即応パレット");
     expect(html).toContain("次回準備");
     expect(html).toContain("公開入口");
+    expect(html).toContain('aria-label="キャンペーンとセッション"');
+    expect(html).toContain('aria-label="サイドデスク"');
+  });
+
+  it("renders session navigation landmarks from persisted UI preferences", () => {
+    stubLocalStorage({
+      "chronicle-gm.ui-preferences.v1": JSON.stringify({
+        activeTab: "home",
+        navigationPanelMode: "sessions",
+      }),
+    });
+
+    const html = renderToString(<App />);
+
+    expect(html).toContain('aria-label="キャンペーンとセッション"');
+    expect(html).toContain('aria-label="記憶ナビ"');
   });
 
   it("renders operational check surfaces from persisted UI preferences", () => {
