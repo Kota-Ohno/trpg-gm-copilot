@@ -51,8 +51,8 @@ SubAgents were not used because current runtime instructions permit them only wh
 - Color contrast spot check found white text on `public-seaglass` at 3.34:1; the token was darkened to 4.87:1, and `src/styles-contrast.test.ts` now keeps core CSS token pairs above WCAG AA for normal text.
 - Automated axe smoke checks now cover both public entry and the localStorage-enabled workbench. Public entry reported 0 violations via `@axe-core/cli`; workbench initially reported `landmark-unique`, then passed with 0 violations after adding unique accessible labels to the sidebars and memory navigation.
 - `git diff --check origin/feature/voice-transcription-research...HEAD`, `npx pnpm@11.0.8 audit --prod`, and `npx pnpm@11.0.8 audit --dev` passed.
-- PR `@codex review` completed with no major issues. CodeRabbit remains unavailable/skipped on this non-default base branch until base-branch config is in place or the service limit clears.
-- Completion audit is tracked in `docs/service-polish-completion-audit.md`; goal is intentionally not marked complete while CodeRabbit/external-review uncertainty remains.
+- PR `@codex review` completed with no major issues on the earlier patch set and was re-triggered for the latest HEAD after the final accessibility updates.
+- Completion audit is tracked in `docs/service-polish-completion-audit.md`; goal is intentionally not marked complete while the latest Codex review is pending.
 
 ## Adversarial Review
 
