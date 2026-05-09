@@ -64,6 +64,7 @@ pnpm audit --dev
   - `pnpm audit --prod` reported no known vulnerabilities.
   - `pnpm audit --dev` reported no known vulnerabilities.
 - `Release Check` GitHub Actions workflow was added so the same gate runs on pull requests and pushes to release/main branches.
+- GitHub Actions `Release Check / pnpm release:check` passed on PR #4 at 2026-05-09T01:15:00Z.
 
 ## Adversarial Review Notes
 
