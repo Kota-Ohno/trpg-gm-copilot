@@ -16,6 +16,30 @@
       "prompt": "Overhead premium editorial illustration of a refined TRPG GM desk at night, with campaign map, pinned clue threads, handwritten notes, dice, lantern glow, and luminous route lines converging messy log fragments into an organized next-session path; wide composition with dark negative space for UI copy; no text, letters, logos, watermark, faces, screens, or app UI."
     },
     {
+      "id": "x-profile-avatar",
+      "file": "x-profile-avatar.png",
+      "sourceFile": "generated_images/ig_044a305775a3d299016a0129776f588191b7534a422def413f.png",
+      "dimensions": { "width": 400, "height": 400 },
+      "optimizedBytes": 209612,
+      "budgetBytes": 512000,
+      "classification": "non-decorative",
+      "alt": "つぎたくのプロフィール画像。リングノート、経路、次回へ進む矢印を組み合わせたエンブレム。",
+      "intendedUse": "X profile image for the public launch account.",
+      "prompt": "Create a clean, distinctive profile image for the Japanese TRPG GM support tool named つぎたく. A simple emblem combining a tabletop RPG session notebook, a small route/continuity thread, and a next-session marker. It should imply session log to next preparation without showing a person. Polished modern app icon, warm Japanese indie tool feeling, vector-friendly but rendered as high-quality raster. Clear silhouette, minimal detail, no clutter. Ivory paper, sumi ink charcoal, vermilion accent, muted teal accent. Centered emblem, generous safe padding, strong contrast, readable at 48px. No text, letters, Japanese characters, watermark, dice as the main symbol, fantasy character portraits, anime characters, dragons, photorealism, busy tabletop clutter, fake UI, or tiny illegible text."
+    },
+    {
+      "id": "x-header-banner",
+      "file": "x-header-banner.png",
+      "sourceFile": "generated_images/ig_044a305775a3d299016a0129bc82e881919cacf32e2f5ca59f.png",
+      "dimensions": { "width": 1500, "height": 500 },
+      "optimizedBytes": 1081439,
+      "budgetBytes": 1572864,
+      "classification": "decorative",
+      "alt": "",
+      "intendedUse": "X header image for the public launch account.",
+      "prompt": "Create a polished header image for the Japanese TRPG GM support tool つぎたく. A warm tabletop GM workspace after a session: open session notebook, neatly organized index cards, route lines connecting clues and NPC notes, next-session prep sheets, and a calm desktop atmosphere. Communicate from session log to next preparation. Clear negative space suitable for profile-avatar overlap and X header cropping, visual focus slightly right of center, clean breathing room on the left and lower-left. Sophisticated editorial illustration, semi-flat painterly raster, Japanese indie productivity tool, tactile paper texture, crisp enough for social media header. Ivory paper, charcoal ink, vermilion markers, muted teal thread lines, a little soft gold light. 3:1 wide banner, safe central band for X header cropping, no critical details near edges. No text, letters, Japanese characters, watermark, character portraits, anime faces, dragons, dice as the main focus, cluttered battle map, tiny illegible writing, screenshots, or photorealistic stock-photo look."
+    },
+    {
       "id": "mode-investigation",
       "file": "mode-investigation.jpg",
       "sourceFile": "generated_images/ig_0439631b8547edb00169fddcd7020c81918e1d3d6b7f6bb69c.png",

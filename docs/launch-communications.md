@@ -3,6 +3,8 @@
 Date: 2026-05-09
 Public URL: https://trpg-gm-copilot.pages.dev/
 Primary channel: X
+Profile image: `src/assets/public-release/x-profile-avatar.png`
+Header image: `src/assets/public-release/x-header-banner.png`
 
 ## Objective
 
@@ -105,6 +107,8 @@ Bug report response:
 
 ## Operating Plan
 
+- Use `src/assets/public-release/x-profile-avatar.png` as the account profile image.
+- Use `src/assets/public-release/x-header-banner.png` as the account header image.
 - Launch from the account that can keep replying for the first 24 hours.
 - Post with one screenshot or short screen recording if available; otherwise post text-only first and add media in a reply after smoke verification.
 - Pin the launch post while the Pages URL is the primary public entry.
